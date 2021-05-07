@@ -1,0 +1,24 @@
+{
+  "name": "ssb meta feeds",
+  "description": "",
+  "version": "0.0.1",
+  "homepage": "https://github.com/ssb-ngi-pointer/ssb-meta-feeds",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ssb-ngi-pointer/ssb-meta-feeds.git"
+  },
+  "dependencies": {
+    "derive-key": "^1.0.1",
+    "ssb-keys": "^8.1.0"
+  },
+  "devDependencies": {
+    "tap-bail": "^1.0.0",
+    "tap-spec": "^5.0.0",
+    "tape": "^5.2.2"
+  },
+  "scripts": {
+    "test": "tape test/*.js | tap-bail | tap-spec"
+  },
+  "author": "Anders Rune Jensen <arj03@protonmail.ch>",
+  "license": "LGPL-3.0"
+}
