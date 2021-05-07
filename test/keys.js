@@ -11,7 +11,7 @@ test('generate a seed', (t) => {
 test('generate a key for a feed', (t) => {
   const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
   seed = Buffer.from(seed_hex, 'hex')
-  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feed-seed-v1:metafeed')
+  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
   t.equals(feedKey.id, '@tvebdYZCnNd4VuJUVs4j38QznLUXpHa7n/QYeLALVBM=.ed25519', "correct feed generated")
   
   t.end()
