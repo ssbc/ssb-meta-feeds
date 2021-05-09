@@ -4,7 +4,7 @@ const keys = require('../keys')
 
 test('add a feed to metafeed', (t) => {
   const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
-  seed = Buffer.from(seed_hex, 'hex')
+  const seed = Buffer.from(seed_hex, 'hex')
   const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
   const sfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed/main')
 
@@ -19,7 +19,7 @@ test('add a feed to metafeed', (t) => {
 
 test('tombstone a feed in a metafeed', (t) => {
   const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
-  seed = Buffer.from(seed_hex, 'hex')
+  const seed = Buffer.from(seed_hex, 'hex')
   const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
   const sfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed/main')
 
@@ -37,4 +37,3 @@ test('tombstone a feed in a metafeed', (t) => {
 
   t.end()
 })
-
