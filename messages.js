@@ -18,3 +18,12 @@ exports.generateAnnounceMsg = function(metafeedKey, sbot, cb) {
     cb(null, msg)
   })
 }
+
+exports.generateSeedSaveMsg = function(metafeedId, mainId, seed) {
+  return {
+    type: 'metafeed/seed',
+    metafeed: metafeedId,
+    seed: seed.toString('hex'),
+    recps: [mainId]
+  }
+}

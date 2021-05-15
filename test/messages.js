@@ -48,12 +48,29 @@ test('metafeed announce', (t) => {
                 t.equal(msg.tangle.metafeed.root, announceMsg.key, 'correct root')
                 t.equal(msg.tangle.metafeed.previous, announceMsg2.key, 'correct previous')
 
-                sbot.close(t.end)
+                t.end()
               })
             })
           })
         })
       })
+    })
+  })
+})
+
+test('metafeed seed save', (t) => {
+  const msg = messages.generateSeedSaveMsg(mfKey.id, sbot.id, seed)
+
+  t.equal(msg.metafeed, mfKey.id, 'correct metafeed')
+  t.equal(msg.seed.length, 64, 'correct seed')
+  t.equal(msg.recps.length, 1, 'recps for private') 
+  t.equal(msg.recps[0], sbot.id, 'correct recps')
+
+  db.publish(msg, (err, publish) => {
+    t.equal(typeof publish.value.content, 'string', 'encrypted')
+    db.get(publish.key, (err, dbPublish) => {
+      t.equal(dbPublish.content.seed, seed_hex, 'correct seed extracted')
+      sbot.close(t.end)
     })
   })
 })
