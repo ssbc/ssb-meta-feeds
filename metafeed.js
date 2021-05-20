@@ -2,8 +2,8 @@ const ssbKeys = require('ssb-keys')
 
 // FIXME: define and use json schema
 
-exports.add = function(feedformat, feedpurpose, subfeedKey, metafeedKey) {
-  const msg = {
+exports.add = function(feedformat, feedpurpose, subfeedKey, metafeedKey, metadata) {
+  let msg = {
     type: 'metafeed/add',
     feedformat,
     feedpurpose,
@@ -14,6 +14,10 @@ exports.add = function(feedformat, feedpurpose, subfeedKey, metafeedKey) {
       metafeed: { root: null, previous: null }
     }
   }
+
+  if (metadata)
+    msg = Object.assign(msg, metadata)
+
   msg.subfeedSignature = ssbKeys.sign(subfeedKey, JSON.stringify(msg))
 
   return msg

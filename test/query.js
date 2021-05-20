@@ -29,7 +29,15 @@ test('metafeed with multiple feeds', (t) => {
   const mainKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed/main')
   const msg = metafeed.add('classic', 'main', mainKey, mfKey)
 
-  const msg2 = metafeed.add('classic', 'index', indexKey, mfKey)
+  const msg2 = metafeed.add('classic', 'index', indexKey, mfKey, {
+    query: JSON.stringify({
+      op: 'and',
+      data: [
+        { op: 'type', data: 'contact' },
+        { op: 'author', data: mainKey.id}
+      ]
+    })
+  })
   
   db.publish(msg, (err) => {
     db.publish(msg2, (err, m) => {
@@ -58,8 +66,15 @@ test('metafeed with tombstones', (t) => {
         t.equal(hydrated.feeds[0].feedpurpose, 'main')
         t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
         t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
-        sbot.close(t.end)
+        t.end()
       })
     })
+  })
+})
+
+test('index metafeed', (t) => {
+  sbot.metafeeds.getMetadata(indexKey.id, (err, content) => {
+    t.equal(JSON.parse(content.query).op, 'and', "has query")
+    sbot.close(t.end)
   })
 })

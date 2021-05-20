@@ -8,7 +8,9 @@
     "url": "git://github.com/ssb-ngi-pointer/ssb-meta-feeds.git"
   },
   "dependencies": {
+    "bipf": "^1.5.1",
     "derive-key": "^1.0.1",
+    "jitdb": "^3.1.4",
     "pull-stream": "^3.6.14",
     "ssb-db2": "^2.1.2",
     "ssb-keys": "^8.1.0"
