@@ -39,7 +39,7 @@ exports.init = function (sbot, config) {
 
           results = results.filter(msg => msg.value.content.type === 'metafeed/add')
           // FIXME: handle multiple results properly?
-          cb(null, results[0].value.content)
+          cb(null, results.length > 0 ? results[0].value.content : null)
         })
       },
 
