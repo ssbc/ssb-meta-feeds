@@ -15,7 +15,7 @@ rimraf.sync(dir)
 
 let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
-  .use(require('../query'))
+  .use(require('../'))
   .call(null, {
     keys: mfKey,
     path: dir,
@@ -43,7 +43,7 @@ test('metafeed with multiple feeds', (t) => {
     db.publish(msg2, (err, m) => {
       indexMsgId = m.key
       db.onDrain('base', () => {
-        sbot.metafeeds.hydrate(mfKey.id, (err, hydrated) => {
+        sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 2, "multiple feeds")
           t.equal(hydrated.feeds[0].feedpurpose, 'main')
           t.equal(hydrated.feeds[1].feedpurpose, 'index')
@@ -61,7 +61,7 @@ test('metafeed with tombstones', (t) => {
   
   db.publish(msg, (err) => {
     db.onDrain('base', () => {
-      sbot.metafeeds.hydrate(mfKey.id, (err, hydrated) => {
+      sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
         t.equal(hydrated.feeds.length, 1, "single feed")
         t.equal(hydrated.feeds[0].feedpurpose, 'main')
         t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
@@ -73,7 +73,7 @@ test('metafeed with tombstones', (t) => {
 })
 
 test('index metafeed', (t) => {
-  sbot.metafeeds.getMetadata(indexKey.id, (err, content) => {
+  sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
     t.equal(JSON.parse(content.query).op, 'and', "has query")
     sbot.close(t.end)
   })
