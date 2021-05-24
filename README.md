@@ -3,6 +3,16 @@
 An implementation of the [ssb meta feed spec] in JS as a secret stack
 plugin.
 
+```js
+let sbot = SecretStack({ appKey: caps.shs })
+  .use(require('ssb-meta-feeds')) <-- load before db2
+  .use(require('ssb-db2'))
+  .call(null, {
+    keys,
+    path: dir,
+  })
+```
+
 ## keys
 
 Operations related to keys
@@ -39,7 +49,6 @@ Generate a message to be posted on meta feed tombstoning a feed on a
 meta feed.
 
 ```js
-
 sbot.metafeeds.metafeed.tombstone(mainKey, mfKey, (err, tombstoneMsg) => {
   sbot.db.publish(tombstoneMsg, (err) => {
     console.log("main is now tombstoned on meta feed")
@@ -82,14 +91,6 @@ sbot.db.publish(seedSaveMsg, (err) => {
 Gets the stored seed message.
 
 ```js
-let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-meta-feeds'))
-  .use(require('ssb-db2'))
-  .call(null, {
-    keys,
-    path: dir,
-  })
-
 sbot.metafeeds.query.getSeed((err, seed) => {
   console.log("seed buffer", seed)
 })
@@ -100,14 +101,6 @@ sbot.metafeeds.query.getSeed((err, seed) => {
 Gets the metafeed message for a given feed to look up metadata.
 
 ```js
-let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-meta-feeds'))
-  .use(require('ssb-db2'))
-  .call(null, {
-    keys,
-    path: dir,
-  })
-
 sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
   console.log("query used for index feed", JSON.parse(content.query))
 })
@@ -118,14 +111,6 @@ sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
 Gets the current state (active feeds) of a meta feed.
 
 ```js
-let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-meta-feeds'))
-  .use(require('ssb-db2'))
-  .call(null, {
-    keys,
-    path: dir,
-  })
-
 sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
   console.log(hydrated.feeds) // the feeds
   console.log(hydrated.feeds[0].feedpurpose) // 'main'
