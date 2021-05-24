@@ -1,10 +1,9 @@
 const test = require('tape')
-const metafeed = require('../metafeed')
-const keys = require('../keys')
 const rimraf = require('rimraf')
 const SecretStack = require('secret-stack')
 const caps = require('ssb-caps')
 
+const keys = require('../keys')
 const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
 const seed = Buffer.from(seed_hex, 'hex')
 const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
@@ -21,6 +20,7 @@ let sbot = SecretStack({ appKey: caps.shs })
     path: dir,
   })
 let db = sbot.db
+let metafeed = sbot.metafeeds.metafeed
 
 const indexKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed/index')
 let indexMsgId
@@ -57,16 +57,16 @@ test('metafeed with multiple feeds', (t) => {
 test('metafeed with tombstones', (t) => {
   const reason = 'Feed no longer used'
 
-  const msg = metafeed.tombstone(indexKey, indexMsgId, indexMsgId, reason)
-  
-  db.publish(msg, (err) => {
-    db.onDrain('base', () => {
-      sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
-        t.equal(hydrated.feeds.length, 1, "single feed")
-        t.equal(hydrated.feeds[0].feedpurpose, 'main')
-        t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
-        t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
-        t.end()
+  metafeed.tombstone(indexKey, mfKey, reason, (err, msg) => {
+    db.publish(msg, (err) => {
+      db.onDrain('base', () => {
+        sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
+          t.equal(hydrated.feeds.length, 1, "single feed")
+          t.equal(hydrated.feeds[0].feedpurpose, 'main')
+          t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
+          t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
+          t.end()
+        })
       })
     })
   })
@@ -80,7 +80,7 @@ test('index metafeed', (t) => {
 })
 
 test('seed', (t) => {
-  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, sbot.id, seed)
+  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, seed)
   db.publish(msg, (err, publish) => {
     db.onDrain('base', () => {
       sbot.metafeeds.query.getSeed((err, storedSeed) => {

@@ -1,14 +1,12 @@
 const test = require('tape')
-const keys = require('../keys')
+const ssbKeys = require('ssb-keys')
+const path = require('path')
 const rimraf = require('rimraf')
 const SecretStack = require('secret-stack')
 const caps = require('ssb-caps')
 
-const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
-const seed = Buffer.from(seed_hex, 'hex')
-const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
-
 const dir = '/tmp/metafeeds-messages'
+const mainKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
 rimraf.sync(dir)
 
@@ -16,10 +14,15 @@ let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
   .use(require('../'))
   .call(null, {
-    keys: mfKey,
+    keys: mainKey,
     path: dir,
   })
 let db = sbot.db
+let keys = sbot.metafeeds.keys
+
+const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
+const seed = Buffer.from(seed_hex, 'hex')
+const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
 
 test('metafeed announce', (t) => {
   sbot.metafeeds.messages.generateAnnounceMsg(mfKey, (err, msg) => {
@@ -58,7 +61,7 @@ test('metafeed announce', (t) => {
 })
 
 test('metafeed seed save', (t) => {
-  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, sbot.id, seed)
+  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, seed)
 
   t.equal(msg.metafeed, mfKey.id, 'correct metafeed')
   t.equal(msg.seed.length, 64, 'correct seed')

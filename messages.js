@@ -21,12 +21,12 @@ exports.init = function(sbot) {
       })
     },
 
-    generateSeedSaveMsg(metafeedId, mainId, seed) {
+    generateSeedSaveMsg(metafeedId, seed) {
       return {
         type: 'metafeed/seed',
         metafeed: metafeedId,
         seed: seed.toString('hex'),
-        recps: [mainId]
+        recps: [sbot.id]
       }
     }
   }
