@@ -34,6 +34,14 @@ exports.init = function (sbot) {
       })
     },
 
+    getAnnounce(cb) {
+      let query = and(author(sbot.id), type('metafeed/announce'))
+      sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
+        // FIXME: handle multiple results properly?
+        cb(err, results.length > 0 ? results[0]: null)
+      })
+    },
+
     getMetadata(feedId, cb) {
       sbot.db.getJITDB().all(subfeed(feedId), 0, false, false, (err, results) => {
         if (err) return cb(err)

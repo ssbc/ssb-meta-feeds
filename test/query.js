@@ -81,11 +81,25 @@ test('index metafeed', (t) => {
 
 test('seed', (t) => {
   const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, seed)
-  db.publish(msg, (err, publish) => {
+  db.publish(msg, (err) => {
     db.onDrain('base', () => {
       sbot.metafeeds.query.getSeed((err, storedSeed) => {
         t.deepEqual(storedSeed, seed, "correct seed")
-        sbot.close(t.end)
+        t.end()
+      })
+    })
+  })
+})
+
+test('announce', (t) => {
+  sbot.metafeeds.messages.generateAnnounceMsg(mfKey.id, (err, msg) => {
+    db.publish(msg, (err, publishedAnnounce) => {
+      t.error(err, 'no err')
+      db.onDrain('base', () => {
+        sbot.metafeeds.query.getAnnounce((err, storedAnnounce) => {
+          t.equal(publishedAnnounce.key, storedAnnounce.key, "correct announce")
+          sbot.close(t.end)
+        })
       })
     })
   })

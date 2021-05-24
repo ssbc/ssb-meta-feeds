@@ -96,6 +96,16 @@ sbot.metafeeds.query.getSeed((err, seed) => {
 })
 ```
 
+### getAnnounce(cb)
+
+Gets the meta feed announce message on main feed.
+
+```js
+sbot.metafeeds.query.getAnnounce((err, msg) => {
+  console.log("announce msg", msg)
+})
+```
+
 ### getMetadata(feedId, cb)
 
 Gets the metafeed message for a given feed to look up metadata.
