@@ -75,6 +75,18 @@ test('metafeed with tombstones', (t) => {
 test('index metafeed', (t) => {
   sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
     t.equal(JSON.parse(content.query).op, 'and', "has query")
-    sbot.close(t.end)
+    t.end()
+  })
+})
+
+test('seed', (t) => {
+  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, sbot.id, seed)
+  db.publish(msg, (err, publish) => {
+    db.onDrain('base', () => {
+      sbot.metafeeds.query.getSeed((err, storedSeed) => {
+        t.deepEqual(storedSeed, seed, "correct seed")
+        sbot.close(t.end)
+      })
+    })
   })
 })

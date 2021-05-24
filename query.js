@@ -1,5 +1,5 @@
 const pull = require('pull-stream')
-const { author } = require('ssb-db2/operators')
+const { and, author, type } = require('ssb-db2/operators')
 const { seekKey } = require('bipf')
 const { equal } = require('jitdb/operators')
 
@@ -26,6 +26,14 @@ exports.init = function (sbot) {
   }
 
   return {
+    getSeed(cb) {
+      // FIXME: maybe use metafeed id
+      let query = and(author(sbot.id), type('metafeed/seed'))
+      sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
+        cb(err, results.length > 0 ? Buffer.from(results[0].value.content.seed, 'hex'): null)
+      })
+    },
+
     getMetadata(feedId, cb) {
       sbot.db.getJITDB().all(subfeed(feedId), 0, false, false, (err, results) => {
         if (err) return cb(err)

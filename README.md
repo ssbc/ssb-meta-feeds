@@ -50,14 +50,32 @@ sbot.db.publish(seedSaveMsg, (err) => {
 
 ## query
 
+### getSeed(cb)
+
+Gets the stored seed message.
+
+```js
+let sbot = SecretStack({ appKey: caps.shs })
+  .use(require('ssb-meta-feeds'))
+  .use(require('ssb-db2'))
+  .call(null, {
+    keys,
+    path: dir,
+  })
+
+sbot.metafeeds.query.getSeed((err, seed) => {
+  console.log("seed buffer", seed)
+})
+```
+
 ### getMetadata(feedId, cb)
 
 Gets the metafeed message for a given feed to look up metadata.
 
 ```js
 let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-db2'))
   .use(require('ssb-meta-feeds'))
+  .use(require('ssb-db2'))
   .call(null, {
     keys,
     path: dir,
@@ -74,8 +92,8 @@ Gets the current state (active feeds) of a meta feed.
 
 ```js
 let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-db2'))
   .use(require('ssb-meta-feeds'))
+  .use(require('ssb-db2'))
   .call(null, {
     keys,
     path: dir,
