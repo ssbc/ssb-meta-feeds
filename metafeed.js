@@ -12,8 +12,8 @@ exports.init = function(sbot) {
         feedpurpose,
         subfeed: feedKey.id,
         metafeed: metafeedKey.id, 
-        nonce: Date.now(),
-        tangle: {
+        nonce: Date.now(), // FIXME: this must be random bytes
+        tangles: {
           metafeed: { root: null, previous: null }
         }
       }
@@ -38,7 +38,7 @@ exports.init = function(sbot) {
           subfeed: feedKey.id,
           nonce: Date.now(),
           reason,
-          tangle: {
+          tangles: {
             metafeed: { root: results[0].key, previous: results[0].key }
           }
         }

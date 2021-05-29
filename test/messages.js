@@ -27,8 +27,8 @@ const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
 test('metafeed announce', (t) => {
   sbot.metafeeds.messages.generateAnnounceMsg(mfKey, (err, msg) => {
     t.equal(msg.metafeed, mfKey.id, 'correct metafeed')
-    t.equal(msg.tangle.metafeed.root, null, 'no root')
-    t.equal(msg.tangle.metafeed.previous, null, 'no previous')
+    t.equal(msg.tangles.metafeed.root, null, 'no root')
+    t.equal(msg.tangles.metafeed.previous, null, 'no previous')
 
     db.publish(msg, (err, announceMsg) => {
 
@@ -37,8 +37,8 @@ test('metafeed announce', (t) => {
         const mf2Key = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed2')
         sbot.metafeeds.messages.generateAnnounceMsg(mf2Key, (err, msg) => {
           t.equal(msg.metafeed, mf2Key.id, 'correct metafeed')
-          t.equal(msg.tangle.metafeed.root, announceMsg.key, 'correct root')
-          t.equal(msg.tangle.metafeed.previous, announceMsg.key, 'correct previous')
+          t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
+          t.equal(msg.tangles.metafeed.previous, announceMsg.key, 'correct previous')
 
           db.publish(msg, (err, announceMsg2) => {
             
@@ -47,8 +47,8 @@ test('metafeed announce', (t) => {
               const mf3Key = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed3')
               sbot.metafeeds.messages.generateAnnounceMsg(mf3Key, (err, msg) => {
                 t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
-                t.equal(msg.tangle.metafeed.root, announceMsg.key, 'correct root')
-                t.equal(msg.tangle.metafeed.previous, announceMsg2.key, 'correct previous')
+                t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
+                t.equal(msg.tangles.metafeed.previous, announceMsg2.key, 'correct previous')
 
                 t.end()
               })

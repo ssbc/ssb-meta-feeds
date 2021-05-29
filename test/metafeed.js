@@ -50,8 +50,8 @@ test('tombstone a feed in a metafeed', (t) => {
       //console.log(msg)
       t.true(msg.subfeedSignature.endsWith(".sig.ed25519"), "correct signature format")
       t.equal(msg.subfeed, mainKey.id, "correct subfeed id")
-      t.equal(msg.tangle.metafeed.root, addMsgKey, "correct root")
-      t.equal(msg.tangle.metafeed.previous, addMsgKey, "correct previous")
+      t.equal(msg.tangles.metafeed.root, addMsgKey, "correct root")
+      t.equal(msg.tangles.metafeed.previous, addMsgKey, "correct previous")
       t.equal(msg.reason, reason, "correct reason")
 
       sbot.close(t.end)

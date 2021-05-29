@@ -12,7 +12,7 @@ exports.init = function(sbot) {
         const msg = {
           type: 'metafeed/announce',
           metafeed: metafeedKey.id, 
-          tangle: {
+          tangles: {
             metafeed: { root: rootAnnounceId, previous: previousAnnounceId }
           }
         }
