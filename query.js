@@ -52,7 +52,7 @@ exports.init = function (sbot) {
       })
     },
 
-    hydrate(feedId, cb) {
+    hydrate(feedId, seed, cb) {
       let query = author(feedId)
 
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
@@ -60,10 +60,12 @@ exports.init = function (sbot) {
 
         const feeds = results.filter(msg => msg.value.content.type === 'metafeed/add').map(msg => {
           const { feedformat, feedpurpose, subfeed } = msg.value.content
+          const keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, feedpurpose)
           return {
             feedformat,
             feedpurpose,
-            subfeed
+            subfeed,
+            keys
           }
         })
 

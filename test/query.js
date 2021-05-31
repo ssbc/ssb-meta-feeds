@@ -43,9 +43,10 @@ test('metafeed with multiple feeds', (t) => {
     db.publish(msg2, (err, m) => {
       indexMsgId = m.key
       db.onDrain('base', () => {
-        sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
+        sbot.metafeeds.query.hydrate(mfKey.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 2, "multiple feeds")
           t.equal(hydrated.feeds[0].feedpurpose, 'main')
+          t.equal(typeof hydrated.feeds[0].keys.id, 'string', 'has key')
           t.equal(hydrated.feeds[1].feedpurpose, 'index')
           t.end()
         })
@@ -60,7 +61,7 @@ test('metafeed with tombstones', (t) => {
   metafeed.tombstone(indexKey, mfKey, reason, (err, msg) => {
     db.publish(msg, (err) => {
       db.onDrain('base', () => {
-        sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
+        sbot.metafeeds.query.hydrate(mfKey.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 1, "single feed")
           t.equal(hydrated.feeds[0].feedpurpose, 'main')
           t.equal(hydrated.tombstoned.length, 1, '1 tombstone')

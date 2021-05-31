@@ -116,7 +116,7 @@ sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
 })
 ```
 
-### hydrate(feedId, cb)
+### hydrate(feedId, seed, cb)
 
 Gets the current state (active feeds) of a meta feed.
 
