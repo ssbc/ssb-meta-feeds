@@ -62,7 +62,6 @@ exports.init = function (sbot) {
           const { feedformat, feedpurpose, subfeed } = msg.value.content
           const keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, feedpurpose)
           return {
-            feedformat,
             feedpurpose,
             subfeed,
             keys
@@ -72,15 +71,17 @@ exports.init = function (sbot) {
         const tombstoned = results.filter(msg => msg.value.content.type === 'metafeed/tombstone').map(msg => {
           const { feedformat, feedpurpose, subfeed } = msg.value.content
           return {
-            feedformat,
             feedpurpose,
             subfeed
           }
         })
 
+        const latest = results.length > 0 ? results[results.length-1] : null
+
         cb(null, {
           feeds: feeds.filter(feed => tombstoned.filter(t => t.subfeed === feed.subfeed).length === 0),
-          tombstoned
+          tombstoned,
+          latest
         })
       })
     }
