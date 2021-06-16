@@ -1,4 +1,5 @@
 const test = require('tape')
+const crypto = require('crypto')
 const keys = require('../keys')
 
 test('generate a seed', (t) => {
@@ -8,22 +9,25 @@ test('generate a seed', (t) => {
   t.end()
 })
 
+const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
+const seed = Buffer.from(seed_hex, 'hex')
+
 test('generate a key for a feed', (t) => {
-  const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
-  const seed = Buffer.from(seed_hex, 'hex')
-  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
-  t.equals(feedKey.id, '@+Io5SIzFW+BvLV246CW05g6jLkTvLilp7IW+9irQkfU=.ed25519', "correct feed generated")
+  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+  t.equals(feedKey.id, '@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bbfeed-v1', "correct feed generated")
+
+  const nonce = 'aumEXI0cdPx1sfX1nx5Y9Pl2GmwocYiFhv9o6K9BIhA='
+  const classicFeedKey = keys.deriveFeedKeyFromSeed(seed, nonce) // default classic
+  t.equals(classicFeedKey.id, '@nFiLP62RZCGHCtmXScWERRxAJyTdWudAgPXODHATTgE=.ed25519', "correct feed generated")
   
   t.end()
 })
 
 test('test failure case in generate a key for a feed', (t) => {
-  const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
-  const seed = Buffer.from(seed_hex, 'hex')
   try {
     const feedKey = keys.deriveFeedKeyFromSeed(seed)
   } catch (ex) {
-    t.equals(ex.message, 'name was not supplied', "throws error")
+    t.equals(ex.message, 'label was not supplied', "throws error")
   }
   
   t.end()

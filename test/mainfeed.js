@@ -22,10 +22,10 @@ let keys = sbot.metafeeds.keys
 
 const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
 const seed = Buffer.from(seed_hex, 'hex')
-const mfKey = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed')
+const mfKey = keys.deriveFeedKeyFromSeed(seed, 'metafeed')
 
 test('metafeed announce', (t) => {
-  sbot.metafeeds.messages.generateAnnounceMsg(mfKey, (err, msg) => {
+  sbot.metafeeds.mainfeed.generateAnnounceMsg(mfKey, (err, msg) => {
     t.equal(msg.metafeed, mfKey.id, 'correct metafeed')
     t.equal(msg.tangles.metafeed.root, null, 'no root')
     t.equal(msg.tangles.metafeed.previous, null, 'no previous')
@@ -34,8 +34,9 @@ test('metafeed announce', (t) => {
 
       // test that we fucked up somehow and need to create a new metafeed
       sbot.db.onDrain('base', () => {
-        const mf2Key = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed2')
-        sbot.metafeeds.messages.generateAnnounceMsg(mf2Key, (err, msg) => {
+        const newSeed = keys.generateSeed()
+        const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
+        sbot.metafeeds.mainfeed.generateAnnounceMsg(mf2Key, (err, msg) => {
           t.equal(msg.metafeed, mf2Key.id, 'correct metafeed')
           t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
           t.equal(msg.tangles.metafeed.previous, announceMsg.key, 'correct previous')
@@ -44,8 +45,9 @@ test('metafeed announce', (t) => {
             
             // another test to make sure previous is correctly set
             sbot.db.onDrain('base', () => {
-              const mf3Key = keys.deriveFeedKeyFromSeed(seed, 'ssb-meta-feeds-v1:metafeed3')
-              sbot.metafeeds.messages.generateAnnounceMsg(mf3Key, (err, msg) => {
+              const newSeed2 = keys.generateSeed()
+              const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
+              sbot.metafeeds.mainfeed.generateAnnounceMsg(mf3Key, (err, msg) => {
                 t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
                 t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
                 t.equal(msg.tangles.metafeed.previous, announceMsg2.key, 'correct previous')
@@ -61,7 +63,7 @@ test('metafeed announce', (t) => {
 })
 
 test('metafeed seed save', (t) => {
-  const msg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, seed)
+  const msg = sbot.metafeeds.mainfeed.generateSeedSaveMsg(mfKey.id, seed)
 
   t.equal(msg.metafeed, mfKey.id, 'correct metafeed')
   t.equal(msg.seed.length, 64, 'correct seed')

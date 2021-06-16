@@ -2,7 +2,7 @@ const { author, and, type } = require('ssb-db2/operators')
 
 exports.init = function(sbot) {
   return {
-    generateAnnounceMsg(metafeedKey, cb) {
+    generateAnnounceMsg(mfKeys, cb) {
       let query = and(author(sbot.id), type('metafeed/announce'))
 
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
@@ -11,7 +11,7 @@ exports.init = function(sbot) {
 
         const msg = {
           type: 'metafeed/announce',
-          metafeed: metafeedKey.id, 
+          metafeed: mfKeys.id, 
           tangles: {
             metafeed: { root: rootAnnounceId, previous: previousAnnounceId }
           }
