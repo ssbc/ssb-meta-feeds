@@ -1,7 +1,7 @@
 {
   "name": "ssb-meta-feeds",
   "description": "",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "homepage": "https://github.com/ssb-ngi-pointer/ssb-meta-feeds",
   "repository": {
     "type": "git",
