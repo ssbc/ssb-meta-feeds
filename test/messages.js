@@ -10,7 +10,7 @@ const seed_hex = '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d
 const seed = Buffer.from(seed_hex, 'hex')
 const metafeedKeys = keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
 
-const dir = '/tmp/metafeeds-metafeed'
+const dir = '/tmp/metafeeds-messages'
 const mainKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
 rimraf.sync(dir)
