@@ -5,8 +5,8 @@ plugin.
 
 ```js
 let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-meta-feeds')) // <-- load before db2
   .use(require('ssb-db2'))
+  .use(require('ssb-meta-feeds'))
   .call(null, {
     keys,
     path: dir,
@@ -34,19 +34,25 @@ const mfKey = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, 'metafeed')
 
 ## metafeed
 
-Helper functions related to creating messages for a meta feed
+### getOrCreate
 
-### addExisting(feedpurpose, previous, sfKeys, mfKeys, metadata)
+FIXME
 
-Generate a message linking an existing feed (sfKeys) to a meta
-feed. Previous is the previous message on the meta feed in key value
-form. `metatada` is an optional dict.
+## messages
+
+Low level api for generating messages
+
+### addExistingFeed(metafeedKeys, previous, feedpurpose, feedKeys, metadata)
+
+Generate a message linking an existing feed to a meta feed. `Previous`
+is the previous message on the meta feed in key value form. `metatada`
+is an optional dict.
 
 ```js
-const msg = sbot.metafeeds.metafeed.add('main', null, mainKeys, mfKeys)
+const msg = sbot.metafeeds.messages.addExistingFeed(metafeedKeys, null, 'main', mainKeys)
 ```
 
-### add(seed, feedformat, feedpurpose, previous, mfKeys, metadata)
+### addNewFeed(metafeedKeys, previous, feedpurpose, seed, feedformat, metadata)
 
 Generate a message to be posted on meta feed linking feed to a meta
 feed. Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
@@ -54,13 +60,14 @@ feed. Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
 dict.
 
 ```js
-const msg = sbot.metafeeds.metafeed.add(seed, 'classic', 'main', null, mfKeys)
+const msg = sbot.metafeeds.messages.addNewFeed(metafeedKeys, null, 'main', seed, 'classic')
 ```
 
-### tombstone(previous, sfKeys, mfKeys, reason, cb)
+### tombstoneFeed(metafeedKeys, previous, feedKeys, reason, cb)
 
 Generate a message to be posted on meta feed tombstoning a feed on a
-meta feed.
+meta feed. `Previous` is the previous message on the meta feed in key
+value form.
 
 ```js
 const previous = {
@@ -71,36 +78,33 @@ const previous = {
   }
 }
 
-sbot.metafeeds.metafeed.tombstone(previous, mainKeys, mfKeys, 'No longer used', (err, tombstoneMsg) => {
+sbot.metafeeds.messages.tombstoneFeed(metafeedKeys, previous, mainKeys, 'No longer used', (err, tombstoneMsg) => {
   sbot.db.publishAs(mfKey, tombstoneMsg, (err) => {
     console.log("main is now tombstoned on meta feed")
   })
 })
 ```
 
-## mainfeed
+### generateAnnounceMsg(metafeedKeys, cb)
 
-Helper functions related to generating messages for the main feed
-
-### generateAnnounceMsg(mfKeys, cb)
-
-Generate a message to be posted on your main feed linking to a meta
-feed.
+Generate the content of a message to be published on a main feed
+linking it to a meta feed.
 
 ```js
-sbot.metafeeds.messages.generateAnnounceMsg(mfKey, (err, announceMsg) => {
+sbot.metafeeds.messages.generateAnnounceMsg(metafeedKeys, (err, announceMsg) => {
   sbot.db.publish(announceMsg, (err) => {
     console.log("main feed is now linked to meta feed")
   })
 })
 ```
 
-### generateSeedSaveMsg(metafeedId, seed)
+### generateSeedSaveMsg(metafeedId, mainfeedId, seed)
 
-Generate a message to save your seed value as a private message.
+Generate the content of a message to save your seed value as a private
+message on a main feed.
 
 ```js
-const seedSaveMsg = sbot.metafeeds.messages.generateSeedSaveMsg(mfKey.id, seed)
+const seedSaveMsg = sbot.metafeeds.messages.generateSeedSaveMsg(metafeedKeys.id, sbot.id, seed)
 sbot.db.publish(seedSaveMsg, (err) => {
   console.log("seed has now been saved, all feed keys generated from this can be restored from the seed")
 })
