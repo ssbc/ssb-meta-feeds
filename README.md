@@ -20,7 +20,7 @@ let sbot = SecretStack({ appKey: caps.shs })
 Get or create the root metafeed.
 
 ```js
-sbot.metafeeds.getOrCreate((err, mf) => {
+sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
   // lets create a new chess feed
   mf.getOrCreateFeed('chess', 'classic', (err, feed) => {
     sbot.db.publishAs(feed, {
