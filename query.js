@@ -3,7 +3,7 @@ const { and, author, type } = require('ssb-db2/operators')
 const { seekKey } = require('bipf')
 const { equal } = require('jitdb/operators')
 
-exports.init = function (sbot) {
+exports.init = function (sbot, config) {
   function subfeed(feedId) {
     const bValue = Buffer.from('value')
     const bContent = Buffer.from('content')
@@ -59,8 +59,14 @@ exports.init = function (sbot) {
         if (err) return cb(err)
 
         const feeds = results.filter(msg => msg.value.content.type === 'metafeed/add').map(msg => {
-          const { feedformat, feedpurpose, subfeed } = msg.value.content
-          const keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, feedpurpose)
+          const { feedformat, feedpurpose, subfeed, nonce } = msg.value.content
+
+          let keys
+          if (subfeed === sbot.id)
+            keys = config.keys
+          else
+            keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonce)
+
           return {
             feedpurpose,
             subfeed,

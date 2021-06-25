@@ -49,8 +49,10 @@ test('metafeed with multiple feeds', (t) => {
         sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 2, "multiple feeds")
           t.equal(hydrated.feeds[0].feedpurpose, 'main')
+          t.equal(hydrated.feeds[0].subfeed, hydrated.feeds[0].keys.id, 'correct main keys')
           t.equal(typeof hydrated.feeds[0].keys.id, 'string', 'has key')
           t.equal(hydrated.feeds[1].feedpurpose, 'index')
+          t.equal(hydrated.feeds[1].subfeed, hydrated.feeds[1].keys.id, 'correct index keys')
           t.end()
         })
       })
