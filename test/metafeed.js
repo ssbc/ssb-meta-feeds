@@ -7,7 +7,7 @@ const caps = require('ssb-caps')
 
 const { author } = require('ssb-db2/operators')
 
-const dir = '/tmp/metafeeds-messages'
+const dir = '/tmp/metafeeds-metafeed'
 const mainKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
 rimraf.sync(dir)
