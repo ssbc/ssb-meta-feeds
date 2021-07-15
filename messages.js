@@ -51,6 +51,7 @@ exports.init = function(sbot) {
     tombstoneFeed(metafeedKeys, previous, feedKeys, reason, cb) {
       let query = and(author(metafeedKeys.id), type('metafeed/add'))
 
+      // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         if (err) return cb(err)
         if (results.length === 0) return cb("no add message found on meta feed")
@@ -73,6 +74,7 @@ exports.init = function(sbot) {
     generateAnnounceMsg(metafeedKeys, cb) {
       let query = and(author(sbot.id), type('metafeed/announce'))
 
+      // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         const rootAnnounceId = results.length > 0 ? results[0].key : null
         const previousAnnounceId = results.length > 0 ? results[results.length-1].key : null

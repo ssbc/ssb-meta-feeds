@@ -22,6 +22,7 @@ let sbot = SecretStack({ appKey: caps.shs })
 let db = sbot.db
 
 test('Base', (t) => {
+  // FIXME: getJITDB() is not a public API
   db.getJITDB().all(author(mainKey.id), 0, false, false, (err, results) => {
     t.equals(results.length, 0, "empty db")
 

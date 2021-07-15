@@ -19,6 +19,7 @@ exports.init = function(sbot, config) {
     sbot.db.publishAs(metafeed.keys, addMsg, (err) => {
       if (err) return cb(err)
 
+      // FIXME: onDrain is not a public API
       sbot.db.onDrain('base', () => {
         sbot.metafeeds.query.hydrate(
           metafeed.keys.id,
@@ -95,6 +96,7 @@ exports.init = function(sbot, config) {
             sbot.db.publishAs(mf.keys, addMsg, (err) => {
               if (err) return cb(err)
               else {
+                // FIXME: onDrain() is not a public API
                 sbot.db.onDrain('base', () => {
                   sbot.metafeeds.query.hydrate(
                     mf.keys.id,

@@ -19,7 +19,7 @@ let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
   .use(require('../'))
   .call(null, {
-    keys: mainKey,      
+    keys: mainKey,
     path: dir,
   })
 let db = sbot.db
@@ -43,6 +43,7 @@ test('add a feed to metafeed', (t) => {
 test('tombstone a feed in a metafeed', (t) => {
   const reason = 'Feed no longer used'
 
+  // FIXME: onDrain is not a public API
   db.onDrain('base', () => {
     messages.tombstoneFeed(metafeedKeys, addMsg, mainKey, reason, (err, msg) => {
       t.true(msg.contentSignature.endsWith(".sig.ed25519"), "correct signature format")
@@ -65,6 +66,7 @@ test('metafeed announce', (t) => {
     db.publish(msg, (err, announceMsg) => {
 
       // test that we fucked up somehow and need to create a new metafeed
+      // FIXME: onDrain is not a public API
       sbot.db.onDrain('base', () => {
         const newSeed = keys.generateSeed()
         const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
@@ -74,8 +76,9 @@ test('metafeed announce', (t) => {
           t.equal(msg.tangles.metafeed.previous, announceMsg.key, 'correct previous')
 
           db.publish(msg, (err, announceMsg2) => {
-            
+
             // another test to make sure previous is correctly set
+            // FIXME: onDrain is not a public API
             sbot.db.onDrain('base', () => {
               const newSeed2 = keys.generateSeed()
               const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
@@ -99,7 +102,7 @@ test('metafeed seed save', (t) => {
 
   t.equal(msg.metafeed, metafeedKeys.id, 'correct metafeed')
   t.equal(msg.seed.length, 64, 'correct seed')
-  t.equal(msg.recps.length, 1, 'recps for private') 
+  t.equal(msg.recps.length, 1, 'recps for private')
   t.equal(msg.recps[0], sbot.id, 'correct recps')
 
   db.publish(msg, (err, publish) => {

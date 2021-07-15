@@ -30,7 +30,7 @@ let indexMsg, indexKey
 
 test('metafeed with multiple feeds', (t) => {
   const classicAddMsg = messages.addExistingFeed(metafeedKeys, null, 'main', mainKey)
-  
+
   db.publishAs(metafeedKeys, classicAddMsg, (err, m) => {
     const indexAddMsg = messages.addNewFeed(metafeedKeys, m, 'index', seed, 'classic', {
       query: JSON.stringify({
@@ -45,6 +45,7 @@ test('metafeed with multiple feeds', (t) => {
 
     db.publishAs(metafeedKeys, indexAddMsg, (err, m) => {
       indexMsg = m
+      // FIXME: onDrain is not a public API
       db.onDrain('base', () => {
         sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 2, "multiple feeds")
@@ -72,6 +73,7 @@ test('metafeed with tombstones', (t) => {
 
   messages.tombstoneFeed(metafeedKeys, indexMsg, indexKey, reason, (err, msg) => {
     db.publishAs(metafeedKeys, msg, (err) => {
+      // FIXME: onDrain is not a public API
       db.onDrain('base', () => {
         sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 1, "single feed")
@@ -88,6 +90,7 @@ test('metafeed with tombstones', (t) => {
 test('seed', (t) => {
   const msg = messages.generateSeedSaveMsg(metafeedKeys.id, sbot.id, seed)
   db.publish(msg, (err) => {
+    // FIXME: onDrain is not a public API
     db.onDrain('base', () => {
       sbot.metafeeds.query.getSeed((err, storedSeed) => {
         t.deepEqual(storedSeed, seed, "correct seed")
@@ -101,6 +104,7 @@ test('announce', (t) => {
   messages.generateAnnounceMsg(metafeedKeys.id, (err, msg) => {
     db.publish(msg, (err, publishedAnnounce) => {
       t.error(err, 'no err')
+      // FIXME: onDrain is not a public API
       db.onDrain('base', () => {
         sbot.metafeeds.query.getAnnounce((err, storedAnnounce) => {
           t.equal(publishedAnnounce.key, storedAnnounce.key, "correct announce")
