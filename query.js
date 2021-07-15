@@ -79,7 +79,11 @@ exports.init = function (sbot, config) {
 
             let keys
             if (subfeed === sbot.id) keys = config.keys
-            else keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonce)
+            else
+              keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+                seed,
+                nonce.toString('base64')
+              )
 
             return {
               feedpurpose,

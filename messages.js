@@ -1,6 +1,6 @@
 const crypto = require('crypto')
 const bb = require('ssb-bendy-butt')
-const { author, and, type } = require('ssb-db2/operators')
+const { author, and, type, slowEqual } = require('ssb-db2/operators')
 const keys = require('./keys')
 
 // FIXME: define and use json schema
@@ -36,13 +36,13 @@ exports.init = function (sbot) {
     return msgVal
   }
 
-  function getBase64Nonce() {
-    return crypto.randomBytes(32).toString('base64')
+  function getNonce() {
+    return crypto.randomBytes(32)
   }
 
   return {
     addExistingFeed(metafeedKeys, previous, feedpurpose, feedKeys, metadata) {
-      const nonce = getBase64Nonce()
+      const nonce = getNonce()
       return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
     },
 
@@ -54,8 +54,11 @@ exports.init = function (sbot) {
       feedformat,
       metadata
     ) {
-      const nonce = getBase64Nonce()
-      const feedKeys = keys.deriveFeedKeyFromSeed(seed, nonce)
+      const nonce = getNonce()
+      const feedKeys = keys.deriveFeedKeyFromSeed(
+        seed,
+        nonce.toString('base64')
+      )
       if (feedformat === 'bendy butt')
         feedKeys.id = feedKeys.replace('.ed25519', '.bbfeed-v1')
       else if (
@@ -67,7 +70,11 @@ exports.init = function (sbot) {
     },
 
     tombstoneFeed(metafeedKeys, previousMsg, feedKeys, reason, cb) {
-      let query = and(author(metafeedKeys.id), type('metafeed/add'))
+      let query = and(
+        author(metafeedKeys.id),
+        slowEqual('value.content.subfeed', feedKeys.id),
+        type('metafeed/add')
+      )
 
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
@@ -77,10 +84,13 @@ exports.init = function (sbot) {
         const content = {
           type: 'metafeed/tombstone',
           subfeed: feedKeys.id,
-          nonce: getBase64Nonce(),
+          metafeed: metafeedKeys.id,
           reason,
           tangles: {
-            metafeed: { root: results[0].key, previous: results[0].key },
+            metafeed: {
+              root: results[0].key,
+              previous: results[results.length - 1].key,
+            },
           },
         }
 

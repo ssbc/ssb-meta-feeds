@@ -54,9 +54,10 @@ test('metafeed with multiple feeds', (t) => {
         }),
       }
     )
+
     indexKey = keys.deriveFeedKeyFromSeed(
       seed,
-      indexAddMsg.content.nonce,
+      indexAddMsg.content.nonce.toString('base64'),
       'classic'
     )
 
