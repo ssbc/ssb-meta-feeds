@@ -19,21 +19,18 @@ exports.init = function (sbot, config) {
     sbot.db.publishAs(metafeed.keys, addMsg, (err) => {
       if (err) return cb(err)
 
-      // FIXME: onDrain is not a public API
-      sbot.db.onDrain('base', () => {
-        sbot.metafeeds.query.hydrate(
-          metafeed.keys.id,
-          metafeed.seed,
-          (err, hydrated) => {
-            metafeed.feeds = hydrated.feeds
+      sbot.metafeeds.query.hydrate(
+        metafeed.keys.id,
+        metafeed.seed,
+        (err, hydrated) => {
+          metafeed.feeds = hydrated.feeds
 
-            cb(
-              null,
-              metafeed.feeds.find((f) => f.feedpurpose == feedpurpose)
-            )
-          }
-        )
-      })
+          cb(
+            null,
+            metafeed.feeds.find((f) => f.feedpurpose == feedpurpose)
+          )
+        }
+      )
     })
   }
 
@@ -96,17 +93,14 @@ exports.init = function (sbot, config) {
             sbot.db.publishAs(mf.keys, addMsg, (err) => {
               if (err) return cb(err)
               else {
-                // FIXME: onDrain() is not a public API
-                sbot.db.onDrain('base', () => {
-                  sbot.metafeeds.query.hydrate(
-                    mf.keys.id,
-                    mf.seed,
-                    (err, hydrated) => {
-                      Object.assign(mf, hydrated)
-                      cb(err, mf)
-                    }
-                  )
-                })
+                sbot.metafeeds.query.hydrate(
+                  mf.keys.id,
+                  mf.seed,
+                  (err, hydrated) => {
+                    Object.assign(mf, hydrated)
+                    cb(err, mf)
+                  }
+                )
               }
             })
           } else {

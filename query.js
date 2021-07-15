@@ -1,117 +1,123 @@
-const pull = require('pull-stream')
-const { and, author, type } = require('ssb-db2/operators')
 const { seekKey } = require('bipf')
-const { equal } = require('jitdb/operators')
+const {
+  and,
+  author,
+  type,
+  where,
+  toCallback,
+  equal,
+} = require('ssb-db2/operators')
 
-exports.init = function (sbot, config) {
-  function subfeed(feedId) {
-    const bValue = Buffer.from('value')
-    const bContent = Buffer.from('content')
-    const bSubfeed = Buffer.from('subfeed')
+function subfeed(feedId) {
+  const bValue = Buffer.from('value')
+  const bContent = Buffer.from('content')
+  const bSubfeed = Buffer.from('subfeed')
 
-    function seekSubfeed(buffer) {
-      let p = 0 // note you pass in p!
-      p = seekKey(buffer, p, bValue)
-      if (p < 0) return
-      p = seekKey(buffer, p, bContent)
-      if (p < 0) return
-      return seekKey(buffer, p, bSubfeed)
-    }
-
-    return equal(seekSubfeed, feedId, {
-      prefix: 32,
-      prefixOffset: 1,
-      indexType: 'value_subfeed',
-    })
+  function seekSubfeed(buffer) {
+    let p = 0 // note you pass in p!
+    p = seekKey(buffer, p, bValue)
+    if (p < 0) return
+    p = seekKey(buffer, p, bContent)
+    if (p < 0) return
+    return seekKey(buffer, p, bSubfeed)
   }
 
+  return equal(seekSubfeed, feedId, {
+    prefix: 32,
+    prefixOffset: 1,
+    indexType: 'value_content_subfeed',
+  })
+}
+
+exports.init = function (sbot, config) {
   return {
     getSeed(cb) {
       // FIXME: maybe use metafeed id
-      let query = and(author(sbot.id), type('metafeed/seed'))
-      // FIXME: getJITDB() is not a public API
-      sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
-        cb(
-          err,
-          results.length > 0
-            ? Buffer.from(results[0].value.content.seed, 'hex')
-            : null
-        )
-      })
+      sbot.db.query(
+        where(and(author(sbot.id), type('metafeed/seed'))),
+        toCallback((err, msgs) => {
+          if (err) return cb(err)
+          if (msgs.length === 0) return cb(null, null)
+
+          const msg = msgs[0]
+          const seedBuf = Buffer.from(msg.value.content.seed, 'hex')
+          cb(null, seedBuf)
+        })
+      )
     },
 
     getAnnounce(cb) {
-      let query = and(author(sbot.id), type('metafeed/announce'))
-      // FIXME: getJITDB() is not a public API
-      sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
-        // FIXME: handle multiple results properly?
-        cb(err, results.length > 0 ? results[0] : null)
-      })
+      sbot.db.query(
+        where(and(author(sbot.id), type('metafeed/announce'))),
+        toCallback((err, msgs) => {
+          // FIXME: handle multiple results properly?
+          cb(err, msgs.length > 0 ? msgs[0] : null)
+        })
+      )
     },
 
     getMetadata(feedId, cb) {
-      // FIXME: getJITDB() is not a public API
-      sbot.db
-        .getJITDB()
-        .all(subfeed(feedId), 0, false, false, (err, results) => {
+      sbot.db.query(
+        where(subfeed(feedId)),
+        toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          results = results.filter(
-            (msg) => msg.value.content.type === 'metafeed/add'
-          )
+          msgs = msgs.filter((msg) => msg.value.content.type === 'metafeed/add')
           // FIXME: handle multiple results properly?
-          cb(null, results.length > 0 ? results[0].value.content : null)
+          cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
+      )
     },
 
     hydrate(feedId, seed, cb) {
-      let query = author(feedId)
+      sbot.db.query(
+        where(author(feedId)),
+        toCallback((err, results) => {
+          if (err) return cb(err)
 
-      // FIXME: getJITDB() is not a public API
-      sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
-        if (err) return cb(err)
+          const feeds = results
+            .filter((msg) => msg.value.content.type === 'metafeed/add')
+            .map((msg) => {
+              const { feedpurpose, subfeed, nonce } = msg.value.content
 
-        const feeds = results
-          .filter((msg) => msg.value.content.type === 'metafeed/add')
-          .map((msg) => {
-            const { feedpurpose, subfeed, nonce } = msg.value.content
+              let keys
+              if (subfeed === sbot.id) keys = config.keys
+              else
+                keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+                  seed,
+                  nonce.toString('base64')
+                )
 
-            let keys
-            if (subfeed === sbot.id) keys = config.keys
-            else
-              keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-                seed,
-                nonce.toString('base64')
-              )
+              return {
+                feedpurpose,
+                subfeed,
+                keys,
+              }
+            })
 
-            return {
-              feedpurpose,
-              subfeed,
-              keys,
-            }
+          const tombstoned = results
+            .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
+            .map((msg) => {
+              const { feedpurpose, subfeed } = msg.value.content
+              return {
+                feedpurpose,
+                subfeed,
+              }
+            })
+
+          const latest = results.length > 0 ? results[results.length - 1] : null
+
+          cb(null, {
+            feeds: feeds.filter(
+              (feed) =>
+                tombstoned.filter((t) => t.subfeed === feed.subfeed).length ===
+                0
+            ),
+            tombstoned,
+            latest,
           })
-
-        const tombstoned = results
-          .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
-          .map((msg) => {
-            const { feedpurpose, subfeed } = msg.value.content
-            return {
-              feedpurpose,
-              subfeed,
-            }
-          })
-
-        const latest = results.length > 0 ? results[results.length - 1] : null
-
-        cb(null, {
-          feeds: feeds.filter(
-            (feed) =>
-              tombstoned.filter((t) => t.subfeed === feed.subfeed).length === 0
-          ),
-          tombstoned,
-          latest,
         })
-      })
+      )
     },
   }
 }

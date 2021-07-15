@@ -49,33 +49,24 @@ let tombstoneMsg
 test('tombstone a feed in a metafeed', (t) => {
   const reason = 'Feed no longer used'
 
-  // FIXME: onDrain is not a public API
-  db.onDrain('base', () => {
-    messages.tombstoneFeed(
-      metafeedKeys,
-      addMsg,
-      mainKey,
-      reason,
-      (err, msg) => {
-        t.true(
-          msg.contentSignature.endsWith('.sig.ed25519'),
-          'correct signature format'
-        )
-        t.equal(msg.content.subfeed, mainKey.id, 'correct subfeed id')
-        t.equal(msg.content.tangles.metafeed.root, addMsg.key, 'correct root')
-        t.equal(
-          msg.content.tangles.metafeed.previous,
-          addMsg.key,
-          'correct previous'
-        )
-        t.equal(msg.content.reason, reason, 'correct reason')
-
-        db.publishAs(metafeedKeys, msg, (err, kv) => {
-          tombstoneMsg = kv
-          t.end()
-        })
-      }
+  messages.tombstoneFeed(metafeedKeys, addMsg, mainKey, reason, (err, msg) => {
+    t.true(
+      msg.contentSignature.endsWith('.sig.ed25519'),
+      'correct signature format'
     )
+    t.equal(msg.content.subfeed, mainKey.id, 'correct subfeed id')
+    t.equal(msg.content.tangles.metafeed.root, addMsg.key, 'correct root')
+    t.equal(
+      msg.content.tangles.metafeed.previous,
+      addMsg.key,
+      'correct previous'
+    )
+    t.equal(msg.content.reason, reason, 'correct reason')
+
+    db.publishAs(metafeedKeys, msg, (err, kv) => {
+      tombstoneMsg = kv
+      t.end()
+    })
   })
 })
 
@@ -94,35 +85,32 @@ test('second tombstone', (t) => {
   db.publishAs(metafeedKeys, msg, (err, secondAddMsg) => {
     const reason = 'Also no good'
 
-    // FIXME: onDrain is not a public API
-    db.onDrain('base', () => {
-      messages.tombstoneFeed(
-        metafeedKeys,
-        secondAddMsg,
-        newMainKey,
-        reason,
-        (err, msg) => {
-          t.true(
-            msg.contentSignature.endsWith('.sig.ed25519'),
-            'correct signature format'
-          )
-          t.equal(msg.content.subfeed, newMainKey.id, 'correct subfeed id')
-          t.equal(
-            msg.content.tangles.metafeed.root,
-            secondAddMsg.key,
-            'correct root'
-          )
-          t.equal(
-            msg.content.tangles.metafeed.previous,
-            secondAddMsg.key,
-            'correct previous'
-          )
-          t.equal(msg.content.reason, reason, 'correct reason')
+    messages.tombstoneFeed(
+      metafeedKeys,
+      secondAddMsg,
+      newMainKey,
+      reason,
+      (err, msg) => {
+        t.true(
+          msg.contentSignature.endsWith('.sig.ed25519'),
+          'correct signature format'
+        )
+        t.equal(msg.content.subfeed, newMainKey.id, 'correct subfeed id')
+        t.equal(
+          msg.content.tangles.metafeed.root,
+          secondAddMsg.key,
+          'correct root'
+        )
+        t.equal(
+          msg.content.tangles.metafeed.previous,
+          secondAddMsg.key,
+          'correct previous'
+        )
+        t.equal(msg.content.reason, reason, 'correct reason')
 
-          t.end()
-        }
-      )
-    })
+        t.end()
+      }
+    )
   })
 })
 
@@ -134,41 +122,31 @@ test('metafeed announce', (t) => {
 
     db.publish(msg, (err, announceMsg) => {
       // test that we fucked up somehow and need to create a new metafeed
-      // FIXME: onDrain is not a public API
-      sbot.db.onDrain('base', () => {
-        const newSeed = keys.generateSeed()
-        const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
-        messages.generateAnnounceMsg(mf2Key, (err, msg) => {
-          t.equal(msg.metafeed, mf2Key.id, 'correct metafeed')
-          t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
-          t.equal(
-            msg.tangles.metafeed.previous,
-            announceMsg.key,
-            'correct previous'
-          )
+      const newSeed = keys.generateSeed()
+      const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
+      messages.generateAnnounceMsg(mf2Key, (err, msg) => {
+        t.equal(msg.metafeed, mf2Key.id, 'correct metafeed')
+        t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
+        t.equal(
+          msg.tangles.metafeed.previous,
+          announceMsg.key,
+          'correct previous'
+        )
 
-          db.publish(msg, (err, announceMsg2) => {
-            // another test to make sure previous is correctly set
-            // FIXME: onDrain is not a public API
-            sbot.db.onDrain('base', () => {
-              const newSeed2 = keys.generateSeed()
-              const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
-              messages.generateAnnounceMsg(mf3Key, (err, msg) => {
-                t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
-                t.equal(
-                  msg.tangles.metafeed.root,
-                  announceMsg.key,
-                  'correct root'
-                )
-                t.equal(
-                  msg.tangles.metafeed.previous,
-                  announceMsg2.key,
-                  'correct previous'
-                )
+        db.publish(msg, (err, announceMsg2) => {
+          // another test to make sure previous is correctly set
+          const newSeed2 = keys.generateSeed()
+          const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
+          messages.generateAnnounceMsg(mf3Key, (err, msg) => {
+            t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
+            t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
+            t.equal(
+              msg.tangles.metafeed.previous,
+              announceMsg2.key,
+              'correct previous'
+            )
 
-                t.end()
-              })
-            })
+            t.end()
           })
         })
       })
