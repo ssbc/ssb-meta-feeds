@@ -1,6 +1,6 @@
 const pull = require('pull-stream')
 
-exports.init = function(sbot, config) {
+exports.init = function (sbot, config) {
   function getOrCreateFeed(metafeed, feedpurpose, feedformat, metadata, cb) {
     if (!cb) cb = metadata
 
@@ -119,7 +119,12 @@ exports.init = function(sbot, config) {
       pull.collect((err, results) => {
         if (err) cb(err)
         else {
-          results[0].getOrCreateFeed = (feedpurpose, feedformat, metadata, cb) => {
+          results[0].getOrCreateFeed = (
+            feedpurpose,
+            feedformat,
+            metadata,
+            cb
+          ) => {
             getOrCreateFeed(results[0], feedpurpose, feedformat, metadata, cb)
           }
           cb(null, results[0])
@@ -129,6 +134,6 @@ exports.init = function(sbot, config) {
   }
 
   return {
-    getOrCreate
+    getOrCreate,
   }
 }
