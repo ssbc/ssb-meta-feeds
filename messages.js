@@ -1,5 +1,4 @@
 const crypto = require('crypto')
-const ssbKeys = require('ssb-keys')
 const bb = require('ssb-bendy-butt')
 const { author, and, type } = require('ssb-db2/operators')
 const keys = require('./keys')
@@ -7,12 +6,12 @@ const keys = require('./keys')
 // FIXME: define and use json schema
 
 exports.init = function (sbot) {
-  function add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata) {
+  function add(feedpurpose, nonce, previousMsg, subKeys, mfKeys, metadata) {
     const content = {
       type: 'metafeed/add',
       feedpurpose,
-      subfeed: feedKeys.id,
-      metafeed: metafeedKeys.id,
+      subfeed: subKeys.id,
+      metafeed: mfKeys.id,
       nonce,
       tangles: {
         metafeed: { root: null, previous: null },
@@ -21,14 +20,20 @@ exports.init = function (sbot) {
 
     if (metadata) Object.assign(content, metadata)
 
-    return bb.create(
+    const sequence = previousMsg ? previousMsg.value.sequence + 1 : 1
+    const previous = previousMsg ? previousMsg.key : null
+    const timestamp = Date.now()
+
+    const bbmsg = bb.encodeNew(
       content,
-      metafeedKeys,
-      feedKeys,
-      previous ? previous.key : null,
-      previous ? previous.value.sequence + 1 : 1,
-      +new Date()
+      subKeys,
+      mfKeys,
+      sequence,
+      previous,
+      timestamp
     )
+    const msgVal = bb.decode(bbmsg)
+    return msgVal
   }
 
   function getBase64Nonce() {
@@ -61,7 +66,7 @@ exports.init = function (sbot) {
       return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
     },
 
-    tombstoneFeed(metafeedKeys, previous, feedKeys, reason, cb) {
+    tombstoneFeed(metafeedKeys, previousMsg, feedKeys, reason, cb) {
       let query = and(author(metafeedKeys.id), type('metafeed/add'))
 
       // FIXME: getJITDB() is not a public API
@@ -79,17 +84,20 @@ exports.init = function (sbot) {
           },
         }
 
-        cb(
-          null,
-          bb.create(
-            content,
-            metafeedKeys,
-            feedKeys,
-            previous ? previous.key : null,
-            previous ? previous.value.sequence + 1 : 1,
-            +new Date()
-          )
+        const sequence = previousMsg ? previousMsg.value.sequence + 1 : 1
+        const previous = previousMsg ? previousMsg.key : null
+        const timestamp = Date.now()
+        const bbmsg = bb.encodeNew(
+          content,
+          feedKeys,
+          metafeedKeys,
+          sequence,
+          previous,
+          timestamp
         )
+        const msgVal = bb.decode(bbmsg)
+
+        cb(null, msgVal)
       })
     },
 
