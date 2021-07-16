@@ -44,6 +44,8 @@ test('add a feed to metafeed', (t) => {
   })
 })
 
+let tombstoneMsg
+
 test('tombstone a feed in a metafeed', (t) => {
   const reason = 'Feed no longer used'
 
@@ -68,9 +70,59 @@ test('tombstone a feed in a metafeed', (t) => {
         )
         t.equal(msg.content.reason, reason, 'correct reason')
 
-        t.end()
+        db.publishAs(metafeedKeys, msg, (err, kv) => {
+          tombstoneMsg = kv
+          t.end()
+        })
       }
     )
+  })
+})
+
+test('second tombstone', (t) => {
+  const msg = messages.addNewFeed(
+    metafeedKeys,
+    tombstoneMsg,
+    'main',
+    seed,
+    'classic'
+  )
+  const newMainKey = keys.deriveFeedKeyFromSeed(
+    seed,
+    msg.content.nonce.toString('base64')
+  )
+  db.publishAs(metafeedKeys, msg, (err, secondAddMsg) => {
+    const reason = 'Also no good'
+
+    // FIXME: onDrain is not a public API
+    db.onDrain('base', () => {
+      messages.tombstoneFeed(
+        metafeedKeys,
+        secondAddMsg,
+        newMainKey,
+        reason,
+        (err, msg) => {
+          t.true(
+            msg.contentSignature.endsWith('.sig.ed25519'),
+            'correct signature format'
+          )
+          t.equal(msg.content.subfeed, newMainKey.id, 'correct subfeed id')
+          t.equal(
+            msg.content.tangles.metafeed.root,
+            secondAddMsg.key,
+            'correct root'
+          )
+          t.equal(
+            msg.content.tangles.metafeed.previous,
+            secondAddMsg.key,
+            'correct previous'
+          )
+          t.equal(msg.content.reason, reason, 'correct reason')
+
+          t.end()
+        }
+      )
+    })
   })
 })
 

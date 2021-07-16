@@ -74,12 +74,15 @@ exports.init = function (sbot, config) {
         const feeds = results
           .filter((msg) => msg.value.content.type === 'metafeed/add')
           .map((msg) => {
-            const { feedformat, feedpurpose, subfeed, nonce } =
-              msg.value.content
+            const { feedpurpose, subfeed, nonce } = msg.value.content
 
             let keys
             if (subfeed === sbot.id) keys = config.keys
-            else keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonce)
+            else
+              keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+                seed,
+                nonce.toString('base64')
+              )
 
             return {
               feedpurpose,
@@ -91,7 +94,7 @@ exports.init = function (sbot, config) {
         const tombstoned = results
           .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
           .map((msg) => {
-            const { feedformat, feedpurpose, subfeed } = msg.value.content
+            const { feedpurpose, subfeed } = msg.value.content
             return {
               feedpurpose,
               subfeed,
