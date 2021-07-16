@@ -70,15 +70,12 @@ exports.init = function (sbot) {
     },
 
     tombstoneFeed(metafeedKeys, previousMsg, feedKeys, reason, cb) {
-      let query = and(
-        author(metafeedKeys.id),
-        slowEqual('value.content.subfeed', feedKeys.id),
-        type('metafeed/add')
-      )
+      let query = and(author(metafeedKeys.id), type('metafeed/add'))
 
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         if (err) return cb(err)
+        results = results.filter((x) => x.value.content.subfeed === feedKeys.id)
         if (results.length === 0) return cb('no add message found on meta feed')
 
         const content = {
