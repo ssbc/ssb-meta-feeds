@@ -31,7 +31,12 @@ exports.init = function (sbot, config) {
       let query = and(author(sbot.id), type('metafeed/seed'))
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
-        cb(err, results.length > 0 ? Buffer.from(results[0].value.content.seed, 'hex'): null)
+        cb(
+          err,
+          results.length > 0
+            ? Buffer.from(results[0].value.content.seed, 'hex')
+            : null
+        )
       })
     },
 
@@ -40,19 +45,23 @@ exports.init = function (sbot, config) {
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         // FIXME: handle multiple results properly?
-        cb(err, results.length > 0 ? results[0]: null)
+        cb(err, results.length > 0 ? results[0] : null)
       })
     },
 
     getMetadata(feedId, cb) {
       // FIXME: getJITDB() is not a public API
-      sbot.db.getJITDB().all(subfeed(feedId), 0, false, false, (err, results) => {
-        if (err) return cb(err)
+      sbot.db
+        .getJITDB()
+        .all(subfeed(feedId), 0, false, false, (err, results) => {
+          if (err) return cb(err)
 
-        results = results.filter(msg => msg.value.content.type === 'metafeed/add')
-        // FIXME: handle multiple results properly?
-        cb(null, results.length > 0 ? results[0].value.content : null)
-      })
+          results = results.filter(
+            (msg) => msg.value.content.type === 'metafeed/add'
+          )
+          // FIXME: handle multiple results properly?
+          cb(null, results.length > 0 ? results[0].value.content : null)
+        })
     },
 
     hydrate(feedId, seed, cb) {
@@ -62,38 +71,44 @@ exports.init = function (sbot, config) {
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         if (err) return cb(err)
 
-        const feeds = results.filter(msg => msg.value.content.type === 'metafeed/add').map(msg => {
-          const { feedformat, feedpurpose, subfeed, nonce } = msg.value.content
+        const feeds = results
+          .filter((msg) => msg.value.content.type === 'metafeed/add')
+          .map((msg) => {
+            const { feedformat, feedpurpose, subfeed, nonce } =
+              msg.value.content
 
-          let keys
-          if (subfeed === sbot.id)
-            keys = config.keys
-          else
-            keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonce)
+            let keys
+            if (subfeed === sbot.id) keys = config.keys
+            else keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonce)
 
-          return {
-            feedpurpose,
-            subfeed,
-            keys
-          }
-        })
+            return {
+              feedpurpose,
+              subfeed,
+              keys,
+            }
+          })
 
-        const tombstoned = results.filter(msg => msg.value.content.type === 'metafeed/tombstone').map(msg => {
-          const { feedformat, feedpurpose, subfeed } = msg.value.content
-          return {
-            feedpurpose,
-            subfeed
-          }
-        })
+        const tombstoned = results
+          .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
+          .map((msg) => {
+            const { feedformat, feedpurpose, subfeed } = msg.value.content
+            return {
+              feedpurpose,
+              subfeed,
+            }
+          })
 
-        const latest = results.length > 0 ? results[results.length-1] : null
+        const latest = results.length > 0 ? results[results.length - 1] : null
 
         cb(null, {
-          feeds: feeds.filter(feed => tombstoned.filter(t => t.subfeed === feed.subfeed).length === 0),
+          feeds: feeds.filter(
+            (feed) =>
+              tombstoned.filter((t) => t.subfeed === feed.subfeed).length === 0
+          ),
           tombstoned,
-          latest
+          latest,
         })
       })
-    }
+    },
   }
 }

@@ -16,7 +16,7 @@ let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
   .use(require('../'))
   .call(null, {
-    keys: mainKey,      
+    keys: mainKey,
     path: dir,
   })
 let db = sbot.db
@@ -24,18 +24,18 @@ let db = sbot.db
 test('Base', (t) => {
   // FIXME: getJITDB() is not a public API
   db.getJITDB().all(author(mainKey.id), 0, false, false, (err, results) => {
-    t.equals(results.length, 0, "empty db")
+    t.equals(results.length, 0, 'empty db')
 
     sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
-      t.equals(mf.feeds.length, 1, "1 feed")
-      t.equals(mf.feeds[0].feedpurpose, 'main', "is main feed")
-      t.equals(mf.seed.toString('hex').length, 64, "seed")
-      t.equals(typeof mf.keys.id, 'string', "keys")
+      t.equals(mf.feeds.length, 1, '1 feed')
+      t.equals(mf.feeds[0].feedpurpose, 'main', 'is main feed')
+      t.equals(mf.seed.toString('hex').length, 64, 'seed')
+      t.equals(typeof mf.keys.id, 'string', 'keys')
 
       // lets create a new chess feed
       mf.getOrCreateFeed('chess', 'classic', (err, feed) => {
-        t.equals(mf.feeds.length, 2, "2 feeds")
-        t.equals(feed.feedpurpose, 'chess', "chess feed")
+        t.equals(mf.feeds.length, 2, '2 feeds')
+        t.equals(feed.feedpurpose, 'chess', 'chess feed')
         sbot.close(t.end)
       })
     })

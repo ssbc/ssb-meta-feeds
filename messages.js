@@ -6,24 +6,29 @@ const keys = require('./keys')
 
 // FIXME: define and use json schema
 
-exports.init = function(sbot) {
+exports.init = function (sbot) {
   function add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata) {
     const content = {
       type: 'metafeed/add',
       feedpurpose,
       subfeed: feedKeys.id,
-      metafeed: metafeedKeys.id, 
+      metafeed: metafeedKeys.id,
       nonce,
       tangles: {
-        metafeed: { root: null, previous: null }
-      }
+        metafeed: { root: null, previous: null },
+      },
     }
 
-    if (metadata)
-      Object.assign(content, metadata)
+    if (metadata) Object.assign(content, metadata)
 
-    return bb.create(content, metafeedKeys, feedKeys, previous ? previous.key : null,
-                     previous ? previous.value.sequence+1 : 1, +new Date())
+    return bb.create(
+      content,
+      metafeedKeys,
+      feedKeys,
+      previous ? previous.key : null,
+      previous ? previous.value.sequence + 1 : 1,
+      +new Date()
+    )
   }
 
   function getBase64Nonce() {
@@ -36,14 +41,22 @@ exports.init = function(sbot) {
       return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
     },
 
-    addNewFeed(metafeedKeys, previous, feedpurpose, seed, feedformat, metadata) {
+    addNewFeed(
+      metafeedKeys,
+      previous,
+      feedpurpose,
+      seed,
+      feedformat,
+      metadata
+    ) {
       const nonce = getBase64Nonce()
       const feedKeys = keys.deriveFeedKeyFromSeed(seed, nonce)
       if (feedformat === 'bendy butt')
         feedKeys.id = feedKeys.replace('.ed25519', '.bbfeed-v1')
-      else if (feedformat === 'classic')
-        ; // default
-      else throw 'Unknown feed format', feedformat
+      else if (
+        feedformat === 'classic' // default
+      );
+      else throw ('Unknown feed format', feedformat)
 
       return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
     },
@@ -54,7 +67,7 @@ exports.init = function(sbot) {
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         if (err) return cb(err)
-        if (results.length === 0) return cb("no add message found on meta feed")
+        if (results.length === 0) return cb('no add message found on meta feed')
 
         const content = {
           type: 'metafeed/tombstone',
@@ -62,12 +75,21 @@ exports.init = function(sbot) {
           nonce: getBase64Nonce(),
           reason,
           tangles: {
-            metafeed: { root: results[0].key, previous: results[0].key }
-          }
+            metafeed: { root: results[0].key, previous: results[0].key },
+          },
         }
 
-        cb(null, bb.create(content, metafeedKeys, feedKeys, previous ? previous.key : null,
-                           previous ? previous.value.sequence+1 : 1, +new Date()))
+        cb(
+          null,
+          bb.create(
+            content,
+            metafeedKeys,
+            feedKeys,
+            previous ? previous.key : null,
+            previous ? previous.value.sequence + 1 : 1,
+            +new Date()
+          )
+        )
       })
     },
 
@@ -77,14 +99,15 @@ exports.init = function(sbot) {
       // FIXME: getJITDB() is not a public API
       sbot.db.getJITDB().all(query, 0, false, false, (err, results) => {
         const rootAnnounceId = results.length > 0 ? results[0].key : null
-        const previousAnnounceId = results.length > 0 ? results[results.length-1].key : null
+        const previousAnnounceId =
+          results.length > 0 ? results[results.length - 1].key : null
 
         const msg = {
           type: 'metafeed/announce',
-          metafeed: metafeedKeys.id, 
+          metafeed: metafeedKeys.id,
           tangles: {
-            metafeed: { root: rootAnnounceId, previous: previousAnnounceId }
-          }
+            metafeed: { root: rootAnnounceId, previous: previousAnnounceId },
+          },
         }
 
         cb(null, msg)
@@ -96,8 +119,8 @@ exports.init = function(sbot) {
         type: 'metafeed/seed',
         metafeed: metafeedId,
         seed: seed.toString('hex'),
-        recps: [mainfeedId]
+        recps: [mainfeedId],
       }
-    }
+    },
   }
 }
