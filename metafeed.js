@@ -110,18 +110,14 @@ exports.init = function (sbot, config) {
           }
         })
       }),
-      pull.collect((err, results) => {
+      pull.collect((err, metafeeds) => {
         if (err) cb(err)
         else {
-          results[0].getOrCreateFeed = (
-            feedpurpose,
-            feedformat,
-            metadata,
-            cb
-          ) => {
-            getOrCreateFeed(results[0], feedpurpose, feedformat, metadata, cb)
+          const metafeed = metafeeds[0]
+          metafeed.getOrCreateFeed = (purpose, format, metadata, cb) => {
+            getOrCreateFeed(metafeed, purpose, format, metadata, cb)
           }
-          cb(null, results[0])
+          cb(null, metafeed)
         }
       })
     )

@@ -50,7 +50,7 @@ exports.init = function (sbot, config) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
         toCallback((err, msgs) => {
-          // FIXME: handle multiple results properly?
+          // FIXME: handle multiple msgs properly?
           cb(err, msgs.length > 0 ? msgs[0] : null)
         })
       )
@@ -63,7 +63,7 @@ exports.init = function (sbot, config) {
           if (err) return cb(err)
 
           msgs = msgs.filter((msg) => msg.value.content.type === 'metafeed/add')
-          // FIXME: handle multiple results properly?
+          // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
       )
@@ -72,10 +72,10 @@ exports.init = function (sbot, config) {
     hydrate(feedId, seed, cb) {
       sbot.db.query(
         where(author(feedId)),
-        toCallback((err, results) => {
+        toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          const feeds = results
+          const feeds = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/add')
             .map((msg) => {
               const { feedpurpose, subfeed, nonce } = msg.value.content
@@ -95,7 +95,7 @@ exports.init = function (sbot, config) {
               }
             })
 
-          const tombstoned = results
+          const tombstoned = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const { feedpurpose, subfeed } = msg.value.content
@@ -105,7 +105,7 @@ exports.init = function (sbot, config) {
               }
             })
 
-          const latest = results.length > 0 ? results[results.length - 1] : null
+          const latest = msgs.length > 0 ? msgs[msgs.length - 1] : null
 
           cb(null, {
             feeds: feeds.filter(

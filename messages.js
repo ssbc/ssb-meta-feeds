@@ -72,12 +72,10 @@ exports.init = function (sbot) {
     tombstoneFeed(metafeedKeys, previousMsg, feedKeys, reason, cb) {
       sbot.db.query(
         where(and(author(metafeedKeys.id), type('metafeed/add'))),
-        toCallback((err, results) => {
+        toCallback((err, msgs) => {
           if (err) return cb(err)
-          results = results.filter(
-            (x) => x.value.content.subfeed === feedKeys.id
-          )
-          if (results.length === 0) {
+          msgs = msgs.filter((x) => x.value.content.subfeed === feedKeys.id)
+          if (msgs.length === 0) {
             return cb(new Error('no add message found on meta feed'))
           }
 
@@ -88,8 +86,8 @@ exports.init = function (sbot) {
             reason,
             tangles: {
               metafeed: {
-                root: results[0].key,
-                previous: results[results.length - 1].key,
+                root: msgs[0].key,
+                previous: msgs[msgs.length - 1].key,
               },
             },
           }
@@ -115,17 +113,20 @@ exports.init = function (sbot) {
     generateAnnounceMsg(metafeedKeys, cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
-        toCallback((err, results) => {
+        toCallback((err, msgs) => {
           if (err) return cb(err)
-          const rootAnnounceId = results.length > 0 ? results[0].key : null
+          const rootAnnounceId = msgs.length > 0 ? msgs[0].key : null
           const previousAnnounceId =
-            results.length > 0 ? results[results.length - 1].key : null
+            msgs.length > 0 ? msgs[msgs.length - 1].key : null
 
           const msg = {
             type: 'metafeed/announce',
             metafeed: metafeedKeys.id,
             tangles: {
-              metafeed: { root: rootAnnounceId, previous: previousAnnounceId },
+              metafeed: {
+                root: rootAnnounceId,
+                previous: previousAnnounceId,
+              },
             },
           }
 
