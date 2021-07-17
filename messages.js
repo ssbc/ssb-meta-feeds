@@ -64,7 +64,7 @@ exports.init = function (sbot) {
       else if (
         feedformat === 'classic' // default
       );
-      else throw ('Unknown feed format', feedformat)
+      else throw new Error('Unknown feed format: ' + feedformat)
 
       return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
     },
@@ -74,8 +74,12 @@ exports.init = function (sbot) {
         where(and(author(metafeedKeys.id), type('metafeed/add'))),
         toCallback((err, results) => {
           if (err) return cb(err)
-          results = results.filter((x) => x.value.content.subfeed === feedKeys.id)
-          if (results.length === 0) return cb('no add message found on meta feed')
+          results = results.filter(
+            (x) => x.value.content.subfeed === feedKeys.id
+          )
+          if (results.length === 0) {
+            return cb(new Error('no add message found on meta feed'))
+          }
 
           const content = {
             type: 'metafeed/tombstone',
