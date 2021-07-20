@@ -63,25 +63,22 @@ test('metafeed with multiple feeds', (t) => {
 
     db.publishAs(metafeedKeys, indexAddMsg, (err, m) => {
       indexMsg = m
-      // FIXME: onDrain is not a public API
-      db.onDrain('base', () => {
-        sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
-          t.equal(hydrated.feeds.length, 2, 'multiple feeds')
-          t.equal(hydrated.feeds[0].feedpurpose, 'main')
-          t.equal(
-            hydrated.feeds[0].subfeed,
-            hydrated.feeds[0].keys.id,
-            'correct main keys'
-          )
-          t.equal(typeof hydrated.feeds[0].keys.id, 'string', 'has key')
-          t.equal(hydrated.feeds[1].feedpurpose, 'index')
-          t.equal(
-            hydrated.feeds[1].subfeed,
-            hydrated.feeds[1].keys.id,
-            'correct index keys'
-          )
-          t.end()
-        })
+      sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
+        t.equal(hydrated.feeds.length, 2, 'multiple feeds')
+        t.equal(hydrated.feeds[0].feedpurpose, 'main')
+        t.equal(
+          hydrated.feeds[0].subfeed,
+          hydrated.feeds[0].keys.id,
+          'correct main keys'
+        )
+        t.equal(typeof hydrated.feeds[0].keys.id, 'string', 'has key')
+        t.equal(hydrated.feeds[1].feedpurpose, 'index')
+        t.equal(
+          hydrated.feeds[1].subfeed,
+          hydrated.feeds[1].keys.id,
+          'correct index keys'
+        )
+        t.end()
       })
     })
   })
@@ -104,23 +101,12 @@ test('metafeed with tombstones', (t) => {
     reason,
     (err, msg) => {
       db.publishAs(metafeedKeys, msg, (err) => {
-        // FIXME: onDrain is not a public API
-        db.onDrain('base', () => {
-          sbot.metafeeds.query.hydrate(
-            metafeedKeys.id,
-            seed,
-            (err, hydrated) => {
-              t.equal(hydrated.feeds.length, 1, 'single feed')
-              t.equal(hydrated.feeds[0].feedpurpose, 'main')
-              t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
-              t.equal(
-                hydrated.tombstoned[0].subfeed,
-                indexKey.id,
-                'tombstone id'
-              )
-              t.end()
-            }
-          )
+        sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
+          t.equal(hydrated.feeds.length, 1, 'single feed')
+          t.equal(hydrated.feeds[0].feedpurpose, 'main')
+          t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
+          t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
+          t.end()
         })
       })
     }
@@ -130,12 +116,9 @@ test('metafeed with tombstones', (t) => {
 test('seed', (t) => {
   const msg = messages.generateSeedSaveMsg(metafeedKeys.id, sbot.id, seed)
   db.publish(msg, (err) => {
-    // FIXME: onDrain is not a public API
-    db.onDrain('base', () => {
-      sbot.metafeeds.query.getSeed((err, storedSeed) => {
-        t.deepEqual(storedSeed, seed, 'correct seed')
-        t.end()
-      })
+    sbot.metafeeds.query.getSeed((err, storedSeed) => {
+      t.deepEqual(storedSeed, seed, 'correct seed')
+      t.end()
     })
   })
 })
@@ -144,12 +127,9 @@ test('announce', (t) => {
   messages.generateAnnounceMsg(metafeedKeys.id, (err, msg) => {
     db.publish(msg, (err, publishedAnnounce) => {
       t.error(err, 'no err')
-      // FIXME: onDrain is not a public API
-      db.onDrain('base', () => {
-        sbot.metafeeds.query.getAnnounce((err, storedAnnounce) => {
-          t.equal(publishedAnnounce.key, storedAnnounce.key, 'correct announce')
-          sbot.close(t.end)
-        })
+      sbot.metafeeds.query.getAnnounce((err, storedAnnounce) => {
+        t.equal(publishedAnnounce.key, storedAnnounce.key, 'correct announce')
+        sbot.close(t.end)
       })
     })
   })
