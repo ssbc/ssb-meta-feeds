@@ -4,7 +4,7 @@ exports.init = function (sbot, config) {
   function getOrCreateFeed(metafeed, feedpurpose, feedformat, metadata, cb) {
     if (!cb) cb = metadata
 
-    const feed = metafeed.feeds.find((f) => f.feedpurpose == feedpurpose)
+    const feed = metafeed.feeds.find((f) => f.feedpurpose === feedpurpose)
     // FIXME: if a meta feed, maybe hydrate it?
     if (feed) return cb(null, feed)
 
@@ -27,7 +27,7 @@ exports.init = function (sbot, config) {
 
           cb(
             null,
-            metafeed.feeds.find((f) => f.feedpurpose == feedpurpose)
+            metafeed.feeds.find((f) => f.feedpurpose === feedpurpose)
           )
         }
       )
@@ -81,7 +81,7 @@ exports.init = function (sbot, config) {
       }),
       pull.asyncMap(function ensureMetafeedAddExists(mf, cb) {
         sbot.metafeeds.query.hydrate(mf.keys.id, mf.seed, (err, hydrated) => {
-          const mainFeed = hydrated.feeds.find((f) => f.feedpurpose == 'main')
+          const mainFeed = hydrated.feeds.find((f) => f.feedpurpose === 'main')
           if (!mainFeed) {
             //debug('creating main feed')
             const addMsg = sbot.metafeeds.messages.addExistingFeed(
@@ -110,18 +110,14 @@ exports.init = function (sbot, config) {
           }
         })
       }),
-      pull.collect((err, results) => {
+      pull.collect((err, metafeeds) => {
         if (err) cb(err)
         else {
-          results[0].getOrCreateFeed = (
-            feedpurpose,
-            feedformat,
-            metadata,
-            cb
-          ) => {
-            getOrCreateFeed(results[0], feedpurpose, feedformat, metadata, cb)
+          const metafeed = metafeeds[0]
+          metafeed.getOrCreateFeed = (purpose, format, metadata, cb) => {
+            getOrCreateFeed(metafeed, purpose, format, metadata, cb)
           }
-          cb(null, results[0])
+          cb(null, metafeed)
         }
       })
     )

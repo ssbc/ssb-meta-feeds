@@ -9,15 +9,12 @@ exports.generateSeed = function () {
 exports.deriveFeedKeyFromSeed = function (seed, label, feedformat) {
   if (!label) throw new Error('label was not supplied')
 
-  const salt = 'ssb'
+  const ED25519_LENGTH = 32
 
-  const hash = 'SHA-256'
-  const ed25519_length = 32
-
-  const derived_seed = hkdf(seed, ed25519_length, {
-    salt,
+  const derived_seed = hkdf(seed, ED25519_LENGTH, {
+    salt: 'ssb',
     info: 'ssb-meta-feed-seed-v1:' + label,
-    hash,
+    hash: 'SHA-256',
   })
   const keys = ssbKeys.generate('ed25519', derived_seed)
   if (feedformat === 'bendy butt')

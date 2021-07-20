@@ -23,8 +23,8 @@ let db = sbot.db
 test('Base', (t) => {
   db.query(
     where(author(mainKey.id)),
-    toCallback((err, results) => {
-      t.equals(results.length, 0, 'empty db')
+    toCallback((err, msgs) => {
+      t.equals(msgs.length, 0, 'empty db')
 
       sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
         t.equals(mf.feeds.length, 1, '1 feed')

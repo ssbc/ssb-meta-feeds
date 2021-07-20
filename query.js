@@ -50,7 +50,7 @@ exports.init = function (sbot, config) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
         toCallback((err, msgs) => {
-          // FIXME: handle multiple results properly?
+          // FIXME: handle multiple msgs properly?
           cb(err, msgs.length > 0 ? msgs[0] : null)
         })
       )
@@ -63,7 +63,7 @@ exports.init = function (sbot, config) {
           if (err) return cb(err)
 
           msgs = msgs.filter((msg) => msg.value.content.type === 'metafeed/add')
-          // FIXME: handle multiple results properly?
+          // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
       )
@@ -72,50 +72,36 @@ exports.init = function (sbot, config) {
     hydrate(feedId, seed, cb) {
       sbot.db.query(
         where(author(feedId)),
-        toCallback((err, results) => {
+        toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          const feeds = results
+          const addedFeeds = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/add')
             .map((msg) => {
               const { feedpurpose, subfeed, nonce } = msg.value.content
-
-              let keys
-              if (subfeed === sbot.id) keys = config.keys
-              else
-                keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-                  seed,
-                  nonce.toString('base64')
-                )
-
-              return {
-                feedpurpose,
-                subfeed,
-                keys,
-              }
+              const nonceB64 = nonce.toString('base64')
+              const keys =
+                subfeed === sbot.id
+                  ? config.keys
+                  : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
+              return { feedpurpose, subfeed, keys }
             })
 
-          const tombstoned = results
+          const tombstoned = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const { feedpurpose, subfeed } = msg.value.content
-              return {
-                feedpurpose,
-                subfeed,
-              }
+              return { feedpurpose, subfeed }
             })
 
-          const latest = results.length > 0 ? results[results.length - 1] : null
+          const feeds = addedFeeds.filter(
+            // allow only feeds that have not been tombstoned
+            (feed) => !tombstoned.find((t) => t.subfeed === feed.subfeed)
+          )
 
-          cb(null, {
-            feeds: feeds.filter(
-              (feed) =>
-                tombstoned.filter((t) => t.subfeed === feed.subfeed).length ===
-                0
-            ),
-            tombstoned,
-            latest,
-          })
+          const latest = msgs.length > 0 ? msgs[msgs.length - 1] : null
+
+          cb(null, { feeds, tombstoned, latest })
         })
       )
     },
