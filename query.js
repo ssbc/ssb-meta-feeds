@@ -9,17 +9,17 @@ const {
 } = require('ssb-db2/operators')
 
 function subfeed(feedId) {
-  const bValue = Buffer.from('value')
-  const bContent = Buffer.from('content')
-  const bSubfeed = Buffer.from('subfeed')
+  const B_VALUE = Buffer.from('value')
+  const B_CONTENT = Buffer.from('content')
+  const B_SUBFEED = Buffer.from('subfeed')
 
   function seekSubfeed(buffer) {
     let p = 0 // note you pass in p!
-    p = seekKey(buffer, p, bValue)
+    p = seekKey(buffer, p, B_VALUE)
     if (p < 0) return
-    p = seekKey(buffer, p, bContent)
+    p = seekKey(buffer, p, B_CONTENT)
     if (p < 0) return
-    return seekKey(buffer, p, bSubfeed)
+    return seekKey(buffer, p, B_SUBFEED)
   }
 
   return equal(seekSubfeed, feedId, {

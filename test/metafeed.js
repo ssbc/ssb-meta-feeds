@@ -26,7 +26,7 @@ test('Base', (t) => {
     toCallback((err, msgs) => {
       t.equals(msgs.length, 0, 'empty db')
 
-      sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
+      sbot.metafeeds.getOrCreate((err, mf) => {
         t.equals(mf.feeds.length, 1, '1 feed')
         t.equals(mf.feeds[0].feedpurpose, 'main', 'is main feed')
         t.equals(mf.seed.toString('hex').length, 64, 'seed')
@@ -52,7 +52,7 @@ test('Restart', (t) => {
       path: dir,
     })
 
-  sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
+  sbot.metafeeds.getOrCreate((err, mf) => {
     t.ok(Buffer.isBuffer(mf.seed), 'has seed')
     t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
     t.equal(mf.feeds.length, 2, 'has 2 feeds')

@@ -1,10 +1,21 @@
+const Keys = require('./keys')
+const Messages = require('./messages')
+const Query = require('./query')
+const API = require('./api')
+
 exports.name = 'metafeeds'
 
 exports.init = function (sbot, config) {
+  const messages = Messages.init(sbot, config)
+  const query = Query.init(sbot, config)
+  const api = API.init(sbot, config)
+
   return {
-    keys: require('./keys'),
-    messages: require('./messages').init(sbot),
-    metafeed: require('./metafeed').init(sbot, config),
-    query: require('./query').init(sbot, config),
+    getOrCreate: api.getOrCreate,
+
+    // Internals
+    keys: Keys,
+    messages,
+    query,
   }
 }
