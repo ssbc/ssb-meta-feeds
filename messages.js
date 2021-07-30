@@ -5,7 +5,10 @@ const keys = require('./keys')
 
 // FIXME: define and use json schema
 
-exports.init = function (sbot) {
+/**
+ * Low level API for generating messages
+ */
+exports.init = function init(sbot) {
   function add(feedpurpose, nonce, previousMsg, subKeys, mfKeys, metadata) {
     const content = {
       type: 'metafeed/add',
@@ -41,19 +44,31 @@ exports.init = function (sbot) {
   }
 
   return {
-    addExistingFeed(metafeedKeys, previous, feedpurpose, feedKeys, metadata) {
+    /**
+     * Generate a message linking an existing feed to a meta feed. `previous`
+     * is the previous message on the meta feed in KVT form. `metadata` is an
+     * optional object to be included (object spread) in `msg.value.content`.
+     *
+     * ```js
+     * const msg = sbot.metafeeds.messages.addExistingFeed(metafeedKeys, null, 'main', mainKeys)
+     * ```
+     */
+    addExistingFeed(mfKeys, previous, feedpurpose, feedKeys, metadata) {
       const nonce = getNonce()
-      return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
+      return add(feedpurpose, nonce, previous, feedKeys, mfKeys, metadata)
     },
 
-    addNewFeed(
-      metafeedKeys,
-      previous,
-      feedpurpose,
-      seed,
-      feedformat,
-      metadata
-    ) {
+    /**
+     * Generate a message to be posted on meta feed linking feed to a meta feed.
+     * Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
+     * `bendy butt` for a meta feed or `classic`. `metadata` is an optional
+     * object to be included (object spread) in `msg.value.content`.
+     *
+     * ```js
+     * const msg = sbot.metafeeds.messages.addNewFeed(metafeedKeys, null, 'main', seed, 'classic')
+     * ```
+     */
+    addNewFeed(mfKeys, previous, feedpurpose, seed, feedformat, metadata) {
       const nonce = getNonce()
       const feedKeys = keys.deriveFeedKeyFromSeed(
         seed,
@@ -66,12 +81,32 @@ exports.init = function (sbot) {
       );
       else throw new Error('Unknown feed format: ' + feedformat)
 
-      return add(feedpurpose, nonce, previous, feedKeys, metafeedKeys, metadata)
+      return add(feedpurpose, nonce, previous, feedKeys, mfKeys, metadata)
     },
 
-    tombstoneFeed(metafeedKeys, previousMsg, feedKeys, reason, cb) {
+    /**
+     * Generate a message to be posted on meta feed tombstoning a feed on a meta
+     * feed. `Previous` is the previous message on the meta feed in KVT form.
+     *
+     * ```js
+     * const previous = {
+     *   key: '%vv/XLo8lYgFjX9sM44I5F6la2FAp6iREuZ0AVJFp0pU=.bbmsg-v1',
+     *   value: {
+     *     previous: '%jv9hs2es5Pkw85vSOmLvzQh4HtosbCrVjhT+fR6GPr4=.bbmsg-v1',
+     *     // ...
+     *   }
+     * }
+     *
+     * sbot.metafeeds.messages.tombstoneFeed(metafeedKeys, previous, mainKeys, 'No longer used', (err, tombstoneMsg) => {
+     *   sbot.db.publishAs(mfKey, tombstoneMsg, (err) => {
+     *     console.log("main is now tombstoned on meta feed")
+     *   })
+     * })
+     * ```
+     */
+    tombstoneFeed(mfKeys, previousMsg, feedKeys, reason, cb) {
       sbot.db.query(
-        where(and(author(metafeedKeys.id), type('metafeed/add'))),
+        where(and(author(mfKeys.id), type('metafeed/add'))),
         toCallback((err, msgs) => {
           if (err) return cb(err)
           msgs = msgs.filter((x) => x.value.content.subfeed === feedKeys.id)
@@ -82,7 +117,7 @@ exports.init = function (sbot) {
           const content = {
             type: 'metafeed/tombstone',
             subfeed: feedKeys.id,
-            metafeed: metafeedKeys.id,
+            metafeed: mfKeys.id,
             reason,
             tangles: {
               metafeed: {
@@ -98,7 +133,7 @@ exports.init = function (sbot) {
           const bbmsg = bb.encodeNew(
             content,
             feedKeys,
-            metafeedKeys,
+            mfKeys,
             sequence,
             previous,
             timestamp
@@ -110,6 +145,18 @@ exports.init = function (sbot) {
       )
     },
 
+    /**
+     * Generate the content of a message to be published on a main feed linking
+     * it to a meta feed.
+     *
+     * ```js
+     * sbot.metafeeds.messages.generateAnnounceMsg(metafeedKeys, (err, announceMsg) => {
+     *   sbot.db.publish(announceMsg, (err) => {
+     *     console.log("main feed is now linked to meta feed")
+     *   })
+     * })
+     * ```
+     */
     generateAnnounceMsg(metafeedKeys, cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
@@ -135,6 +182,17 @@ exports.init = function (sbot) {
       )
     },
 
+    /**
+     * Generate the content of a message to save your seed value as a private
+     * message on a main feed.
+     *
+     * ```js
+     * const seedSaveMsg = sbot.metafeeds.messages.generateSeedSaveMsg(metafeedKeys.id, sbot.id, seed)
+     * sbot.db.publish(seedSaveMsg, (err) => {
+     *   console.log("seed has now been saved, all feed keys generated from this can be restored from the seed")
+     * })
+     * ```
+     */
     generateSeedSaveMsg(metafeedId, mainfeedId, seed) {
       return {
         type: 'metafeed/seed',

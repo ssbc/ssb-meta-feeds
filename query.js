@@ -33,6 +33,15 @@ function subfeed(feedId) {
 
 exports.init = function (sbot, config) {
   const self = {
+    /**
+     * Gets the stored seed message (on the main feed) for the root meta feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.getSeed((err, seed) => {
+     *   console.log("seed buffer", seed)
+     * })
+     * ```
+     */
     getSeed(cb) {
       // FIXME: maybe use metafeed id
       sbot.db.query(
@@ -50,6 +59,15 @@ exports.init = function (sbot, config) {
       )
     },
 
+    /**
+     * Gets the meta feed announce messages on main feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.getAnnounces((err, msg) => {
+     *   console.log("announce msg", msg)
+     * })
+     * ```
+     */
     getAnnounces(cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
@@ -57,6 +75,15 @@ exports.init = function (sbot, config) {
       )
     },
 
+    /**
+     * Gets the metafeed message for a given feed to look up metadata.
+     *
+     * ```js
+     * sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
+     *   console.log("query used for index feed", JSON.parse(content.query))
+     * })
+     * ```
+     */
     getMetadata(feedId, cb) {
       sbot.db.query(
         where(subfeed(feedId)),
@@ -70,6 +97,10 @@ exports.init = function (sbot, config) {
       )
     },
 
+    /**
+     * Gets the latest message on the given feed, typically a meta feed, but
+     * other feed types work too.
+     */
     getLatest(feedId, cb) {
       sbot.db.query(
         where(author(feedId)),
@@ -85,6 +116,10 @@ exports.init = function (sbot, config) {
       )
     },
 
+    /**
+     * Gets the current state of a subfeed based on the meta feed message that
+     * "added" the subfeed
+     */
     hydrateFromMsg(msg, seed) {
       const { feedpurpose, subfeed, nonce } = msg.value.content
       const nonceB64 = nonce.toString('base64')
@@ -95,6 +130,16 @@ exports.init = function (sbot, config) {
       return { feedpurpose, subfeed, keys }
     },
 
+    /**
+     * Gets the current state (active feeds) of a meta feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
+     *   console.log(hydrated.feeds) // the feeds
+     *   console.log(hydrated.feeds[0].feedpurpose) // 'main'
+     * })
+     * ```
+     */
     hydrate(feedId, seed, cb) {
       sbot.db.query(
         where(author(feedId)),
