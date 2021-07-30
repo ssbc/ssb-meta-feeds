@@ -5,7 +5,9 @@ const {
   type,
   where,
   toCallback,
+  paginate,
   equal,
+  descending,
 } = require('ssb-db2/operators')
 
 function subfeed(feedId) {
@@ -30,13 +32,15 @@ function subfeed(feedId) {
 }
 
 exports.init = function (sbot, config) {
-  return {
+  const self = {
     getSeed(cb) {
       // FIXME: maybe use metafeed id
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/seed'))),
-        toCallback((err, msgs) => {
+        paginate(1),
+        toCallback((err, answer) => {
           if (err) return cb(err)
+          const msgs = answer.results
           if (msgs.length === 0) return cb(null, null)
 
           const msg = msgs[0]
@@ -46,13 +50,10 @@ exports.init = function (sbot, config) {
       )
     },
 
-    getAnnounce(cb) {
+    getAnnounces(cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
-        toCallback((err, msgs) => {
-          // FIXME: handle multiple msgs properly?
-          cb(err, msgs.length > 0 ? msgs[0] : null)
-        })
+        toCallback(cb)
       )
     },
 
@@ -69,6 +70,31 @@ exports.init = function (sbot, config) {
       )
     },
 
+    getLatest(feedId, cb) {
+      sbot.db.query(
+        where(author(feedId)),
+        paginate(1),
+        descending(),
+        toCallback((err, answer) => {
+          if (err) return cb(err)
+          const msgs = answer.results
+          if (msgs.length !== 1) return cb(null, null)
+          const msg = msgs[0]
+          cb(null, msg)
+        })
+      )
+    },
+
+    hydrateFromMsg(msg, seed) {
+      const { feedpurpose, subfeed, nonce } = msg.value.content
+      const nonceB64 = nonce.toString('base64')
+      const keys =
+        subfeed === sbot.id
+          ? config.keys
+          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
+      return { feedpurpose, subfeed, keys }
+    },
+
     hydrate(feedId, seed, cb) {
       sbot.db.query(
         where(author(feedId)),
@@ -77,15 +103,7 @@ exports.init = function (sbot, config) {
 
           const addedFeeds = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/add')
-            .map((msg) => {
-              const { feedpurpose, subfeed, nonce } = msg.value.content
-              const nonceB64 = nonce.toString('base64')
-              const keys =
-                subfeed === sbot.id
-                  ? config.keys
-                  : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
-              return { feedpurpose, subfeed, keys }
-            })
+            .map((msg) => self.hydrateFromMsg(msg, seed))
 
           const tombstoned = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
@@ -99,11 +117,11 @@ exports.init = function (sbot, config) {
             (feed) => !tombstoned.find((t) => t.subfeed === feed.subfeed)
           )
 
-          const latest = msgs.length > 0 ? msgs[msgs.length - 1] : null
-
-          cb(null, { feeds, tombstoned, latest })
+          cb(null, { feeds, tombstoned })
         })
       )
     },
   }
+
+  return self
 }

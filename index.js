@@ -11,7 +11,8 @@ exports.init = function (sbot, config) {
   const api = API.init(sbot, config)
 
   return {
-    getOrCreate: api.getOrCreate,
+    // Public API
+    ...api,
 
     // Internals
     keys: Keys,
