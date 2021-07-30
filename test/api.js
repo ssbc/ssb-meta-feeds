@@ -40,7 +40,7 @@ test('findOrCreate(null, ...) can create the root metafeed', (t) => {
     toCallback((err, msgs) => {
       t.equals(msgs.length, 0, 'empty db')
 
-      sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
+      sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
         t.error(err, 'no err for findOrCreate()')
         // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
         // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
@@ -121,7 +121,6 @@ tape('findOrCreate() a sub feed', (t) => {
           (f) => f.feedpurpose === 'chess',
           { feedpurpose: 'chess', feedformat: 'classic' },
           (err, feed) => {
-            // t.equals(mf.feeds.length, 2, '2 sub feeds in the root metafeed')
             t.error(err, 'no err')
             t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
 
@@ -153,13 +152,17 @@ test('restart sbot', (t) => {
       t.error(err, 'no err')
       t.ok(Buffer.isBuffer(mf.seed), 'has seed')
       t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
-      // FIXME: assert living and tombstoned somehow
-      // t.equal(mf.feeds.length, 2, 'has 2 feeds')
-      // t.equal(mf.feeds[0].feedpurpose, 'main', 'main')
-      // t.equal(mf.feeds[1].feedpurpose, 'chess', 'chess')
-      // t.equal(mf.tombstoned.length, 0, 'has 0 tombstoned feeds')
-      // t.ok(mf.latest.key.endsWith('.bbmsg-v1'), 'latest ok')
-      sbot.close(t.end)
+
+      sbot.metafeeds.filter(mf, null, (err, filtered) => {
+        t.error(err, 'no err')
+        t.equal(filtered.length, 2, 'has 2 feeds')
+        t.equal(filtered[0].feedpurpose, 'main', 'main')
+        t.equal(filtered[1].feedpurpose, 'chess', 'chess')
+        // FIXME: assert tombstoned somehow
+        // t.equal(mf.tombstoned.length, 0, 'has 0 tombstoned feeds')
+        // t.ok(mf.latest.key.endsWith('.bbmsg-v1'), 'latest ok')
+        sbot.close(true, t.end)
+      })
     })
   })
 })
