@@ -68,6 +68,8 @@ exports.init = function (sbot, config) {
     if (!metafeed) {
       getOrCreateRootMetafeed(cb)
     } else {
+      if (!details.feedpurpose) return cb(new Error('Missing feedpurpose'))
+      if (!details.feedformat) return cb(new Error('Missing feedformat'))
       sbot.metafeeds.query.getLatest(metafeed.keys.id, (err, latest) => {
         if (err) return cb(err)
         const msgValAdd = sbot.metafeeds.messages.addNewFeed(
