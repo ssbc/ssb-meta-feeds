@@ -1,4 +1,5 @@
 const pull = require('pull-stream')
+const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
 
 const alwaysTrue = () => true
@@ -105,90 +106,59 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function getOrCreateRootMetafeed(cb) {
-    pull(
-      // start chain with dummy value
-      pull.values([{}]),
-      pull.asyncMap(function ensureSeedExists(mf, cb) {
-        sbot.metafeeds.query.getSeed((err, loadedSeed) => {
-          let deriveKey = sbot.metafeeds.keys.deriveFeedKeyFromSeed
-          if (err || loadedSeed === null) {
-            debug('generating a seed')
-            const seed = sbot.metafeeds.keys.generateSeed()
-            const metafeedKeys = deriveKey(seed, 'metafeed', 'bendy butt')
-            const seedSaveMsg = sbot.metafeeds.messages.generateSeedSaveMsg(
-              metafeedKeys.id,
-              sbot.id,
-              seed
-            )
-            sbot.db.publish(seedSaveMsg, (err) =>
-              cb(err, { seed, keys: metafeedKeys })
-            )
-          } else {
-            debug('loaded seed')
-            cb(null, {
-              seed: loadedSeed,
-              keys: deriveKey(loadedSeed, 'metafeed', 'bendy butt'),
-            })
-          }
-        })
-      }),
-      pull.asyncMap(function ensureMetafeedAnnounceExists(mf, cb) {
-        sbot.metafeeds.query.getAnnounces((err, announcements) => {
-          if (!announcements || announcements.length === 0) {
-            debug('announcing meta feed on main feed')
-            sbot.metafeeds.messages.generateAnnounceMsg(
-              mf.keys,
-              (err, announceMsg) => {
-                if (err) return cb(err)
-                else sbot.db.publish(announceMsg, (err) => cb(err, mf))
-              }
-            )
-          } else {
-            debug('announce post exists on main feed')
-            cb(null, mf)
-          }
-        })
-      }),
-      pull.asyncMap(function ensureMetafeedAddExists(mf, cb) {
-        find(
-          mf,
-          (f) => f.feedpurpose === 'main',
-          (err, mainFeed) => {
-            if (err) return cb(err)
+  async function getOrCreateRootMetafeed(cb) {
+    // Pluck relevant internal APIs
+    const { deriveFeedKeyFromSeed } = sbot.metafeeds.keys
+    const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
+    const { generateSeedSaveMsg, generateAnnounceMsg, addExistingFeed } =
+      sbot.metafeeds.messages
 
-            if (!mainFeed) {
-              sbot.metafeeds.query.getLatest(mf.keys.id, (err, latest) => {
-                if (err) return cb(err)
-                debug('adding main feed to root meta feed')
-                const addMsg = sbot.metafeeds.messages.addExistingFeed(
-                  mf.keys,
-                  latest,
-                  'main',
-                  config.keys
-                )
-                sbot.db.publishAs(mf.keys, addMsg, (err) => {
-                  if (err) return cb(err)
-                  else {
-                    cb(null, mf)
-                  }
-                })
-              })
-            } else {
-              debug('main feed already added to root meta feed')
-              cb(null, mf)
-            }
-          }
-        )
-      }),
-      pull.collect((err, metafeeds) => {
-        if (err) cb(err)
-        else {
-          const metafeed = metafeeds[0]
-          cb(null, metafeed)
-        }
-      })
-    )
+    // Ensure seed exists
+    let mf
+    const [err1, loadedSeed] = await run(getSeed)()
+    if (err1 || !loadedSeed) {
+      if (err1) debug('generating a seed because %o', err1)
+      else debug('generating a seed')
+      const seed = sbot.metafeeds.keys.generateSeed()
+      const mfKeys = deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+      const seedSaveMsg = generateSeedSaveMsg(mfKeys.id, sbot.id, seed)
+      const [err2] = await run(sbot.db.publish)(seedSaveMsg)
+      if (err2) return cb(err2)
+      mf = { seed, keys: mfKeys }
+    } else {
+      debug('loaded seed')
+      const mfKeys = deriveFeedKeyFromSeed(loadedSeed, 'metafeed', 'bendy butt')
+      mf = { seed: loadedSeed, keys: mfKeys }
+    }
+
+    // Ensure root meta feed announcement exists on the main feed
+    const [err2, announcements] = await run(getAnnounces)()
+    if (err2 || !announcements || announcements.length === 0) {
+      if (err2) debug('announcing meta feed on main feed because %o', err2)
+      else debug('announcing meta feed on main feed')
+      const [err3, announceMsgVal] = await run(generateAnnounceMsg)(mf.keys)
+      if (err3) return cb(err3)
+      const [err4] = await run(sbot.db.publish)(announceMsgVal)
+      if (err4) return cb(err4)
+    } else {
+      debug('announce post exists on main feed')
+    }
+
+    // Ensure the main feed was "added" on the root meta feed
+    const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
+    if (err3) return cb(err3)
+    if (!added) {
+      const [err4, latest] = await run(getLatest)(mf.keys.id)
+      if (err4) return cb(err4)
+      debug('adding main feed to root meta feed')
+      const addMsgVal = addExistingFeed(mf.keys, latest, 'main', config.keys)
+      const [err5] = await run(sbot.db.publishAs)(mf.keys, addMsgVal)
+      if (err5) return cb(err5)
+    } else {
+      debug('main feed already added to root meta feed')
+    }
+
+    cb(null, mf)
   }
 
   return {
