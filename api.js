@@ -1,4 +1,3 @@
-const pull = require('pull-stream')
 const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
 
@@ -26,11 +25,16 @@ exports.init = function (sbot, config) {
     })
   }
 
-  function filter(metafeed, maybeVisit, cb) {
+  function filter(metafeed, maybeVisit, maybeCB) {
     const visit = maybeVisit || alwaysTrue
     if (!metafeed) {
+      const cb = maybeCB
+      filterRootMetafeed(visit, cb)
+    } else if (typeof metafeed === 'function') {
+      const cb = metafeed
       filterRootMetafeed(visit, cb)
     } else {
+      const cb = maybeCB
       sbot.metafeeds.query.hydrate(
         metafeed.keys.id,
         metafeed.seed,
@@ -44,20 +48,27 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function find(metafeed, maybeVisit, cb) {
+  function find(metafeed, maybeVisit, maybeCB) {
     const visit = maybeVisit || alwaysTrue
     if (!metafeed) {
+      const cb = maybeCB
+      filterRootMetafeed(visit, (err, metafeeds) => {
+        if (err) return cb(err)
+        cb(null, metafeeds[0])
+      })
+    } else if (typeof metafeed === 'function') {
+      const cb = metafeed
       filterRootMetafeed(visit, (err, metafeeds) => {
         if (err) return cb(err)
         cb(null, metafeeds[0])
       })
     } else {
-      filter(metafeed, alwaysTrue, (err, feeds) => {
+      const cb = maybeCB
+      filter(metafeed, visit, (err, feeds) => {
         if (err) return cb(err)
-        cb(
-          null,
-          feeds.find((feed) => visit(feed))
-        )
+        if (feeds.length === 0) return cb(null, null)
+        const found = feeds[0]
+        cb(null, found)
       })
     }
   }
@@ -65,10 +76,15 @@ exports.init = function (sbot, config) {
   // TODO: filterTombstoned
   // TODO: findTombstoned
 
-  function create(metafeed, details, cb) {
+  function create(metafeed, details, maybeCB) {
     if (!metafeed) {
+      const cb = maybeCB
+      getOrCreateRootMetafeed(cb)
+    } else if (typeof metafeed === 'function') {
+      const cb = metafeed
       getOrCreateRootMetafeed(cb)
     } else {
+      const cb = maybeCB
       if (!details.feedpurpose) return cb(new Error('Missing feedpurpose'))
       if (!details.feedformat) return cb(new Error('Missing feedformat'))
       sbot.metafeeds.query.getLatest(metafeed.keys.id, (err, latest) => {
@@ -93,12 +109,16 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function findOrCreate(metafeed, maybeVisit, details, cb) {
-    const visit = maybeVisit || alwaysTrue
+  function findOrCreate(metafeed, maybeVisit, details, maybeCB) {
     if (!metafeed) {
+      const cb = maybeCB
+      getOrCreateRootMetafeed(cb)
+    } else if (typeof metafeed === 'function') {
+      const cb = metafeed
       getOrCreateRootMetafeed(cb)
     } else {
-      find(metafeed, visit, (err, found) => {
+      const cb = maybeCB
+      find(metafeed, maybeVisit, (err, found) => {
         if (err) return cb(err)
         if (found) return cb(null, found)
         create(metafeed, details, cb)

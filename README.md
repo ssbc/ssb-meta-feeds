@@ -30,7 +30,7 @@ lives alongside your existing "classical" feed, which we'll refer to as **main
 feed**.
 
 ```js
-sbot.metafeeds.create(null, null, (err, metafeed) => {
+sbot.metafeeds.create((err, metafeed) => {
   console.log(metafeed) // { seed, keys }
 })
 ```
@@ -163,7 +163,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 
 *Looks for the first subfeed of `metafeed` that satisfies the condition in `visit`, or creates it matching the properties in `details`.*
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`.
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`. Alternatively, you can call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
 
 `visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
 

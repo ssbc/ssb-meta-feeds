@@ -53,22 +53,22 @@ test('findOrCreate(null, ...) can create the root metafeed', (t) => {
 })
 
 test('find / create / findOrCreate are idempotent', (t) => {
-  sbot.metafeeds.find(null, null, (err, mf) => {
+  sbot.metafeeds.find((err, mf) => {
     t.error(err, 'no err for find()')
     t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
     t.equals(typeof mf.keys.id, 'string', 'key seems okay')
     const originalSeed = mf.seed.toString('hex')
     const originalID = mf.keys.id
 
-    sbot.metafeeds.filter(null, null, (err, allFound) => {
+    sbot.metafeeds.filter((err, allFound) => {
       t.equals(allFound.length, 1, 'got root metafeed without creating it')
 
-      sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
+      sbot.metafeeds.findOrCreate((err, mf) => {
         t.error(err, 'no err for findOrCreate(null, ...)')
         t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
         t.equals(mf.keys.id, originalID, 'same ID')
 
-        sbot.metafeeds.create(null, {}, (err, mf) => {
+        sbot.metafeeds.create((err, mf) => {
           t.error(err, 'no err for create(null, ...)')
           t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
           t.equals(mf.keys.id, originalID, 'same ID')
