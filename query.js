@@ -47,6 +47,7 @@ exports.init = function (sbot, config) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/seed'))),
         paginate(1),
+        descending(),
         toCallback((err, answer) => {
           if (err) return cb(err)
           const msgs = answer.results
