@@ -150,7 +150,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 
 `metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`.
 
-`details` can be `null` only if if `metafeed` is null, but usually it's an object with the properties:
+`details` can be `null` only if `metafeed` is null, but usually it's an object with the properties:
 
 * `feedpurpose`: any string to characterize the purpose of this new subfeed
 * `feedformat`: the string `'classic'` or the string `'bendy butt'`
