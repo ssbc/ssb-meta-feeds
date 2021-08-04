@@ -99,6 +99,7 @@ Notice that each `f` (and the result) is an object that describes the subfeed, w
 * `feedpurpose`: same string as used to create the subfeed
 * `subfeed`: the SSB identifier for this subfeed
 * `keys`: the [ssb-keys] compatible `{ curve, public, private, id }` object
+* `metadata`: the same object used when creating the subfeed
 
 Finally, there are many cases where you want to create a subfeed **only if** it doesn't yet exist. For those purposes, use `findOrCreate`, which is a mix of `find` and `create`. It literally will internally call `find`, and only call `create` if `find` did not find a subfeed. For instance:
 
@@ -132,7 +133,7 @@ sbot.metafeeds.findOrCreate(
 
 `visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under `metafeed` are returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is an array containing the found feeds (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys }`).
+The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is an array containing the found feeds (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
 
 ### `sbot.metafeeds.find(metafeed, visit, cb)`
 
@@ -142,7 +143,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 
 `visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the found feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys }`).
+The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the found feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
 
 ### `sbot.metafeeds.create(metafeed, details, cb)`
 
@@ -172,7 +173,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 * `feedformat`: the string `'classic'` or the string `'bendy butt'`
 * `metadata`: an optional object containing other fields
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the created feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys }`).
+The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the created feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
 
 ## License
 

@@ -119,10 +119,15 @@ tape('findOrCreate() a sub feed', (t) => {
         sbot.metafeeds.findOrCreate(
           mf,
           (f) => f.feedpurpose === 'chess',
-          { feedpurpose: 'chess', feedformat: 'classic' },
+          {
+            feedpurpose: 'chess',
+            feedformat: 'classic',
+            metadata: { score: 0 },
+          },
           (err, feed) => {
             t.error(err, 'no err')
             t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
+            t.equals(feed.metadata.score, 0, 'it has metadata')
 
             sbot.metafeeds.filter(mf, null, (err, filtered) => {
               t.error(err, 'no err')
