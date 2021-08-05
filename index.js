@@ -6,5 +6,6 @@ exports.init = function (sbot, config) {
     messages: require('./messages').init(sbot),
     metafeed: require('./metafeed').init(sbot, config),
     query: require('./query').init(sbot, config),
+    validate: require('./validate'),
   }
 }
