@@ -127,7 +127,10 @@ test('announce', (t) => {
   messages.generateAnnounceMsg(metafeedKeys.id, (err, msg) => {
     db.publish(msg, (err, publishedAnnounce) => {
       t.error(err, 'no err')
-      sbot.metafeeds.query.getAnnounce((err, storedAnnounce) => {
+      sbot.metafeeds.query.getAnnounces((err, announcements) => {
+        t.error(err, 'no err')
+        t.equals(announcements.length, 1, '1 announce message')
+        const storedAnnounce = announcements[0]
         t.equal(publishedAnnounce.key, storedAnnounce.key, 'correct announce')
         sbot.close(t.end)
       })

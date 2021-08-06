@@ -3,201 +3,262 @@
 An implementation of the [ssb meta feed spec] in JS as a secret stack
 plugin.
 
-```js
-let sbot = SecretStack({ appKey: caps.shs })
-  .use(require('ssb-db2'))
-  .use(require('ssb-meta-feeds'))
-  .call(null, {
-    keys,
-    path: dir,
-  })
+## Installation
+
+**Prerequisites:**
+
+- Requires **Node.js 10** or higher
+- Requires `ssb-db2`
+
+```
+npm install --save ssb-meta-feeds
 ```
 
-## metafeed
+Add this plugin like this:
 
-### getOrCreate(cb)
+```diff
+ const sbot = SecretStack({ appKey: caps.shs })
+     .use(require('ssb-db2'))
++    .use(require('ssb-meta-feeds'))
+     // ...
+```
 
-Get or create the root metafeed.
+## Example usage
+
+Let's start by create a **root meta feed**, necessary for using this module. It
+lives alongside your existing "classical" feed, which we'll refer to as **main
+feed**.
 
 ```js
-sbot.metafeeds.metafeed.getOrCreate((err, mf) => {
-  // lets create a new chess feed
-  mf.getOrCreateFeed('chess', 'classic', (err, feed) => {
-    sbot.db.publishAs(feed, {
-      type: 'chess-move',
-      ...
-    }, (err) => {
-      if (err) console.error(err)  
-    }))
-  })
+sbot.metafeeds.create((err, metafeed) => {
+  console.log(metafeed) // { seed, keys }
 })
 ```
 
-The returned metafeed object looks like this:
+Now this has created the `seed`, which in turn is used to generate an [ssb-keys]
+`keys` object. The `seed` is actually also published on the _main_ feed as a
+private message to yourself, to allow recovering it in the future. The first two
+arguments above are null when we're creating the _root_ meta feed, but not in
+other use cases of `create`.
 
-```
-  seed: <Buffer b7 06 b1 e1 d0 60 7d ab a9 b9 be 94 c8 b3 47 0d 8b db 85 56 43 73 0c 17 e4 d9 af 45 65 e7 3d a5>,
-  keys: {
-    curve: 'ed25519',
-    ...
-    id: '@NeX4nJURpyclNiQyuVUdlOPqy0vNywoJvyKs47dowSw=.bbfeed-v1'
+There can only be one _root_ meta feed, so even if you call `create` many times,
+it will not create duplicates, it will just load the meta feed `{ seed, keys }`.
+
+Now you can create subfeeds _under_ that root meta feed like this:
+
+```js
+const details = {
+  feedpurpose: 'mygame',
+  feedformat: 'classic',
+  metadata: {
+    score: 0,
+    whateverElse: true,
   },
-  feeds: [
-    {
-      feedpurpose: 'main',
-      subfeed: '@4amQjiCKdJz9xB8JV5Ukrf9SpxK7E9+M53fk4nWvUyw=.ed25519',
-      keys: {
-        curve: 'ed25519',
-        ....
-        id: '@tMSm7lTZQs/tJFLWcyEhP7T/bp4YeqGVw+ztjD59s30=.ed25519'
-      }
-    }
-  ],
-  tombstoned: [],
-  latest: {
-    key: '%wn45V+UUgB0uQupjbNUEqnGz7vbepaNdZ4/Vj7AvIvo=.bbmsg-v1',
-    value: {
-      previous: null,
-      ...
-    }
-  }
-}
-```
-
-## Low-level API
-
-### keys
-
-Operations related to keys
-
-#### generateSeed()
-
-Generate a seed value that can be used to derive feeds
-
-#### deriveFeedKeyFromSeed(seed, label, feedformat)
-
-Derive a new feed key from a seed. Label must be either `metafeed` for
-the top level meta feed or a base64 encoded nonce. Feedformat can be
-either `bendy butt` for a meta feed or `classic`.
-
-```js
-const seed = sbot.metafeeds.keys.generateSeed()
-const mfKey = sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, 'metafeed')
-```
-
-### messages
-
-Low level api for generating messages
-
-#### addExistingFeed(metafeedKeys, previous, feedpurpose, feedKeys, metadata)
-
-Generate a message linking an existing feed to a meta feed. `Previous`
-is the previous message on the meta feed in key value form. `metatada`
-is an optional dict.
-
-```js
-const msg = sbot.metafeeds.messages.addExistingFeed(metafeedKeys, null, 'main', mainKeys)
-```
-
-#### addNewFeed(metafeedKeys, previous, feedpurpose, seed, feedformat, metadata)
-
-Generate a message to be posted on meta feed linking feed to a meta
-feed. Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
-`bendy butt` for a meta feed or `classic`. `metatada` is an optional
-dict.
-
-```js
-const msg = sbot.metafeeds.messages.addNewFeed(metafeedKeys, null, 'main', seed, 'classic')
-```
-
-#### tombstoneFeed(metafeedKeys, previous, feedKeys, reason, cb)
-
-Generate a message to be posted on meta feed tombstoning a feed on a
-meta feed. `Previous` is the previous message on the meta feed in key
-value form.
-
-```js
-const previous = {
-  key: '%vv/XLo8lYgFjX9sM44I5F6la2FAp6iREuZ0AVJFp0pU=.bbmsg-v1',
-  value: {
-    previous: '%jv9hs2es5Pkw85vSOmLvzQh4HtosbCrVjhT+fR6GPr4=.bbmsg-v1',
-    ...
-  }
 }
 
-sbot.metafeeds.messages.tombstoneFeed(metafeedKeys, previous, mainKeys, 'No longer used', (err, tombstoneMsg) => {
-  sbot.db.publishAs(mfKey, tombstoneMsg, (err) => {
-    console.log("main is now tombstoned on meta feed")
-  })
+sbot.metafeeds.create(metafeed, details, (err, subfeed) => {
+  console.log(subfeed)
+  // {
+  //   feedpurpose: 'mygame',
+  //   subfeed: '@___________________________________________=.ed25519',
+  //   keys: {
+  //     curve,
+  //     public,
+  //     private,
+  //     id
+  //   }
+  // }
 })
 ```
 
-#### generateAnnounceMsg(metafeedKeys, cb)
+This has created a `keys` object for a new subfeed, which you can use to publish
+application-specific messages (such as for a game). The `details` argument
+always needs `feedpurpose` and `feedformat` (supports `classic` for ed25519
+normal SSB feeds, and `bendy butt`).
 
-Generate the content of a message to be published on a main feed
-linking it to a meta feed.
+To look up sub feeds belonging to the root meta feed, we can use `filter` and
+`find`. These are similar to Array [filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter)
+and [find](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find):
 
 ```js
-sbot.metafeeds.messages.generateAnnounceMsg(metafeedKeys, (err, announceMsg) => {
-  sbot.db.publish(announceMsg, (err) => {
-    console.log("main feed is now linked to meta feed")
-  })
-})
+sbot.metafeeds.filter(
+  metafeed,
+  (f) => f.feedpurpose === 'mygame',
+  (err, feeds) => {
+    console.log(feeds)
+    // [
+    //   { feedpurpose, subfeed, keys }
+    // ]
+  }
+)
 ```
-
-#### generateSeedSaveMsg(metafeedId, mainfeedId, seed)
-
-Generate the content of a message to save your seed value as a private
-message on a main feed.
 
 ```js
-const seedSaveMsg = sbot.metafeeds.messages.generateSeedSaveMsg(metafeedKeys.id, sbot.id, seed)
-sbot.db.publish(seedSaveMsg, (err) => {
-  console.log("seed has now been saved, all feed keys generated from this can be restored from the seed")
-})
+sbot.metafeeds.find(
+  metafeed,
+  (f) => f.feedpurpose === 'mygame',
+  (err, feed) => {
+    console.log(feed)
+    // { feedpurpose, subfeed, keys }
+  }
+)
 ```
 
-### query
+Notice that each `f` (and the result) is an object that describes the subfeed,
+with the fields:
 
-#### getSeed(cb)
+- `feedpurpose`: same string as used to create the subfeed
+- `subfeed`: the SSB identifier for this subfeed
+- `keys`: the [ssb-keys] compatible `{ curve, public, private, id }` object
+- `metadata`: the same object used when creating the subfeed
 
-Gets the stored seed message.
+Finally, there are many cases where you want to create a subfeed **only if** it
+doesn't yet exist. For those purposes, use `findOrCreate`, which is a mix of
+`find` and `create`. It literally will internally call `find`, and only call
+`create` if `find` did not find a subfeed. For instance:
 
 ```js
-sbot.metafeeds.query.getSeed((err, seed) => {
-  console.log("seed buffer", seed)
-})
+const details = {
+  feedpurpose: 'mygame',
+  feedformat: 'classic',
+  metadata: {
+    score: 0,
+    whateverElse: true,
+  },
+}
+
+sbot.metafeeds.findOrCreate(
+  metafeed,
+  (f) => f.feedpurpose === 'mygame',
+  details, // only used if the "find" part fails
+  (err, feed) => {
+    console.log(feed)
+  }
+)
 ```
 
-#### getAnnounce(cb)
+## API
 
-Gets the meta feed announce message on main feed.
+### `sbot.metafeeds.filter(metafeed, visit, cb)`
 
-```js
-sbot.metafeeds.query.getAnnounce((err, msg) => {
-  console.log("announce msg", msg)
-})
-```
+_Looks for all subfeeds of `metafeed` that satisfy the condition in `visit`._
 
-#### getMetadata(feedId, cb)
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the result will be an array
+containing one item, the root meta feed, or zero items if the root meta feed
+does not exist.
 
-Gets the metafeed message for a given feed to look up metadata.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under
+`metafeed` are returned.
 
-```js
-sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
-  console.log("query used for index feed", JSON.parse(content.query))
-})
-```
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is an array containing the found feeds
+(which can be either the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
 
-#### hydrate(feedId, seed, cb)
+### `sbot.metafeeds.find(metafeed, visit, cb)`
 
-Gets the current state (active feeds) of a meta feed.
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit`._
 
-```js
-sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
-  console.log(hydrated.feeds) // the feeds
-  console.log(hydrated.feeds[0].feedpurpose) // 'main'
-})
-```
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the result will be an array
+containing one item, the root meta feed, or zero items if the root meta feed
+does not exist.
 
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary
+subfeed under `metafeed` is returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the found feed (which can be either the
+root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
+
+### `sbot.metafeeds.create(metafeed, details, cb)`
+
+_Creates a new subfeed of `metafeed` matching the properties described in
+`details`._
+
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the root meta feed will be created,
+if and only if it does not already exist. If it's null and the root meta feed
+exists, the root meta feed will be returned via the `cb`.
+
+`details` can be `null` only if `metafeed` is null, but usually it's an object
+with the properties:
+
+- `feedpurpose`: any string to characterize the purpose of this new subfeed
+- `feedformat`: the string `'classic'` or the string `'bendy butt'`
+- `metadata`: an optional object containing other fields
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the created feed (which can be either
+the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys }`).
+
+### `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
+
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit`, or creates it matching the properties in `details`._
+
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the root meta feed will be created,
+if and only if it does not already exist. If it's null and the root meta feed
+exists, the root meta feed will be returned via the `cb`. Alternatively, you can
+call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
+
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
+arbitrary subfeed under `metafeed` is returned.
+
+`details` can be `null` only if if `metafeed` is null, but usually it's an
+object with the properties:
+
+- `feedpurpose`: any string to characterize the purpose of this new subfeed
+- `feedformat`: the string `'classic'` or the string `'bendy butt'`
+- `metadata`: an optional object containing other fields
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the created feed (which can be either
+the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
+
+### `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
+
+_Looks for all tombstoned subfeeds of `metafeed` that satisfy the condition in
+`visit`._
+
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by
+`create()`).
+
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata}) => boolean`. If it's null, then all tombstoned
+subfeeds under `metafeed` are returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is an array containing the found tombstoned
+feeds.
+
+### `sbot.metafeeds.find(metafeed, visit, cb)`
+
+_Looks for the first tombstoned subfeed of `metafeed` that satisfies the
+condition in `visit`._
+
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by
+`create()`).
+
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
+arbitrary tombstoned subfeed under `metafeed` is returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the found tombstoned feed.
+
+## License
+
+LGPL-3.0
+
+[ssb-keys]: https://github.com/ssb-js/ssb-keys
 [ssb meta feed spec]: https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec

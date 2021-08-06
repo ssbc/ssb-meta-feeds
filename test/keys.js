@@ -1,5 +1,4 @@
 const test = require('tape')
-const crypto = require('crypto')
 const keys = require('../keys')
 
 test('generate a seed', (t) => {
@@ -20,6 +19,9 @@ test('generate a key for a feed', (t) => {
     '@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bbfeed-v1',
     'correct feed generated'
   )
+
+  const mfKey = keys.deriveRootMetaFeedKeyFromSeed(seed)
+  t.deepEquals(mfKey, feedKey, 'correct root meta feed')
 
   const nonce = 'aumEXI0cdPx1sfX1nx5Y9Pl2GmwocYiFhv9o6K9BIhA='
   const classicFeedKey = keys.deriveFeedKeyFromSeed(seed, nonce) // default classic
