@@ -173,7 +173,8 @@ exports.init = function (sbot, config) {
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const { feedpurpose, subfeed } = msg.value.content
-              return { feedpurpose, subfeed }
+              const metadata = self.collectMetadata(msg)
+              return { feedpurpose, subfeed, metadata }
             })
 
           const feeds = addedFeeds.filter(

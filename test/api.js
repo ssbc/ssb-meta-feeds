@@ -163,10 +163,12 @@ test('restart sbot', (t) => {
         t.equal(filtered.length, 2, 'has 2 feeds')
         t.equal(filtered[0].feedpurpose, 'main', 'main')
         t.equal(filtered[1].feedpurpose, 'chess', 'chess')
-        // FIXME: assert tombstoned somehow
-        // t.equal(mf.tombstoned.length, 0, 'has 0 tombstoned feeds')
-        // t.ok(mf.latest.key.endsWith('.bbmsg-v1'), 'latest ok')
-        sbot.close(true, t.end)
+
+        sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+          t.error(err, 'no err')
+          t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
+          sbot.close(true, t.end)
+        })
       })
     })
   })

@@ -69,8 +69,36 @@ exports.init = function (sbot, config) {
     }
   }
 
-  // TODO: filterTombstoned
-  // TODO: findTombstoned
+  function filterTombstoned(metafeed, maybeVisit, cb) {
+    if (!metafeed || typeof metafeed === 'function') {
+      cb(new Error('filterTombstoned() requires a valid metafeed argument'))
+    } else {
+      const visit = maybeVisit || alwaysTrue
+      sbot.metafeeds.query.hydrate(
+        metafeed.keys.id,
+        metafeed.seed,
+        (err, hydrated) => {
+          if (err) return cb(err)
+          if (visit === alwaysTrue) return cb(null, hydrated.tombstoned)
+          const filtered = hydrated.tombstoned.filter((feed) => visit(feed))
+          cb(null, filtered)
+        }
+      )
+    }
+  }
+
+  function findTombstoned(metafeed, maybeVisit, cb) {
+    if (!metafeed || typeof metafeed === 'function') {
+      cb(new Error('findTombstoned() requires a valid metafeed argument'))
+    } else {
+      filterTombstoned(metafeed, maybeVisit, (err, tombstoned) => {
+        if (err) return cb(err)
+        if (tombstoned.length === 0) return cb(null, null)
+        const found = tombstoned[0]
+        cb(null, found)
+      })
+    }
+  }
 
   function create(metafeed, details, maybeCB) {
     if (!metafeed) {
@@ -182,5 +210,7 @@ exports.init = function (sbot, config) {
     find,
     create,
     findOrCreate,
+    filterTombstoned,
+    findTombstoned,
   }
 }

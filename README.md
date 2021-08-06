@@ -165,7 +165,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 
 `metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`. Alternatively, you can call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
+`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
 
 `details` can be `null` only if if `metafeed` is null, but usually it's an object with the properties:
 
@@ -174,6 +174,26 @@ The response is delivered to the callback `cb`, where the 1st argument is the po
 * `metadata`: an optional object containing other fields
 
 The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the created feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
+
+### `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
+
+*Looks for all tombstoned subfeeds of `metafeed` that satisfy the condition in `visit`.*
+
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by `create()`).
+
+`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata}) => boolean`. If it's null, then all tombstoned subfeeds under `metafeed` are returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is an array containing the found tombstoned feeds.
+
+### `sbot.metafeeds.find(metafeed, visit, cb)`
+
+*Looks for the first tombstoned subfeed of `metafeed` that satisfies the condition in `visit`.*
+
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by `create()`).
+
+`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one arbitrary tombstoned subfeed under `metafeed` is returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the found tombstoned feed.
 
 ## License
 
