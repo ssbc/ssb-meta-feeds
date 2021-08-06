@@ -25,7 +25,7 @@ Add this plugin like this:
 
 ## Example usage
 
-Let's start by create a **root meta feed**, necessary for using this module. It
+Let's start by creating a **root meta feed**, necessary for using this module. It
 lives alongside your existing "classical" feed, which we'll refer to as **main
 feed**.
 

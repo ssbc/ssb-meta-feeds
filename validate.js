@@ -1,5 +1,11 @@
 const bfe = require('ssb-bfe')
 
+/**
+ * Validate a single meta feed message.
+ *
+ * @param {Array | string} contentSection - an array of `content` and `contentSignature` or an encrypted string
+ * @returns {Object | true} an `Error` object or `true` in the case of successful validation
+ */
 exports.validateSingle = function (contentSection) {
   if (contentSection === null || contentSection === undefined)
     return new Error(
@@ -8,7 +14,9 @@ exports.validateSingle = function (contentSection) {
 
   // check if content is (maybe) encrypted
   if (typeof contentSection === 'string')
-    return 'cannot validate encrypted contentSection'
+    return new Error(
+      'invalid message: cannot validate encrypted contentSection'
+    )
 
   if (!(Array.isArray(contentSection) && contentSection.length === 2))
     return new Error(
