@@ -14,6 +14,19 @@ const keys = {
   },
 
   /**
+   * Derive the root meta feed key from a seed.
+   *
+   * ```js
+   * const seed = sbot.metafeeds.keys.generateSeed()
+   * const mfKey = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
+   * ```
+   * @param {Buffer} seed
+   */
+  deriveRootMetaFeedKeyFromSeed(seed) {
+    return keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+  },
+
+  /**
    * Derive a new feed key from a seed. Label must be either `metafeed` for the
    * top level meta feed or a base64 encoded nonce. Feedformat can be either
    * `bendy butt` for a meta feed or `classic`.

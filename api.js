@@ -10,11 +10,7 @@ exports.init = function (sbot, config) {
       if (!seed) return cb(null, [])
       const metafeed = {
         seed,
-        keys: sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-          seed,
-          'metafeed',
-          'bendy butt'
-        ),
+        keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
       }
 
       if (visit(metafeed)) {
@@ -128,7 +124,7 @@ exports.init = function (sbot, config) {
 
   async function getOrCreateRootMetafeed(cb) {
     // Pluck relevant internal APIs
-    const { deriveFeedKeyFromSeed } = sbot.metafeeds.keys
+    const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
     const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
     const { generateSeedSaveMsg, generateAnnounceMsg, addExistingFeed } =
       sbot.metafeeds.messages
@@ -140,14 +136,14 @@ exports.init = function (sbot, config) {
       if (err1) debug('generating a seed because %o', err1)
       else debug('generating a seed')
       const seed = sbot.metafeeds.keys.generateSeed()
-      const mfKeys = deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+      const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
       const seedSaveMsg = generateSeedSaveMsg(mfKeys.id, sbot.id, seed)
       const [err2] = await run(sbot.db.publish)(seedSaveMsg)
       if (err2) return cb(err2)
       mf = { seed, keys: mfKeys }
     } else {
       debug('loaded seed')
-      const mfKeys = deriveFeedKeyFromSeed(loadedSeed, 'metafeed', 'bendy butt')
+      const mfKeys = deriveRootMetaFeedKeyFromSeed(loadedSeed)
       mf = { seed: loadedSeed, keys: mfKeys }
     }
 
