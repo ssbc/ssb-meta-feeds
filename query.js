@@ -5,21 +5,23 @@ const {
   type,
   where,
   toCallback,
+  paginate,
   equal,
+  descending,
 } = require('ssb-db2/operators')
 
 function subfeed(feedId) {
-  const bValue = Buffer.from('value')
-  const bContent = Buffer.from('content')
-  const bSubfeed = Buffer.from('subfeed')
+  const B_VALUE = Buffer.from('value')
+  const B_CONTENT = Buffer.from('content')
+  const B_SUBFEED = Buffer.from('subfeed')
 
   function seekSubfeed(buffer) {
     let p = 0 // note you pass in p!
-    p = seekKey(buffer, p, bValue)
+    p = seekKey(buffer, p, B_VALUE)
     if (p < 0) return
-    p = seekKey(buffer, p, bContent)
+    p = seekKey(buffer, p, B_CONTENT)
     if (p < 0) return
-    return seekKey(buffer, p, bSubfeed)
+    return seekKey(buffer, p, B_SUBFEED)
   }
 
   return equal(seekSubfeed, feedId, {
@@ -30,13 +32,25 @@ function subfeed(feedId) {
 }
 
 exports.init = function (sbot, config) {
-  return {
+  const self = {
+    /**
+     * Gets the stored seed message (on the main feed) for the root meta feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.getSeed((err, seed) => {
+     *   console.log("seed buffer", seed)
+     * })
+     * ```
+     */
     getSeed(cb) {
       // FIXME: maybe use metafeed id
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/seed'))),
-        toCallback((err, msgs) => {
+        paginate(1),
+        descending(),
+        toCallback((err, answer) => {
           if (err) return cb(err)
+          const msgs = answer.results
           if (msgs.length === 0) return cb(null, null)
 
           const msg = msgs[0]
@@ -46,16 +60,31 @@ exports.init = function (sbot, config) {
       )
     },
 
-    getAnnounce(cb) {
+    /**
+     * Gets the meta feed announce messages on main feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.getAnnounces((err, msg) => {
+     *   console.log("announce msg", msg)
+     * })
+     * ```
+     */
+    getAnnounces(cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
-        toCallback((err, msgs) => {
-          // FIXME: handle multiple msgs properly?
-          cb(err, msgs.length > 0 ? msgs[0] : null)
-        })
+        toCallback(cb)
       )
     },
 
+    /**
+     * Gets the metafeed message for a given feed to look up metadata.
+     *
+     * ```js
+     * sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
+     *   console.log("query used for index feed", JSON.parse(content.query))
+     * })
+     * ```
+     */
     getMetadata(feedId, cb) {
       sbot.db.query(
         where(subfeed(feedId)),
@@ -69,6 +98,67 @@ exports.init = function (sbot, config) {
       )
     },
 
+    /**
+     * Gets the latest message on the given feed, typically a meta feed, but
+     * other feed types work too.
+     */
+    getLatest(feedId, cb) {
+      sbot.db.query(
+        where(author(feedId)),
+        paginate(1),
+        descending(),
+        toCallback((err, answer) => {
+          if (err) return cb(err)
+          const msgs = answer.results
+          if (msgs.length !== 1) return cb(null, null)
+          const msg = msgs[0]
+          cb(null, msg)
+        })
+      )
+    },
+
+    collectMetadata(msg) {
+      const metadata = {}
+      const ignored = [
+        'feedpurpose',
+        'subfeed',
+        'nonce',
+        'metafeed',
+        'tangles',
+        'type',
+      ]
+      for (const key of Object.keys(msg.value.content)) {
+        if (ignored.includes(key)) continue
+        metadata[key] = msg.value.content[key]
+      }
+      return metadata
+    },
+
+    /**
+     * Gets the current state of a subfeed based on the meta feed message that
+     * "added" the subfeed
+     */
+    hydrateFromMsg(msg, seed) {
+      const { feedpurpose, subfeed, nonce } = msg.value.content
+      const metadata = self.collectMetadata(msg)
+      const nonceB64 = nonce.toString('base64')
+      const keys =
+        subfeed === sbot.id
+          ? config.keys
+          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
+      return { feedpurpose, subfeed, keys, metadata }
+    },
+
+    /**
+     * Gets the current state (active feeds) of a meta feed.
+     *
+     * ```js
+     * sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
+     *   console.log(hydrated.feeds) // the feeds
+     *   console.log(hydrated.feeds[0].feedpurpose) // 'main'
+     * })
+     * ```
+     */
     hydrate(feedId, seed, cb) {
       sbot.db.query(
         where(author(feedId)),
@@ -77,21 +167,14 @@ exports.init = function (sbot, config) {
 
           const addedFeeds = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/add')
-            .map((msg) => {
-              const { feedpurpose, subfeed, nonce } = msg.value.content
-              const nonceB64 = nonce.toString('base64')
-              const keys =
-                subfeed === sbot.id
-                  ? config.keys
-                  : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
-              return { feedpurpose, subfeed, keys }
-            })
+            .map((msg) => self.hydrateFromMsg(msg, seed))
 
           const tombstoned = msgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const { feedpurpose, subfeed } = msg.value.content
-              return { feedpurpose, subfeed }
+              const metadata = self.collectMetadata(msg)
+              return { feedpurpose, subfeed, metadata }
             })
 
           const feeds = addedFeeds.filter(
@@ -99,11 +182,11 @@ exports.init = function (sbot, config) {
             (feed) => !tombstoned.find((t) => t.subfeed === feed.subfeed)
           )
 
-          const latest = msgs.length > 0 ? msgs[msgs.length - 1] : null
-
-          cb(null, { feeds, tombstoned, latest })
+          cb(null, { feeds, tombstoned })
         })
       )
     },
   }
+
+  return self
 }
