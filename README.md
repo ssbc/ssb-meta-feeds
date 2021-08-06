@@ -36,15 +36,15 @@ sbot.metafeeds.create((err, metafeed) => {
 ```
 
 Now this has created the `seed`, which in turn is used to generate an [ssb-keys]
-`keys` object. The `seed` is actually also published on the *main* feed as a
+`keys` object. The `seed` is actually also published on the _main_ feed as a
 private message to yourself, to allow recovering it in the future. The first two
-arguments above are null when we're creating the *root* meta feed, but not in
+arguments above are null when we're creating the _root_ meta feed, but not in
 other use cases of `create`.
 
-There can only be one *root* meta feed, so even if you call `create` many times,
+There can only be one _root_ meta feed, so even if you call `create` many times,
 it will not create duplicates, it will just load the meta feed `{ seed, keys }`.
 
-Now you can create subfeeds *under* that root meta feed like this:
+Now you can create subfeeds _under_ that root meta feed like this:
 
 ```js
 const details = {
@@ -52,8 +52,8 @@ const details = {
   feedformat: 'classic',
   metadata: {
     score: 0,
-    whateverElse: true
-  }
+    whateverElse: true,
+  },
 }
 
 sbot.metafeeds.create(metafeed, details, (err, subfeed) => {
@@ -72,36 +72,50 @@ sbot.metafeeds.create(metafeed, details, (err, subfeed) => {
 ```
 
 This has created a `keys` object for a new subfeed, which you can use to publish
-application-specific messages (such as for a game). The `details` argument always
-needs `feedpurpose` and `feedformat` (supports `classic` for ed25519 normal SSB
-feeds, and `bendy butt`).
+application-specific messages (such as for a game). The `details` argument
+always needs `feedpurpose` and `feedformat` (supports `classic` for ed25519
+normal SSB feeds, and `bendy butt`).
 
-To look up sub feeds belonging to the root meta feed, we can use `filter` and `find`. These are similar to Array [filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) and [find](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find):
+To look up sub feeds belonging to the root meta feed, we can use `filter` and
+`find`. These are similar to Array [filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter)
+and [find](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find):
 
 ```js
-sbot.metafeeds.filter(metafeed, f => f.feedpurpose === 'mygame', (err, feeds) => {
-  console.log(feeds)
-  // [
-  //   { feedpurpose, subfeed, keys }
-  // ]
-})
+sbot.metafeeds.filter(
+  metafeed,
+  (f) => f.feedpurpose === 'mygame',
+  (err, feeds) => {
+    console.log(feeds)
+    // [
+    //   { feedpurpose, subfeed, keys }
+    // ]
+  }
+)
 ```
 
 ```js
-sbot.metafeeds.find(metafeed, f => f.feedpurpose === 'mygame', (err, feed) => {
-  console.log(feed)
-  // { feedpurpose, subfeed, keys }
-})
+sbot.metafeeds.find(
+  metafeed,
+  (f) => f.feedpurpose === 'mygame',
+  (err, feed) => {
+    console.log(feed)
+    // { feedpurpose, subfeed, keys }
+  }
+)
 ```
 
-Notice that each `f` (and the result) is an object that describes the subfeed, with the fields:
+Notice that each `f` (and the result) is an object that describes the subfeed,
+with the fields:
 
-* `feedpurpose`: same string as used to create the subfeed
-* `subfeed`: the SSB identifier for this subfeed
-* `keys`: the [ssb-keys] compatible `{ curve, public, private, id }` object
-* `metadata`: the same object used when creating the subfeed
+- `feedpurpose`: same string as used to create the subfeed
+- `subfeed`: the SSB identifier for this subfeed
+- `keys`: the [ssb-keys] compatible `{ curve, public, private, id }` object
+- `metadata`: the same object used when creating the subfeed
 
-Finally, there are many cases where you want to create a subfeed **only if** it doesn't yet exist. For those purposes, use `findOrCreate`, which is a mix of `find` and `create`. It literally will internally call `find`, and only call `create` if `find` did not find a subfeed. For instance:
+Finally, there are many cases where you want to create a subfeed **only if** it
+doesn't yet exist. For those purposes, use `findOrCreate`, which is a mix of
+`find` and `create`. It literally will internally call `find`, and only call
+`create` if `find` did not find a subfeed. For instance:
 
 ```js
 const details = {
@@ -109,13 +123,13 @@ const details = {
   feedformat: 'classic',
   metadata: {
     score: 0,
-    whateverElse: true
-  }
+    whateverElse: true,
+  },
 }
 
 sbot.metafeeds.findOrCreate(
   metafeed,
-  f => f.feedpurpose === 'mygame',
+  (f) => f.feedpurpose === 'mygame',
   details, // only used if the "find" part fails
   (err, feed) => {
     console.log(feed)
@@ -127,73 +141,120 @@ sbot.metafeeds.findOrCreate(
 
 ### `sbot.metafeeds.filter(metafeed, visit, cb)`
 
-*Looks for all subfeeds of `metafeed` that satisfy the condition in `visit`.*
+_Looks for all subfeeds of `metafeed` that satisfy the condition in `visit`._
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the result will be an array containing one item, the root meta feed, or zero items if the root meta feed does not exist.
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the result will be an array
+containing one item, the root meta feed, or zero items if the root meta feed
+does not exist.
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under `metafeed` are returned.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under
+`metafeed` are returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is an array containing the found feeds (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is an array containing the found feeds
+(which can be either the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
 
 ### `sbot.metafeeds.find(metafeed, visit, cb)`
 
-*Looks for the first subfeed of `metafeed` that satisfies the condition in `visit`.*
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit`._
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the result will be an array containing one item, the root meta feed, or zero items if the root meta feed does not exist.
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the result will be an array
+containing one item, the root meta feed, or zero items if the root meta feed
+does not exist.
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary
+subfeed under `metafeed` is returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the found feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the found feed (which can be either the
+root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
 
 ### `sbot.metafeeds.create(metafeed, details, cb)`
 
-*Creates a new subfeed of `metafeed` matching the properties described in `details`.*
+_Creates a new subfeed of `metafeed` matching the properties described in
+`details`._
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`.
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the root meta feed will be created,
+if and only if it does not already exist. If it's null and the root meta feed
+exists, the root meta feed will be returned via the `cb`.
 
-`details` can be `null` only if `metafeed` is null, but usually it's an object with the properties:
+`details` can be `null` only if `metafeed` is null, but usually it's an object
+with the properties:
 
-* `feedpurpose`: any string to characterize the purpose of this new subfeed
-* `feedformat`: the string `'classic'` or the string `'bendy butt'`
-* `metadata`: an optional object containing other fields
+- `feedpurpose`: any string to characterize the purpose of this new subfeed
+- `feedformat`: the string `'classic'` or the string `'bendy butt'`
+- `metadata`: an optional object containing other fields
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the created feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys }`).
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the created feed (which can be either
+the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys }`).
 
 ### `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
 
-*Looks for the first subfeed of `metafeed` that satisfies the condition in `visit`, or creates it matching the properties in `details`.*
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit`, or creates it matching the properties in `details`._
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as returned by `create()`). If it's null, then the root meta feed will be created, if and only if it does not already exist. If it's null and the root meta feed exists, the root meta feed will be returned via the `cb`. Alternatively, you can call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the root meta feed will be created,
+if and only if it does not already exist. If it's null and the root meta feed
+exists, the root meta feed will be returned via the `cb`. Alternatively, you can
+call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one arbitrary subfeed under `metafeed` is returned.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
+arbitrary subfeed under `metafeed` is returned.
 
-`details` can be `null` only if if `metafeed` is null, but usually it's an object with the properties:
+`details` can be `null` only if if `metafeed` is null, but usually it's an
+object with the properties:
 
-* `feedpurpose`: any string to characterize the purpose of this new subfeed
-* `feedformat`: the string `'classic'` or the string `'bendy butt'`
-* `metadata`: an optional object containing other fields
+- `feedpurpose`: any string to characterize the purpose of this new subfeed
+- `feedformat`: the string `'classic'` or the string `'bendy butt'`
+- `metadata`: an optional object containing other fields
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the created feed (which can be either the root meta feed `{ seed, keys }` or a sub feed `{ feedpurpose, subfeed, keys, metadata }`).
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the created feed (which can be either
+the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
 
 ### `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
 
-*Looks for all tombstoned subfeeds of `metafeed` that satisfy the condition in `visit`.*
+_Looks for all tombstoned subfeeds of `metafeed` that satisfy the condition in
+`visit`._
 
-`metafeed` must be a meta feed object `{ seed, keys }` (as returned by `create()`).
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by
+`create()`).
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata}) => boolean`. If it's null, then all tombstoned subfeeds under `metafeed` are returned.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata}) => boolean`. If it's null, then all tombstoned
+subfeeds under `metafeed` are returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is an array containing the found tombstoned feeds.
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is an array containing the found tombstoned
+feeds.
 
 ### `sbot.metafeeds.find(metafeed, visit, cb)`
 
-*Looks for the first tombstoned subfeed of `metafeed` that satisfies the condition in `visit`.*
+_Looks for the first tombstoned subfeed of `metafeed` that satisfies the
+condition in `visit`._
 
-`metafeed` must be a meta feed object `{ seed, keys }` (as returned by `create()`).
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by
+`create()`).
 
-`visit` can be either `null` or a function of the shape `({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one arbitrary tombstoned subfeed under `metafeed` is returned.
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
+arbitrary tombstoned subfeed under `metafeed` is returned.
 
-The response is delivered to the callback `cb`, where the 1st argument is the possible error, and the 2nd argument is the found tombstoned feed.
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the found tombstoned feed.
 
 ## License
 
