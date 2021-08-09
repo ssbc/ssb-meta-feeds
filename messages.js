@@ -54,8 +54,7 @@ exports.init = function init(sbot) {
      * ```
      */
     addExistingFeed(mfKeys, previous, feedpurpose, feedKeys, metadata) {
-      const nonce = getNonce()
-      return add(feedpurpose, nonce, previous, feedKeys, mfKeys, metadata)
+      return add(feedpurpose, undefined, previous, feedKeys, mfKeys, metadata)
     },
 
     /**

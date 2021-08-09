@@ -141,7 +141,6 @@ exports.init = function (sbot, config) {
     hydrateFromMsg(msg, seed) {
       const { feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
-      const nonceB64 = nonce.toString('base64')
       const feedformat = subfeed.endsWith('.bbfeed-v1')
         ? 'bendy butt'
         : 'classic'
@@ -150,7 +149,7 @@ exports.init = function (sbot, config) {
           ? config.keys
           : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
               seed,
-              nonceB64,
+              nonce.toString('base64'),
               feedformat
             )
       return {
