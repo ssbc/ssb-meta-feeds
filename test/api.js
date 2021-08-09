@@ -159,6 +159,35 @@ tape('findOrCreate() a sub meta feed', (t) => {
   })
 })
 
+tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
+  sbot.metafeeds.find((err, rootMF) => {
+    sbot.metafeeds.find(
+      rootMF,
+      (f) => f.feedpurpose === 'indexes',
+      (err, indexesMF) => {
+        t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
+
+        sbot.metafeeds.findOrCreate(
+          indexesMF,
+          (f) => f.feedpurpose === 'index',
+          {
+            feedpurpose: 'index',
+            feedformat: 'classic',
+            metadata: { query: 'foo' },
+          },
+          (err, f) => {
+            t.error(err, 'no err')
+            t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
+            t.equals(f.metadata.query, 'foo', 'query is okay')
+            t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
+            t.end()
+          }
+        )
+      }
+    )
+  })
+})
+
 test('restart sbot', (t) => {
   sbot.close(true, () => {
     sbot = SecretStack({ appKey: caps.shs })

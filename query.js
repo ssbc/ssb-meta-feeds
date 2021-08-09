@@ -142,11 +142,24 @@ exports.init = function (sbot, config) {
       const { feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
       const nonceB64 = nonce.toString('base64')
+      const feedformat = subfeed.endsWith('.bbfeed-v1')
+        ? 'bendy butt'
+        : 'classic'
       const keys =
         subfeed === sbot.id
           ? config.keys
-          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
-      return { feedpurpose, subfeed, keys, metadata }
+          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+              seed,
+              nonceB64,
+              feedformat
+            )
+      return {
+        feedpurpose,
+        subfeed,
+        keys,
+        metadata,
+        seed: feedformat === 'bendy butt' ? seed : undefined,
+      }
     },
 
     /**

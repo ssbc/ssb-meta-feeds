@@ -69,17 +69,15 @@ exports.init = function init(sbot) {
      * ```
      */
     addNewFeed(mfKeys, previous, feedpurpose, seed, feedformat, metadata) {
+      if (feedformat !== 'classic' && feedformat !== 'bendy butt') {
+        throw new Error('Unknown feed format: ' + feedformat)
+      }
       const nonce = getNonce()
       const feedKeys = keys.deriveFeedKeyFromSeed(
         seed,
-        nonce.toString('base64')
+        nonce.toString('base64'),
+        feedformat
       )
-      if (feedformat === 'bendy butt')
-        feedKeys.id = feedKeys.id.replace('.ed25519', '.bbfeed-v1')
-      else if (
-        feedformat === 'classic' // default
-      );
-      else throw new Error('Unknown feed format: ' + feedformat)
 
       return add(feedpurpose, nonce, previous, feedKeys, mfKeys, metadata)
     },
