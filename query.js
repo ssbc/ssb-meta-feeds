@@ -142,18 +142,23 @@ exports.init = function (sbot, config) {
       const { feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
       const nonceB64 = nonce.toString('base64')
-      const isMetafeed = subfeed.endsWith('.bbfeed-v1')
+      const feedformat = subfeed.endsWith('.bbfeed-v1')
+        ? 'bendy butt'
+        : 'classic'
       const keys =
         subfeed === sbot.id
           ? config.keys
-          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
-      if (isMetafeed) keys.id = keys.id.replace('.ed25519', '.bbfeed-v1')
+          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+              seed,
+              nonceB64,
+              feedformat
+            )
       return {
         feedpurpose,
         subfeed,
         keys,
         metadata,
-        seed: isMetafeed ? seed : undefined,
+        seed: feedformat === 'bendy butt' ? seed : undefined,
       }
     },
 
