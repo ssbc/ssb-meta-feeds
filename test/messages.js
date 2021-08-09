@@ -36,6 +36,7 @@ test('add a feed to metafeed', (t) => {
     'correct signature format'
   )
   t.equal(msg.content.subfeed, mainKey.id, 'correct subfeed id')
+  t.notOk(msg.content.nonce, 'should have no nonce')
   t.equal(msg.content.metafeed, metafeedKeys.id, 'correct metafeed id')
 
   db.publishAs(metafeedKeys, msg, (err, kv) => {
