@@ -75,7 +75,7 @@ exports.init = function init(sbot) {
         nonce.toString('base64')
       )
       if (feedformat === 'bendy butt')
-        feedKeys.id = feedKeys.replace('.ed25519', '.bbfeed-v1')
+        feedKeys.id = feedKeys.id.replace('.ed25519', '.bbfeed-v1')
       else if (
         feedformat === 'classic' // default
       );
