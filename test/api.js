@@ -153,23 +153,30 @@ test('restart sbot', (t) => {
         path: dir,
       })
 
-    sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
-      t.error(err, 'no err')
-      t.ok(Buffer.isBuffer(mf.seed), 'has seed')
-      t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
-
-      sbot.metafeeds.filter(mf, null, (err, filtered) => {
+    // The setTimeout is a hacky solution for a race condition in ssb-db2.
+    // findOrCreate is going to look up for the "seed" message, which is a
+    // private message, but ssb-db2 might not yet decrypt (that's the race)
+    // the seed, so it is received as a boxed string. So we wait 200ms for
+    // decryption to complete.
+    setTimeout(() => {
+      sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
         t.error(err, 'no err')
-        t.equal(filtered.length, 2, 'has 2 feeds')
-        t.equal(filtered[0].feedpurpose, 'main', 'main')
-        t.equal(filtered[1].feedpurpose, 'chess', 'chess')
+        t.ok(Buffer.isBuffer(mf.seed), 'has seed')
+        t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
 
-        sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+        sbot.metafeeds.filter(mf, null, (err, filtered) => {
           t.error(err, 'no err')
-          t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
-          sbot.close(true, t.end)
+          t.equal(filtered.length, 2, 'has 2 feeds')
+          t.equal(filtered[0].feedpurpose, 'main', 'main')
+          t.equal(filtered[1].feedpurpose, 'chess', 'chess')
+
+          sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+            t.error(err, 'no err')
+            t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
+            sbot.close(true, t.end)
+          })
         })
       })
-    })
+    }, 200)
   })
 })
