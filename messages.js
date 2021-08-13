@@ -44,13 +44,21 @@ exports.init = function init(sbot) {
     const previous = previousMsg ? previousMsg.key : null
     const timestamp = Date.now()
 
+    if (content.recps && !sbot.box2) {
+      throw new Error(
+        'Unable to encrypt message without ssb-db2-box2 module loaded'
+      )
+    }
+
     const bbmsg = bb.encodeNew(
       content,
       subKeys,
       mfKeys,
       sequence,
       previous,
-      timestamp
+      timestamp,
+      null,
+      sbot.box2 ? sbot.box2.encryptBendyButt : null
     )
     const msgVal = bb.decode(bbmsg)
     return msgVal
