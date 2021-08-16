@@ -1,6 +1,13 @@
 const crypto = require('crypto')
 const bb = require('ssb-bendy-butt')
-const { where, author, and, type, toCallback } = require('ssb-db2/operators')
+const {
+  where,
+  author,
+  and,
+  or,
+  type,
+  toCallback,
+} = require('ssb-db2/operators')
 const keys = require('./keys')
 
 // FIXME: define and use json schema
@@ -10,16 +17,26 @@ const keys = require('./keys')
  */
 exports.init = function init(sbot) {
   function add(feedpurpose, nonce, previousMsg, subKeys, mfKeys, metadata) {
-    const content = {
-      type: 'metafeed/add',
-      feedpurpose,
-      subfeed: subKeys.id,
-      metafeed: mfKeys.id,
-      nonce,
-      tangles: {
-        metafeed: { root: null, previous: null },
-      },
-    }
+    const content = nonce
+      ? {
+          type: 'metafeed/add/derived',
+          feedpurpose,
+          subfeed: subKeys.id,
+          metafeed: mfKeys.id,
+          nonce,
+          tangles: {
+            metafeed: { root: null, previous: null },
+          },
+        }
+      : {
+          type: 'metafeed/add/existing',
+          feedpurpose,
+          subfeed: subKeys.id,
+          metafeed: mfKeys.id,
+          tangles: {
+            metafeed: { root: null, previous: null },
+          },
+        }
 
     if (metadata) Object.assign(content, metadata)
 
@@ -103,7 +120,12 @@ exports.init = function init(sbot) {
      */
     tombstoneFeed(mfKeys, previousMsg, feedKeys, reason, cb) {
       sbot.db.query(
-        where(and(author(mfKeys.id), type('metafeed/add'))),
+        where(
+          and(
+            author(mfKeys.id),
+            or(type('metafeed/add/derived'), type('metafeed/add/existing'))
+          )
+        ),
         toCallback((err, msgs) => {
           if (err) return cb(err)
           msgs = msgs.filter((x) => x.value.content.subfeed === feedKeys.id)

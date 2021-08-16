@@ -91,7 +91,9 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          msgs = msgs.filter((msg) => msg.value.content.type === 'metafeed/add')
+          msgs = msgs.filter((msg) =>
+            msg.value.content.type.startsWith('metafeed/add/')
+          )
           // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
@@ -139,13 +141,13 @@ exports.init = function (sbot, config) {
      * "added" the subfeed
      */
     hydrateFromMsg(msg, seed) {
-      const { feedpurpose, subfeed, nonce } = msg.value.content
+      const { type, feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
       const feedformat = subfeed.endsWith('.bbfeed-v1')
         ? 'bendy butt'
         : 'classic'
       const keys =
-        subfeed === sbot.id
+        type === 'metafeed/add/existing'
           ? config.keys
           : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
               seed,
@@ -178,7 +180,7 @@ exports.init = function (sbot, config) {
           if (err) return cb(err)
 
           const addedFeeds = msgs
-            .filter((msg) => msg.value.content.type === 'metafeed/add')
+            .filter((msg) => msg.value.content.type.startsWith('metafeed/add/'))
             .map((msg) => self.hydrateFromMsg(msg, seed))
 
           const tombstoned = msgs
