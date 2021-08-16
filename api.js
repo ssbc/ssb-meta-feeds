@@ -113,7 +113,7 @@ exports.init = function (sbot, config) {
       if (!details.feedformat) return cb(new Error('Missing feedformat'))
       sbot.metafeeds.query.getLatest(metafeed.keys.id, (err, latest) => {
         if (err) return cb(err)
-        const msgVal = sbot.metafeeds.messages.msgValAddDerived(
+        const msgVal = sbot.metafeeds.messages.getMsgValAddDerived(
           metafeed.keys,
           latest,
           details.feedpurpose,
@@ -154,7 +154,7 @@ exports.init = function (sbot, config) {
     // Pluck relevant internal APIs
     const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
     const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
-    const { contentSeed, contentAnnounce, msgValAddExisting } =
+    const { getContentSeed, getContentAnnounce, getMsgValAddExisting } =
       sbot.metafeeds.messages
 
     // Ensure seed exists
@@ -165,7 +165,7 @@ exports.init = function (sbot, config) {
       else debug('generating a seed')
       const seed = sbot.metafeeds.keys.generateSeed()
       const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
-      const content = contentSeed(mfKeys.id, sbot.id, seed)
+      const content = getContentSeed(mfKeys.id, sbot.id, seed)
       const [err2] = await run(sbot.db.publish)(content)
       if (err2) return cb(err2)
       mf = { seed, keys: mfKeys }
@@ -180,7 +180,7 @@ exports.init = function (sbot, config) {
     if (err2 || !announcements || announcements.length === 0) {
       if (err2) debug('announcing meta feed on main feed because %o', err2)
       else debug('announcing meta feed on main feed')
-      const [err3, content] = await run(contentAnnounce)(mf.keys)
+      const [err3, content] = await run(getContentAnnounce)(mf.keys)
       if (err3) return cb(err3)
       const [err4] = await run(sbot.db.publish)(content)
       if (err4) return cb(err4)
@@ -195,7 +195,7 @@ exports.init = function (sbot, config) {
       const [err4, latest] = await run(getLatest)(mf.keys.id)
       if (err4) return cb(err4)
       debug('adding main feed to root meta feed')
-      const msgVal = msgValAddExisting(mf.keys, latest, 'main', config.keys)
+      const msgVal = getMsgValAddExisting(mf.keys, latest, 'main', config.keys)
       const [err5] = await run(sbot.db.add)(msgVal)
       if (err5) return cb(err5)
     } else {

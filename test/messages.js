@@ -29,7 +29,12 @@ let messages = sbot.metafeeds.messages
 let addMsg
 
 test('add a feed to metafeed', (t) => {
-  const msgVal = messages.msgValAddExisting(metafeedKeys, null, 'main', mainKey)
+  const msgVal = messages.getMsgValAddExisting(
+    metafeedKeys,
+    null,
+    'main',
+    mainKey
+  )
 
   t.true(
     msgVal.contentSignature.endsWith('.sig.ed25519'),
@@ -50,7 +55,7 @@ let tombstoneMsg
 test('tombstone a feed in a metafeed', (t) => {
   const reason = 'Feed no longer used'
 
-  messages.msgValTombstone(
+  messages.getMsgValTombstone(
     metafeedKeys,
     addMsg,
     mainKey,
@@ -78,7 +83,7 @@ test('tombstone a feed in a metafeed', (t) => {
 })
 
 test('second tombstone', (t) => {
-  const msgVal = messages.msgValAddDerived(
+  const msgVal = messages.getMsgValAddDerived(
     metafeedKeys,
     tombstoneMsg,
     'main',
@@ -92,7 +97,7 @@ test('second tombstone', (t) => {
   db.add(msgVal, (err, secondAddMsg) => {
     const reason = 'Also no good'
 
-    messages.msgValTombstone(
+    messages.getMsgValTombstone(
       metafeedKeys,
       secondAddMsg,
       newMainKey,
@@ -122,7 +127,7 @@ test('second tombstone', (t) => {
 })
 
 test('metafeed announce', (t) => {
-  messages.contentAnnounce(metafeedKeys, (err, content) => {
+  messages.getContentAnnounce(metafeedKeys, (err, content) => {
     t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
     t.equal(content.tangles.metafeed.root, null, 'no root')
     t.equal(content.tangles.metafeed.previous, null, 'no previous')
@@ -131,7 +136,7 @@ test('metafeed announce', (t) => {
       // test that we fucked up somehow and need to create a new metafeed
       const newSeed = keys.generateSeed()
       const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
-      messages.contentAnnounce(mf2Key, (err, content) => {
+      messages.getContentAnnounce(mf2Key, (err, content) => {
         t.equal(content.metafeed, mf2Key.id, 'correct metafeed')
         t.equal(content.tangles.metafeed.root, announceMsg.key, 'correct root')
         t.equal(
@@ -144,7 +149,7 @@ test('metafeed announce', (t) => {
           // another test to make sure previous is correctly set
           const newSeed2 = keys.generateSeed()
           const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
-          messages.contentAnnounce(mf3Key, (err, msg) => {
+          messages.getContentAnnounce(mf3Key, (err, msg) => {
             t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
             t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
             t.equal(
@@ -162,7 +167,7 @@ test('metafeed announce', (t) => {
 })
 
 test('metafeed seed save', (t) => {
-  const content = messages.contentSeed(metafeedKeys.id, sbot.id, seed)
+  const content = messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
 
   t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
   t.equal(content.seed.length, 64, 'correct seed')

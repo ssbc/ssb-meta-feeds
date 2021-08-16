@@ -30,7 +30,7 @@ let messages = sbot.metafeeds.messages
 let indexMsg, indexKey
 
 test('metafeed with multiple feeds', (t) => {
-  const classicAddMsgVal = messages.msgValAddExisting(
+  const classicAddMsgVal = messages.getMsgValAddExisting(
     metafeedKeys,
     null,
     'main',
@@ -38,7 +38,7 @@ test('metafeed with multiple feeds', (t) => {
   )
 
   db.add(classicAddMsgVal, (err, m) => {
-    const indexAddMsgVal = messages.msgValAddDerived(
+    const indexAddMsgVal = messages.getMsgValAddDerived(
       metafeedKeys,
       m,
       'index',
@@ -94,7 +94,7 @@ test('index metafeed', (t) => {
 test('metafeed with tombstones', (t) => {
   const reason = 'Feed no longer used'
 
-  messages.msgValTombstone(
+  messages.getMsgValTombstone(
     metafeedKeys,
     indexMsg,
     indexKey,
@@ -114,7 +114,7 @@ test('metafeed with tombstones', (t) => {
 })
 
 test('seed', (t) => {
-  const content = messages.contentSeed(metafeedKeys.id, sbot.id, seed)
+  const content = messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
   db.publish(content, (err) => {
     sbot.metafeeds.query.getSeed((err, storedSeed) => {
       t.deepEqual(storedSeed, seed, 'correct seed')
@@ -124,7 +124,7 @@ test('seed', (t) => {
 })
 
 test('announce', (t) => {
-  messages.contentAnnounce(metafeedKeys.id, (err, content) => {
+  messages.getContentAnnounce(metafeedKeys.id, (err, content) => {
     db.publish(content, (err, publishedAnnounce) => {
       t.error(err, 'no err')
       sbot.metafeeds.query.getAnnounces((err, announcements) => {

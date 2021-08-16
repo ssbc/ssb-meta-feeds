@@ -67,10 +67,10 @@ exports.init = function init(sbot) {
      * optional object to be included (object spread) in `msg.value.content`.
      *
      * ```js
-     * const msg = sbot.metafeeds.messages.msgValAddExisting(metafeedKeys, null, 'main', mainKeys)
+     * const msg = sbot.metafeeds.messages.getMsgValAddExisting(metafeedKeys, null, 'main', mainKeys)
      * ```
      */
-    msgValAddExisting(mfKeys, previous, feedpurpose, feedKeys, metadata) {
+    getMsgValAddExisting(mfKeys, previous, feedpurpose, feedKeys, metadata) {
       return add(feedpurpose, undefined, previous, feedKeys, mfKeys, metadata)
     },
 
@@ -81,10 +81,10 @@ exports.init = function init(sbot) {
      * object to be included (object spread) in `msg.value.content`.
      *
      * ```js
-     * const msg = sbot.metafeeds.messages.msgValAddDerived(metafeedKeys, null, 'main', seed, 'classic')
+     * const msg = sbot.metafeeds.messages.getMsgValAddDerived(metafeedKeys, null, 'main', seed, 'classic')
      * ```
      */
-    msgValAddDerived(
+    getMsgValAddDerived(
       mfKeys,
       previous,
       feedpurpose,
@@ -118,14 +118,14 @@ exports.init = function init(sbot) {
      *   }
      * }
      *
-     * sbot.metafeeds.messages.msgValTombstone(metafeedKeys, previous, mainKeys, 'No longer used', (err, tombstoneMsg) => {
+     * sbot.metafeeds.messages.getMsgValTombstone(metafeedKeys, previous, mainKeys, 'No longer used', (err, tombstoneMsg) => {
      *   sbot.db.add(tombstoneMsg, (err) => {
      *     console.log("main is now tombstoned on meta feed")
      *   })
      * })
      * ```
      */
-    msgValTombstone(mfKeys, previousMsg, feedKeys, reason, cb) {
+    getMsgValTombstone(mfKeys, previousMsg, feedKeys, reason, cb) {
       sbot.db.query(
         where(
           and(
@@ -176,14 +176,14 @@ exports.init = function init(sbot) {
      * it to a meta feed.
      *
      * ```js
-     * sbot.metafeeds.messages.contentAnnounce(metafeedKeys, (err, content) => {
+     * sbot.metafeeds.messages.getContentAnnounce(metafeedKeys, (err, content) => {
      *   sbot.db.publish(content, (err) => {
      *     console.log("main feed is now linked to meta feed")
      *   })
      * })
      * ```
      */
-    contentAnnounce(metafeedKeys, cb) {
+    getContentAnnounce(metafeedKeys, cb) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
         toCallback((err, msgs) => {
@@ -213,13 +213,13 @@ exports.init = function init(sbot) {
      * message on a main feed.
      *
      * ```js
-     * const seedContent = sbot.metafeeds.messages.contentSeed(metafeedKeys.id, sbot.id, seed)
+     * const seedContent = sbot.metafeeds.messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
      * sbot.db.publish(seedContent, (err) => {
      *   console.log("seed has now been saved, all feed keys generated from this can be restored from the seed")
      * })
      * ```
      */
-    contentSeed(metafeedId, mainfeedId, seed) {
+    getContentSeed(metafeedId, mainfeedId, seed) {
       return {
         type: 'metafeed/seed',
         metafeed: metafeedId,
