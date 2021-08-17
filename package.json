@@ -7,6 +7,9 @@
     "type": "git",
     "url": "git://github.com/ssb-ngi-pointer/ssb-meta-feeds.git"
   },
+  "files": [
+    "*.js"
+  ],
   "dependencies": {
     "bipf": "^1.5.1",
     "debug": "^4.3.0",
