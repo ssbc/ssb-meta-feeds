@@ -1,6 +1,5 @@
 const bencode = require('bencode')
 const bfe = require('ssb-bfe')
-// perhaps verification functions should be added to `keys` module?
 const ssbKeys = require('ssb-keys')
 
 const CONTENT_SIG_PREFIX = Buffer.from('bendybutt', 'utf8')
@@ -35,7 +34,8 @@ exports.validateSingle = function (contentSection, hmacKey) {
 
   if (
     !(
-      content.type === 'metafeed/add' ||
+      content.type === 'metafeed/add/existing' ||
+      content.type === 'metafeed/add/derived' ||
       content.type === 'metafeed/update' ||
       content.type === 'metafeed/tombstone'
     )
@@ -58,10 +58,10 @@ exports.validateSingle = function (contentSection, hmacKey) {
       `invalid message: content metafeed type "0x${metafeedType}" is incorrect, expected 0x0003`
     )
 
-  if (content.type === 'metafeed/add') {
-    if (content.nonce !== 32)
+  if (content.type === 'metafeed/add/derived') {
+    if (content.nonce.length !== 32)
       return new Error(
-        `invalid message: content nonce is ${nonceBB.length} bytes, expected 32`
+        `invalid message: content nonce is ${content.nonce.length} bytes, expected 32`
       )
   }
 
@@ -72,8 +72,6 @@ exports.validateSingle = function (contentSection, hmacKey) {
     hmacKey
   )
   if (signatureErr) return signatureErr
-
-  return true
 }
 
 /**
@@ -89,12 +87,14 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
   const hmacKeyErr = validateHmacKey(hmacKey)
   if (hmacKeyErr) return hmacKeyErr
 
+  const contentBFE = bfe.encode(content)
+
   if (
     !ssbKeys.verify(
       { public: subfeedKey, curve: 'ed25519' },
       contentSignature,
       hmacKey,
-      Buffer.concat([CONTENT_SIG_PREFIX, bencode.encode(content)])
+      Buffer.concat([CONTENT_SIG_PREFIX, bencode.encode(contentBFE)])
     )
   )
     return new Error(
