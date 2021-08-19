@@ -150,7 +150,26 @@ exports.init = function (sbot, config) {
     }
   }
 
+  // concurrent index helpers
+  function onlyOneAtRootMetaATime(cb) {
+    if (waitingRootMeta.has(waitingRootMetaKey)) {
+      waitingRootMeta.get(waitingRootMetaKey).push(cb)
+      return true // wait for other
+    } else waitingRootMeta.set(waitingRootMetaKey, [])
+  }
+
+  function runWaitingRootMetaCbs() {
+    waitingRootMeta.get(waitingRootMetaKey).forEach((cb) => cb())
+    waitingRootMeta.delete(waitingRootMetaKey)
+  }
+
+  // concurrent get or create root meta
+  const waitingRootMetaKey = 'rootmeta'
+  const waitingRootMeta = new Map()
+
   async function getOrCreateRootMetafeed(cb) {
+    if (onlyOneAtRootMetaATime(cb)) return
+
     // Pluck relevant internal APIs
     const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
     const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
@@ -201,6 +220,8 @@ exports.init = function (sbot, config) {
     } else {
       debug('main feed already added to root meta feed')
     }
+
+    runWaitingRootMetaCbs()
 
     cb(null, mf)
   }
