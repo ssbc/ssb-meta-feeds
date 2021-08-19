@@ -158,8 +158,8 @@ exports.init = function (sbot, config) {
     } else waitingRootMeta.set(waitingRootMetaKey, [])
   }
 
-  function runWaitingRootMetaCbs() {
-    waitingRootMeta.get(waitingRootMetaKey).forEach((cb) => cb())
+  function runWaitingRootMetaCbs(err, mf) {
+    waitingRootMeta.get(waitingRootMetaKey).forEach((cb) => cb(err, mf))
     waitingRootMeta.delete(waitingRootMetaKey)
   }
 
@@ -221,7 +221,7 @@ exports.init = function (sbot, config) {
       debug('main feed already added to root meta feed')
     }
 
-    runWaitingRootMetaCbs()
+    runWaitingRootMetaCbs(null, mf)
 
     cb(null, mf)
   }
