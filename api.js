@@ -150,7 +150,23 @@ exports.init = function (sbot, config) {
     }
   }
 
+  // lock to solve concurrent getOrCreateRootMetafeed
+  const rootMetaFeedLock = {
+    _cbs: [],
+    acquire(cb) {
+      this._cbs.push(cb)
+      return this._cbs.length === 1
+    },
+    release(err, mf) {
+      const cbs = this._cbs
+      this._cbs = []
+      for (const cb of cbs) cb(err, mf)
+    },
+  }
+
   async function getOrCreateRootMetafeed(cb) {
+    if (!rootMetaFeedLock.acquire(cb)) return
+
     // Pluck relevant internal APIs
     const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
     const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
@@ -202,7 +218,7 @@ exports.init = function (sbot, config) {
       debug('main feed already added to root meta feed')
     }
 
-    cb(null, mf)
+    rootMetaFeedLock.release(null, mf)
   }
 
   return {
