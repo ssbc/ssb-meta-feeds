@@ -150,25 +150,22 @@ exports.init = function (sbot, config) {
     }
   }
 
-  // concurrent index helpers
-  function onlyOneAtRootMetaATime(cb) {
-    if (waitingRootMeta.has(waitingRootMetaKey)) {
-      waitingRootMeta.get(waitingRootMetaKey).push(cb)
-      return true // wait for other
-    } else waitingRootMeta.set(waitingRootMetaKey, [])
+  // lock to solve concurrent getOrCreateRootMetafeed
+  const rootMetaFeedLock = {
+    _cbs: [],
+    acquire(cb) {
+      this._cbs.push(cb)
+      return this._cbs.length === 1
+    },
+    release(err, mf) {
+      const cbs = this._cbs
+      this._cbs = []
+      for (const cb of cbs) cb(err, mf)
+    },
   }
-
-  function runWaitingRootMetaCbs(err, mf) {
-    waitingRootMeta.get(waitingRootMetaKey).forEach((cb) => cb(err, mf))
-    waitingRootMeta.delete(waitingRootMetaKey)
-  }
-
-  // concurrent get or create root meta
-  const waitingRootMetaKey = 'rootmeta'
-  const waitingRootMeta = new Map()
 
   async function getOrCreateRootMetafeed(cb) {
-    if (onlyOneAtRootMetaATime(cb)) return
+    if (!rootMetaFeedLock.acquire(cb)) return
 
     // Pluck relevant internal APIs
     const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
@@ -221,9 +218,7 @@ exports.init = function (sbot, config) {
       debug('main feed already added to root meta feed')
     }
 
-    runWaitingRootMetaCbs(null, mf)
-
-    cb(null, mf)
+    rootMetaFeedLock.release(null, mf)
   }
 
   return {
