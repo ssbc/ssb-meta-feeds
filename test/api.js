@@ -148,11 +148,14 @@ tape('findOrCreate() a sub meta feed', (t) => {
     sbot.metafeeds.findOrCreate(
       mf,
       (f) => f.feedpurpose === 'indexes',
-      { feedpurpose: 'indexes', feedformat: 'bendy butt' },
+      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
       (err, f) => {
         t.error(err, 'no err')
         t.equals(f.feedpurpose, 'indexes', 'it is the indexes subfeed')
-        t.true(f.subfeed.endsWith('bbfeed-v1'), 'is a bbfeed')
+        t.true(
+          f.subfeed.startsWith('ssb:feed/bendybutt-v1/'),
+          'has a bendy butt SSB URI'
+        )
         t.end()
       }
     )
@@ -207,7 +210,7 @@ test('restart sbot', (t) => {
       sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
         t.error(err, 'no err')
         t.ok(Buffer.isBuffer(mf.seed), 'has seed')
-        t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
+        t.ok(mf.keys.id.startsWith('ssb:feed/bendybutt-v1/'), 'has key')
 
         sbot.metafeeds.filter(mf, null, (err, filtered) => {
           t.error(err, 'no err')

@@ -9,7 +9,11 @@ const keys = require('../keys')
 const seed_hex =
   '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
 const seed = Buffer.from(seed_hex, 'hex')
-const metafeedKeys = keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+const metafeedKeys = keys.deriveFeedKeyFromSeed(
+  seed,
+  'metafeed',
+  'bendybutt-v1'
+)
 
 const dir = '/tmp/metafeeds-messages'
 const mainKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))

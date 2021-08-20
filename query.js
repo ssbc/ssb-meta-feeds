@@ -9,6 +9,7 @@ const {
   equal,
   descending,
 } = require('ssb-db2/operators')
+const SSBURI = require('ssb-uri2')
 
 function subfeed(feedId) {
   const B_VALUE = Buffer.from('value')
@@ -143,8 +144,8 @@ exports.init = function (sbot, config) {
     hydrateFromMsg(msg, seed) {
       const { type, feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
-      const feedformat = subfeed.endsWith('.bbfeed-v1')
-        ? 'bendy butt'
+      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
+        ? 'bendybutt-v1'
         : 'classic'
       const keys =
         type === 'metafeed/add/existing'
@@ -159,7 +160,7 @@ exports.init = function (sbot, config) {
         subfeed,
         keys,
         metadata,
-        seed: feedformat === 'bendy butt' ? seed : undefined,
+        seed: feedformat === 'bendybutt-v1' ? seed : undefined,
       }
     },
 
