@@ -77,7 +77,7 @@ exports.init = function init(sbot) {
     /**
      * Generate a message to be posted on meta feed linking feed to a meta feed.
      * Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
-     * `bendy butt` for a meta feed or `classic`. `metadata` is an optional
+     * `bendybutt-v1` for a meta feed or `classic`. `metadata` is an optional
      * object to be included (object spread) in `msg.value.content`.
      *
      * ```js
@@ -92,7 +92,7 @@ exports.init = function init(sbot) {
       feedformat,
       metadata
     ) {
-      if (feedformat !== 'classic' && feedformat !== 'bendy butt') {
+      if (feedformat !== 'classic' && feedformat !== 'bendybutt-v1') {
         throw new Error('Unknown feed format: ' + feedformat)
       }
       const nonce = getNonce()

@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 const ssbKeys = require('ssb-keys')
 const hkdf = require('futoin-hkdf')
+const SSBURI = require('ssb-uri2')
 
 /**
  * Operations related to keys
@@ -23,13 +24,13 @@ const keys = {
    * @param {Buffer} seed
    */
   deriveRootMetaFeedKeyFromSeed(seed) {
-    return keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+    return keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendybutt-v1')
   },
 
   /**
    * Derive a new feed key from a seed. Label must be either `metafeed` for the
    * top level meta feed or a base64 encoded nonce. Feedformat can be either
-   * `bendy butt` for a meta feed or `classic`.
+   * `bendybutt-v1` for a meta feed or `classic`.
    *
    * ```js
    * const seed = sbot.metafeeds.keys.generateSeed()
@@ -37,9 +38,9 @@ const keys = {
    * ```
    * @param {Buffer} seed
    * @param {string} label
-   * @param {'bendy butt' | 'classic'} feedformat default is 'classic'
+   * @param {'bendybutt-v1' | 'classic'} format default is 'classic'
    */
-  deriveFeedKeyFromSeed(seed, label, feedformat) {
+  deriveFeedKeyFromSeed(seed, label, format) {
     if (!label) throw new Error('label was not supplied')
 
     const ED25519_LENGTH = 32
@@ -50,8 +51,12 @@ const keys = {
       hash: 'SHA-256',
     })
     const keys = ssbKeys.generate('ed25519', derived_seed)
-    if (feedformat === 'bendy butt')
-      keys.id = keys.id.replace('ed25519', 'bbfeed-v1')
+    if (format === 'bendybutt-v1') {
+      const classicUri = SSBURI.fromFeedSigil(keys.id)
+      const { type, /* format, */ data } = SSBURI.decompose(classicUri)
+      const bendyButtUri = SSBURI.compose({ type, format, data })
+      keys.id = bendyButtUri
+    }
 
     return keys
   },
