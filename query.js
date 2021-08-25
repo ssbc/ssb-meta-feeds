@@ -147,20 +147,20 @@ exports.init = function (sbot, config) {
       const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
         ? 'bendybutt-v1'
         : 'classic'
-      const keys =
-        type === 'metafeed/add/existing'
-          ? config.keys
-          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-              seed,
-              nonce.toString('base64'),
-              feedformat
-            )
+      const existing = type === 'metafeed/add/existing'
+      const keys = existing
+        ? config.keys
+        : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+            seed,
+            nonce.toString('base64'),
+            feedformat
+          )
       return {
         feedpurpose,
         subfeed,
         keys,
         metadata,
-        seed: feedformat === 'bendybutt-v1' ? seed : undefined,
+        seed: !existing ? seed : undefined,
       }
     },
 
