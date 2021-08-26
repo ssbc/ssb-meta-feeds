@@ -1,6 +1,8 @@
 const test = require('tape')
 const keys = require('../keys')
 
+console.log('fail?')
+
 test('generate a seed', (t) => {
   const seed = keys.generateSeed()
   t.equals(seed.toString('hex').length, 64, 'correct length')
