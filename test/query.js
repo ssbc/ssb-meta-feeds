@@ -122,7 +122,7 @@ test('metafeed with tombstones', (t) => {
 test('seed', (t) => {
   const content = messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
   db.publish(content, (err, msg) => {
-    console.log('publish2', msg)
+    console.log('publisah2', msg)
     sbot.metafeeds.query.getSeed((err, storedSeed) => {
       t.deepEqual(storedSeed, seed, 'correct seed')
       t.end()
