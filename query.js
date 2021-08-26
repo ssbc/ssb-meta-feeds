@@ -45,6 +45,7 @@ exports.init = function (sbot, config) {
      */
     getSeed(cb) {
       // FIXME: maybe use metafeed id
+      console.log('query', sbot.id)
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/seed'))),
         paginate(1),
@@ -55,6 +56,7 @@ exports.init = function (sbot, config) {
           if (msgs.length === 0) return cb(null, null)
 
           const msg = msgs[0]
+          console.log('got msg', msg)
           const seedBuf = Buffer.from(msg.value.content.seed, 'hex')
           cb(null, seedBuf)
         })

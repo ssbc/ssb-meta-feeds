@@ -33,7 +33,7 @@
     "tape": "^5.3.0"
   },
   "scripts": {
-    "test": "tape test/*.js | tap-bail | tap-spec",
+    "test": "DEBUG='ssb:*' tape test/*.js | tap-bail | tap-spec",
     "format-code": "prettier --write \"*.js\" \"test/*.js\"",
     "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"test/*.js\""
   },

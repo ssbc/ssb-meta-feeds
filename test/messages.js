@@ -181,6 +181,7 @@ test('metafeed seed save', (t) => {
   db.publish(content, (err, msg) => {
     t.equal(typeof msg.value.content, 'string', 'encrypted')
     db.get(msg.key, (err, msgGotten) => {
+      t.error(err, 'no err')
       t.equal(msgGotten.content.seed, seed_hex, 'correct seed extracted')
       sbot.close(t.end)
     })
