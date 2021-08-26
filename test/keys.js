@@ -1,7 +1,7 @@
 const test = require('tape')
 const keys = require('../keys')
 
-console.log('fail?')
+console.log('fail? 2')
 
 test('generate a seed', (t) => {
   const seed = keys.generateSeed()
