@@ -17,7 +17,7 @@
     "promisify-tuple": "^1.2.0",
     "pull-stream": "^3.6.14",
     "ssb-bendy-butt": "~0.12.0",
-    "ssb-db2": "github:ssb-ngi-pointer/ssb-db2#support-bendy-butt",
+    "ssb-db2": "github:ssb-ngi-pointer/ssb-db2#bb-debug-private",
     "ssb-keys": "^8.2.0",
     "ssb-uri2": "^1.2.0"
   },
