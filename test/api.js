@@ -143,6 +143,54 @@ tape('findOrCreate() a sub feed', (t) => {
   })
 })
 
+tape('findOrCreate() a sub meta feed', (t) => {
+  sbot.metafeeds.findOrCreate((err, mf) => {
+    sbot.metafeeds.findOrCreate(
+      mf,
+      (f) => f.feedpurpose === 'indexes',
+      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
+      (err, f) => {
+        t.error(err, 'no err')
+        t.equals(f.feedpurpose, 'indexes', 'it is the indexes subfeed')
+        t.true(
+          f.subfeed.startsWith('ssb:feed/bendybutt-v1/'),
+          'has a bendy butt SSB URI'
+        )
+        t.end()
+      }
+    )
+  })
+})
+
+tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
+  sbot.metafeeds.find((err, rootMF) => {
+    sbot.metafeeds.find(
+      rootMF,
+      (f) => f.feedpurpose === 'indexes',
+      (err, indexesMF) => {
+        t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
+
+        sbot.metafeeds.findOrCreate(
+          indexesMF,
+          (f) => f.feedpurpose === 'index',
+          {
+            feedpurpose: 'index',
+            feedformat: 'classic',
+            metadata: { query: 'foo' },
+          },
+          (err, f) => {
+            t.error(err, 'no err')
+            t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
+            t.equals(f.metadata.query, 'foo', 'query is okay')
+            t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
+            t.end()
+          }
+        )
+      }
+    )
+  })
+})
+
 test('restart sbot', (t) => {
   sbot.close(true, () => {
     sbot = SecretStack({ appKey: caps.shs })
@@ -156,13 +204,14 @@ test('restart sbot', (t) => {
     sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
       t.error(err, 'no err')
       t.ok(Buffer.isBuffer(mf.seed), 'has seed')
-      t.ok(mf.keys.id.endsWith('.bbfeed-v1'), 'has key')
+      t.ok(mf.keys.id.startsWith('ssb:feed/bendybutt-v1/'), 'has key')
 
       sbot.metafeeds.filter(mf, null, (err, filtered) => {
         t.error(err, 'no err')
-        t.equal(filtered.length, 2, 'has 2 feeds')
+        t.equal(filtered.length, 3, 'has 3 subfeeds')
         t.equal(filtered[0].feedpurpose, 'main', 'main')
         t.equal(filtered[1].feedpurpose, 'chess', 'chess')
+        t.equal(filtered[2].feedpurpose, 'indexes', 'indexes')
 
         sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
           t.error(err, 'no err')

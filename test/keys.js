@@ -13,10 +13,10 @@ const seed_hex =
 const seed = Buffer.from(seed_hex, 'hex')
 
 test('generate a key for a feed', (t) => {
-  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendy butt')
+  const feedKey = keys.deriveFeedKeyFromSeed(seed, 'metafeed', 'bendybutt-v1')
   t.equals(
     feedKey.id,
-    '@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bbfeed-v1',
+    'ssb:feed/bendybutt-v1/0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=',
     'correct feed generated'
   )
 

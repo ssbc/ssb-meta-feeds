@@ -9,6 +9,7 @@ const {
   equal,
   descending,
 } = require('ssb-db2/operators')
+const SSBURI = require('ssb-uri2')
 
 function subfeed(feedId) {
   const B_VALUE = Buffer.from('value')
@@ -91,7 +92,9 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          msgs = msgs.filter((msg) => msg.value.content.type === 'metafeed/add')
+          msgs = msgs.filter((msg) =>
+            msg.value.content.type.startsWith('metafeed/add/')
+          )
           // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
@@ -139,14 +142,26 @@ exports.init = function (sbot, config) {
      * "added" the subfeed
      */
     hydrateFromMsg(msg, seed) {
-      const { feedpurpose, subfeed, nonce } = msg.value.content
+      const { type, feedpurpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
-      const nonceB64 = nonce.toString('base64')
-      const keys =
-        subfeed === sbot.id
-          ? config.keys
-          : sbot.metafeeds.keys.deriveFeedKeyFromSeed(seed, nonceB64)
-      return { feedpurpose, subfeed, keys, metadata }
+      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
+        ? 'bendybutt-v1'
+        : 'classic'
+      const existing = type === 'metafeed/add/existing'
+      const keys = existing
+        ? config.keys
+        : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+            seed,
+            nonce.toString('base64'),
+            feedformat
+          )
+      return {
+        feedpurpose,
+        subfeed,
+        keys,
+        metadata,
+        seed: !existing ? seed : undefined,
+      }
     },
 
     /**
@@ -166,7 +181,7 @@ exports.init = function (sbot, config) {
           if (err) return cb(err)
 
           const addedFeeds = msgs
-            .filter((msg) => msg.value.content.type === 'metafeed/add')
+            .filter((msg) => msg.value.content.type.startsWith('metafeed/add/'))
             .map((msg) => self.hydrateFromMsg(msg, seed))
 
           const tombstoned = msgs
