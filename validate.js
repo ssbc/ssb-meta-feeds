@@ -110,8 +110,7 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
         `invalid message: subfeed key "${subfeedKey}", expected a canonical uri format or classic ssb sigil`
       )
     } else {
-      let { type, format, data } = SSBURI.decompose(subfeedKey)
-      subfeedKey = '@' + data + '.ed25519'
+      subfeedKey = SSBURI.decompose(subfeedKey).data
     }
   }
 

@@ -97,13 +97,11 @@ tape('validation works', function (t) {
   )
   t.deepEqual(
     invalidSignatureValidationResult.message,
-    'invalid message: contentSignature must correctly sign the content using the subfeed key; @FY5OG311W4j/KPh8H9B2MZt4WSziy/p+ABkKERJdujQ=.ed25519',
+    'invalid message: contentSignature must correctly sign the content using the subfeed key; FY5OG311W4j/KPh8H9B2MZt4WSziy/p+ABkKERJdujQ=',
     'catches invalid signature'
   )
   // revert signature change
   contentSection2[1] = tempSig
-
-  console.log(contentSection3[0].type)
 
   // replace content type to cause invalidation
   contentSection3[0].type = 'add/coffee'
