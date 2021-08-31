@@ -64,7 +64,7 @@ exports.validateSingle = function (contentSection, hmacKey) {
   if (content.type === 'metafeed/add/derived') {
     if (content.nonce.length !== 32)
       return new Error(
-        `invalid message: content nonce is ${content.nonce.length} bytes, expected 32`
+        `invalid message: content nonce "${content.nonce}" is ${content.nonce.length} bytes, expected 32`
       )
   }
 
