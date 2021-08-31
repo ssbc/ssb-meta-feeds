@@ -64,7 +64,7 @@ tape('validation works', function (t) {
     },
     {
       message:
-        'Unknown feed format: @Oo6OYCGsjLP3n+cep4FiHJJZGHyqKWztnhDk7vJhi3A=.leaf21',
+        'No encoder for type=feed format=? for string @Oo6OYCGsjLP3n+cep4FiHJJZGHyqKWztnhDk7vJhi3A=.leaf21',
     },
     'catches unknown subfeed format (throws)'
   )
@@ -80,7 +80,7 @@ tape('validation works', function (t) {
     },
     {
       message:
-        'Unknown feed format: @b99R2e7lj8h7NFqGhOu6lCGy8gLxWV+J4ORd1X7rP3c=.food-v7',
+        'No encoder for type=feed format=? for string @b99R2e7lj8h7NFqGhOu6lCGy8gLxWV+J4ORd1X7rP3c=.food-v7',
     },
     'catches unknown metafeed format (throws)'
   )
