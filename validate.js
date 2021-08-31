@@ -1,6 +1,9 @@
 const bencode = require('bencode')
 const bfe = require('ssb-bfe')
 const ssbKeys = require('ssb-keys')
+const SSBURI = require('ssb-uri2')
+const ref = require('ssb-ref')
+const isCanonicalBase64 = require('is-canonical-base64')
 
 const CONTENT_SIG_PREFIX = Buffer.from('bendybutt', 'utf8')
 
@@ -87,7 +90,30 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
   const hmacKeyErr = validateHmacKey(hmacKey)
   if (hmacKeyErr) return hmacKeyErr
 
+  const isSignatureRx = isCanonicalBase64('', '\\.sig.\\w+')
+
+  if (!isSignatureRx.test(contentSignature))
+    return new Error(
+      `invalid message: contentSignature "${contentSignature}", expected a base64 string`
+    )
+
   const contentBFE = bfe.encode(content)
+
+  // if the subfeedKey is a supported uri, convert it to sigil for verification
+  if (!ref.isFeed(subfeedKey)) {
+    if (
+      !SSBURI.isFeedSSBURI(subfeedKey) &&
+      !SSBURI.isBendyButtV1FeedSSBURI(subfeedKey) &&
+      !SSBURI.isGabbyGroveV1FeedSSBURI(subfeedKey)
+    ) {
+      return new Error(
+        `invalid message: subfeed key "${subfeedKey}", expected a canonical uri format or classic ssb sigil`
+      )
+    } else {
+      let { type, format, data } = SSBURI.decompose(subfeedKey)
+      subfeedKey = '@' + data + '.ed25519'
+    }
+  }
 
   if (
     !ssbKeys.verify(
