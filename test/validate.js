@@ -88,15 +88,45 @@ tape('validation works', function (t) {
   contentSection3[0].metafeed =
     '@b99R2e7lj8h7NFqGhOu6lCGy8gLxWV+J4ORd1X7rP3c=.bbfeed-v1'
 
-  // what else do we need to test?
-  //
-  // - encrypted contentSection (should fail)
-  // x contentSection length is 2
-  // - is valid type (add/existing, add/derived, update, tombstone)
-  // x is valid subfeed type
-  // x is valid metafeed type
-  // - nonce length is 32 if type is metafeed/add/derived
-  // - signature is valid
+  const tempSig = contentSection2[1]
+  // replace signature to cause invalidation
+  contentSection2[1] = contentSection3[1]
+  const invalidSignatureValidationResult = mf.validateSingle(
+    contentSection2,
+    null
+  )
+  t.deepEqual(
+    invalidSignatureValidationResult.message,
+    'invalid message: contentSignature must correctly sign the content using the subfeed key; @FY5OG311W4j/KPh8H9B2MZt4WSziy/p+ABkKERJdujQ=.ed25519',
+    'catches invalid signature'
+  )
+  // revert signature change
+  contentSection2[1] = tempSig
+
+  console.log(contentSection3[0].type)
+
+  // replace content type to cause invalidation
+  contentSection3[0].type = 'add/coffee'
+  const invalidTypeValidationResult = mf.validateSingle(contentSection3, null)
+  t.deepEqual(
+    invalidTypeValidationResult.message,
+    'invalid message: content type add/coffee is incorrect',
+    'catches invalid content type'
+  )
+  // revert content type change
+  contentSection3[0].type = 'metafeed/tombstone'
+
+  // invalidate the nonce
+  contentSection2[0].nonce =
+    'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkIAAAAAAAAAAAA='
+  const invalidNonceValidationResult = mf.validateSingle(contentSection2, null)
+  t.deepEqual(
+    invalidNonceValidationResult.message,
+    'invalid message: content nonce "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkIAAAAAAAAAAAA=" is 56 bytes, expected 32',
+    'catches invalid nonce (too long)'
+  )
+  // revert nonce change
+  contentSection2[0].nonce = 'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI='
 
   t.end()
 })
