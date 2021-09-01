@@ -62,10 +62,12 @@ exports.validateSingle = function (contentSection, hmacKey) {
     )
 
   if (content.type === 'metafeed/add/derived') {
-    if (content.nonce.length !== 32)
+    if (content.nonce.length !== 32) {
+      const nonceString = content.nonce.toString('hex')
       return new Error(
-        `invalid message: content nonce "${content.nonce}" is ${content.nonce.length} bytes, expected 32`
+        `invalid message: content nonce "${nonceString}" is ${content.nonce.length} bytes, expected 32`
       )
+    }
   }
 
   const signatureErr = validateSignature(
