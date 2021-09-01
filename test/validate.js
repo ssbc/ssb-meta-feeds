@@ -2,9 +2,14 @@ const tape = require('tape')
 const fs = require('fs')
 const mf = require('../validate')
 const bfe = require('ssb-bfe')
+const bb = require('ssb-bendy-butt')
 
 const vec = JSON.parse(
   fs.readFileSync('test/testvector-metafeed-managment.json', 'utf8')
+)
+
+const badVec = JSON.parse(
+  fs.readFileSync('test/testvector-metafeed-bad-content.json', 'utf8')
 )
 
 function entryToContentSection(entry) {
@@ -14,6 +19,13 @@ function entryToContentSection(entry) {
   }
   contentSignature = bfe.decode(Buffer.from(contentSignature.HexString, 'hex'))
   const contentSection = [content, contentSignature]
+
+  return contentSection
+}
+
+function encodedDataToContentSection(data) {
+  const msg = bb.decode(data)
+  const contentSection = [msg.content, msg.contentSignature]
 
   return contentSection
 }
@@ -125,6 +137,77 @@ tape('validation works', function (t) {
   )
   // revert nonce change
   contentSection2[0].nonce = 'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI='
+
+  /* vector tests for messages with invalid content */
+  t.pass('[ bad message vector tests ]')
+
+  // "1.1: bad type value"
+  // convert json vector entry to testable contentSection
+  const badMsg1 = Buffer.from(badVec.Cases[0].Entries[0].EncodedData, 'hex')
+  const badContentSection1 = encodedDataToContentSection(badMsg1)
+
+  const badContentTypeValidationResult = mf.validateSingle(
+    badContentSection1,
+    null
+  )
+  t.deepEqual(
+    badContentTypeValidationResult.message,
+    'invalid message: content type nope-nope-nope is incorrect',
+    'catches invalid content type'
+  )
+
+  /* these three entries throw ssb-bfe errors on decode */
+
+  // "2.1: broken subfeed TFK"
+  //const badMsg2 = Buffer.from(badVec.Cases[1].Entries[0].EncodedData, 'hex')
+  // throws an error in bfe ('Cannot decode buffer ffffddaa56...')
+  //const badContentSection2 = encodedDataToContentSection(badMsg2)
+
+  // "2.2: broken metafeed TFK"
+  //const badMsg3 = Buffer.from(badVec.Cases[2].Entries[0].EncodedData, 'hex')
+  // throws an error in bfe ('Cannot decode buffer ffffab6960...')
+  //const badContentSection3 = encodedDataToContentSection(badMsg3)
+
+  // "3.1: bad nonce prefix"
+  //const badMsg4 = Buffer.from(badVec.Cases[3].Entries[0].EncodedData, 'hex')
+  // throws an error in bfe ('Cannot decode buffer aabba1a1a1...')
+  //const badContentSection4 = encodedDataToContentSection(badMsg4)
+
+  // "3.2: bad nonce length (short)"
+  const badMsg5 = Buffer.from(badVec.Cases[4].Entries[0].EncodedData, 'hex')
+  const badContentSection5 = encodedDataToContentSection(badMsg5)
+
+  const shortNonceValidationResult = mf.validateSingle(badContentSection5, null)
+  t.deepEqual(
+    shortNonceValidationResult.message,
+    'invalid message: content nonce "23232323232323232323232323232323232323232323232323232323232323" is 31 bytes, expected 32',
+    'catches invalid nonce (too short)'
+  )
+
+  // "3.3: bad nonce length (long)"
+  const badMsg6 = Buffer.from(badVec.Cases[5].Entries[0].EncodedData, 'hex')
+  const badContentSection6 = encodedDataToContentSection(badMsg6)
+
+  const longNonceValidationResult = mf.validateSingle(badContentSection6, null)
+  t.deepEqual(
+    longNonceValidationResult.message,
+    'invalid message: content nonce "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0102" is 34 bytes, expected 32',
+    'catches invalid nonce (too long)'
+  )
+
+  // "4.1: bad content signature"
+  const badMsg7 = Buffer.from(badVec.Cases[6].Entries[0].EncodedData, 'hex')
+  const badContentSection7 = encodedDataToContentSection(badMsg7)
+
+  const badSignatureValidationResult = mf.validateSingle(
+    badContentSection7,
+    null
+  )
+  t.deepEqual(
+    badSignatureValidationResult.message,
+    'invalid message: contentSignature must correctly sign the content using the subfeed key; @/5VrJbXDi+T02mMdR2lHU1KBxaEEPyhS/MuGpLaeuC0=.ed25519',
+    'catches invalid signature'
+  )
 
   t.end()
 })
