@@ -99,8 +99,6 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
       `invalid message: contentSignature "${contentSignature}", expected a base64 string`
     )
 
-  const contentBFE = bfe.encode(content)
-
   // if the subfeedKey is a supported uri, convert it to sigil for verification
   if (!ref.isFeed(subfeedKey)) {
     if (
@@ -115,6 +113,8 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
       subfeedKey = SSBURI.decompose(subfeedKey).data
     }
   }
+
+  const contentBFE = bfe.encode(content)
 
   if (
     !ssbKeys.verify(
