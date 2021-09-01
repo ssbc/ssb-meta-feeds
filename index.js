@@ -2,6 +2,7 @@ const Keys = require('./keys')
 const Messages = require('./messages')
 const Query = require('./query')
 const API = require('./api')
+const Validate = require('./validate')
 
 exports.name = 'metafeeds'
 
@@ -18,5 +19,6 @@ exports.init = function (sbot, config) {
     keys: Keys,
     messages,
     query,
+    validate: Validate,
   }
 }

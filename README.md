@@ -25,7 +25,7 @@ Add this plugin like this:
 
 ## Example usage
 
-Let's start by create a **root meta feed**, necessary for using this module. It
+Let's start by creating a **root meta feed**, necessary for using this module. It
 lives alongside your existing "classical" feed, which we'll refer to as **main
 feed**.
 
@@ -255,6 +255,20 @@ arbitrary tombstoned subfeed under `metafeed` is returned.
 
 The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is the found tombstoned feed.
+
+## Validation
+
+Exposed via the internal API.
+
+### `validateSingle(contentSection, hmacKey)`
+
+_Validate a single meta feed message according to the criteria defined in the [specification](https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec#usage-of-bendy-butt-feed-format)._
+
+`contentSection` must be an array of `content` and `contentSignature`. If a `string` is provided (representing an encrypted message, for instance) an error will be returned; an encrypted `contentSection` cannot be validated.
+
+`hmacKey` may be `null` or a valid HMAC key supplied as a `Buffer` or `string`.
+
+The response will be `undefined` (for successful validation) or an `Error` object with a `message` describing the error.
 
 ## License
 
