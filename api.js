@@ -124,7 +124,7 @@ exports.init = function (sbot, config) {
         )
         const contentSection = [msgVal.content, msgVal.contentSignature]
         const validationResult = validate.validateSingle(contentSection)
-        if (validationResult instanceof Error) return cb(err)
+        if (validationResult instanceof Error) return cb(validationResult)
         sbot.db.add(msgVal, (err, msg) => {
           if (err) return cb(err)
           const hydratedSubfeed = sbot.metafeeds.query.hydrateFromMsg(
