@@ -93,9 +93,8 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          msgs = msgs.filter((msg) =>
-            msg.value.content.type.startsWith('metafeed/add/')
-          )
+          msgs = msgs.filter((msg) => validate.isValid(msg))
+
           // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
@@ -181,21 +180,7 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          const validatedMsgs = msgs
-            .filter((msg) => msg.value.content.type.startsWith('metafeed/'))
-            .map((msg) => {
-              if (msg.value.content && msg.value.contentSignature) {
-                const contentSection = [
-                  msg.value.content,
-                  msg.value.contentSignature,
-                ]
-                const validationResult = validate.validateSingle(
-                  contentSection,
-                  null
-                )
-                if (validationResult === undefined) return msg
-              }
-            })
+          const validatedMsgs = msgs.filter((msg) => validate.isValid(msg))
 
           const addedFeeds = validatedMsgs
             .filter((msg) => msg.value.content.type.startsWith('metafeed/add/'))
