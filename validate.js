@@ -20,6 +20,8 @@ function isValid(msg, hmacKey) {
     const validationResult = validateSingle(contentSection, hmacKey)
 
     return validationResult === undefined
+  } else {
+    return false
   }
 }
 
