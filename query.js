@@ -11,6 +11,12 @@ const {
 } = require('ssb-db2/operators')
 const SSBURI = require('ssb-uri2')
 
+const SUBFEED_PREFIX_OFFSET = Math.max(
+  '@'.length,
+  'ssb:feed/bendybutt-v1/'.length,
+  'ssb:feed/gabbygrove-v1/'.length
+)
+
 function subfeed(feedId) {
   const B_VALUE = Buffer.from('value')
   const B_CONTENT = Buffer.from('content')
@@ -27,7 +33,7 @@ function subfeed(feedId) {
 
   return equal(seekSubfeed, feedId, {
     prefix: 32,
-    prefixOffset: 1,
+    prefixOffset: SUBFEED_PREFIX_OFFSET,
     indexType: 'value_content_subfeed',
   })
 }
