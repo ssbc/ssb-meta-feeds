@@ -38,7 +38,7 @@ const keys = {
    * ```
    * @param {Buffer} seed
    * @param {string} label
-   * @param {'bendybutt-v1' | 'classic'} format default is 'classic'
+   * @param {'bendybutt-v1' | 'gabbygrove-v1' | 'classic'} format default is 'classic'
    */
   deriveFeedKeyFromSeed(seed, label, format) {
     if (!label) throw new Error('label was not supplied')
@@ -51,7 +51,7 @@ const keys = {
       hash: 'SHA-256',
     })
     const keys = ssbKeys.generate('ed25519', derived_seed)
-    if (format === 'bendybutt-v1') {
+    if (format === 'bendybutt-v1' || format === 'gabbygrove-v1') {
       const classicUri = SSBURI.fromFeedSigil(keys.id)
       const { type, /* format, */ data } = SSBURI.decompose(classicUri)
       const bendyButtUri = SSBURI.compose({ type, format, data })
