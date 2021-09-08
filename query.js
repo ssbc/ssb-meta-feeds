@@ -1,3 +1,4 @@
+const validate = require('./validate')
 const { seekKey } = require('bipf')
 const {
   and,
@@ -98,9 +99,8 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          msgs = msgs.filter((msg) =>
-            msg.value.content.type.startsWith('metafeed/add/')
-          )
+          msgs = msgs.filter((msg) => validate.isValid(msg))
+
           // FIXME: handle multiple msgs properly?
           cb(null, msgs.length > 0 ? msgs[0].value.content : null)
         })
@@ -186,11 +186,13 @@ exports.init = function (sbot, config) {
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
-          const addedFeeds = msgs
+          const validatedMsgs = msgs.filter((msg) => validate.isValid(msg))
+
+          const addedFeeds = validatedMsgs
             .filter((msg) => msg.value.content.type.startsWith('metafeed/add/'))
             .map((msg) => self.hydrateFromMsg(msg, seed))
 
-          const tombstoned = msgs
+          const tombstoned = validatedMsgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const { feedpurpose, subfeed } = msg.value.content

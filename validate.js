@@ -10,11 +10,29 @@ const CONTENT_SIG_PREFIX = Buffer.from('bendybutt', 'utf8')
 /**
  * Validate a single meta feed message.
  *
+ * @param {Object} msg - a meta feed message in the form of a JSON object
+ * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature verification
+ * @returns {true | false} `true` in the case of successful validation
+ */
+function isValid(msg, hmacKey) {
+  if (msg.value.content && msg.value.contentSignature) {
+    const contentSection = [msg.value.content, msg.value.contentSignature]
+    const validationResult = validateSingle(contentSection, hmacKey)
+
+    return validationResult === undefined
+  } else {
+    return false
+  }
+}
+
+/**
+ * Validate a single meta feed message `contentSection`.
+ *
  * @param {Array | string} contentSection - an array of `content` and `contentSignature` or an encrypted string
  * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature verification
- * @returns {Object | true} an `Error` object or `true` in the case of successful validation
+ * @returns {Object | true} an `Error` object or `undefined` in the case of successful validation
  */
-exports.validateSingle = function (contentSection, hmacKey) {
+function validateSingle(contentSection, hmacKey) {
   if (contentSection === null || contentSection === undefined)
     return new Error(
       `invalid message: contentSection cannot be null or undefined`
@@ -154,3 +172,6 @@ function validateHmacKey(hmacKey) {
       `invalid hmac key: "${hmacKey}" with length ${hmacKey.length}, expected 32 bytes`
     )
 }
+
+exports.isValid = isValid
+exports.validateSingle = validateSingle

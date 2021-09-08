@@ -1,5 +1,6 @@
 const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
+const validate = require('./validate')
 
 const alwaysTrue = () => true
 
@@ -121,6 +122,9 @@ exports.init = function (sbot, config) {
           details.feedformat,
           details.metadata
         )
+        const contentSection = [msgVal.content, msgVal.contentSignature]
+        const validationResult = validate.validateSingle(contentSection)
+        if (validationResult instanceof Error) return cb(validationResult)
         sbot.db.add(msgVal, (err, msg) => {
           if (err) return cb(err)
           const hydratedSubfeed = sbot.metafeeds.query.hydrateFromMsg(
