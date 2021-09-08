@@ -18,12 +18,12 @@
     "is-canonical-base64": "^1.1.1",
     "promisify-tuple": "^1.2.0",
     "pull-stream": "^3.6.14",
-    "ssb-bendy-butt": "~0.12.1",
+    "ssb-bendy-butt": "~0.12.3",
     "ssb-bfe": "^3.1.1",
     "ssb-db2": "^2.4.0",
     "ssb-keys": "^8.2.0",
     "ssb-ref": "^2.16.0",
-    "ssb-uri2": "^1.5.1"
+    "ssb-uri2": "^1.5.2"
   },
   "devDependencies": {
     "husky": "^4.3.0",
