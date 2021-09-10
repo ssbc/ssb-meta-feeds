@@ -91,8 +91,8 @@ test('metafeed with multiple feeds', (t) => {
 })
 
 test('index metafeed', (t) => {
-  sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
-    t.equal(JSON.parse(content.query).op, 'and', 'has query')
+  sbot.metafeeds.query.getMetadata(indexKey.id, (err, details) => {
+    t.equal(JSON.parse(details.metadata.query).op, 'and', 'has query')
     t.end()
   })
 })

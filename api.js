@@ -70,6 +70,10 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function findById(feedId, cb) {
+    sbot.metafeeds.query.getMetadata(feedId, cb)
+  }
+
   function filterTombstoned(metafeed, maybeVisit, cb) {
     if (!metafeed || typeof metafeed === 'function') {
       cb(new Error('filterTombstoned() requires a valid metafeed argument'))
@@ -228,6 +232,7 @@ exports.init = function (sbot, config) {
   return {
     filter,
     find,
+    findById,
     create,
     findOrCreate,
     filterTombstoned,

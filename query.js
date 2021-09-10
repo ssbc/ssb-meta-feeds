@@ -94,15 +94,60 @@ exports.init = function (sbot, config) {
      * ```
      */
     getMetadata(feedId, cb) {
+      if (!feedId) {
+        return cb(new Error('feedId should be provided'))
+      }
+      if (typeof feedId !== 'string') {
+        return cb(new Error('feedId should be a string, but got ' + feedId))
+      }
+
+      let feedformat
+      if (feedId.startsWith('@')) {
+        feedformat = 'ed25519'
+      } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
+        feedformat = 'bendybutt-v1'
+      } else {
+        return cb(new Error('Invalid feed format: ' + feedId))
+      }
+
       sbot.db.query(
         where(subfeed(feedId)),
         toCallback((err, msgs) => {
           if (err) return cb(err)
 
           msgs = msgs.filter((msg) => validate.isValid(msg))
+          if (msgs.find((m) => m.value.content.type === 'metafeed/tombstone')) {
+            return cb(null, null)
+          }
+          msgs = msgs.filter((m) =>
+            m.value.content.type.startsWith('metafeed/add/')
+          )
+          if (msgs.length === 0) {
+            return cb(null, null)
+          }
 
-          // FIXME: handle multiple msgs properly?
-          cb(null, msgs.length > 0 ? msgs[0].value.content : null)
+          const content = msgs[0].value.content
+          const details = {}
+          details.feedformat = feedformat
+          details.feedpurpose = content.feedpurpose
+          details.metafeed = content.metafeed
+          const metadata = {}
+          const NOT_METADATA = [
+            'metafeed',
+            'feedpurpose',
+            'type',
+            'tangles',
+            'subfeed',
+            'nonce',
+          ]
+          const keys = Object.keys(content).filter(
+            (k) => !NOT_METADATA.includes(k)
+          )
+          for (const key of keys) {
+            metadata[key] = content[key]
+          }
+          details.metadata = metadata
+          cb(null, details)
         })
       )
     },

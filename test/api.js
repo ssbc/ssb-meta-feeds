@@ -183,7 +183,20 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
             t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
             t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
-            t.end()
+
+            sbot.metafeeds.findById(f.subfeed, (err, details) => {
+              t.error(err, 'no err')
+              t.deepEquals(Object.keys(details), [
+                'feedformat',
+                'feedpurpose',
+                'metafeed',
+                'metadata',
+              ])
+              t.equals(details.feedpurpose, 'index')
+              t.equals(details.metafeed, indexesMF.keys.id)
+              t.equals(details.feedformat, 'ed25519')
+              t.end()
+            })
           }
         )
       }
