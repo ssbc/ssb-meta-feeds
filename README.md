@@ -25,9 +25,9 @@ Add this plugin like this:
 
 ## Example usage
 
-Let's start by creating a **root meta feed**, necessary for using this module. It
-lives alongside your existing "classical" feed, which we'll refer to as **main
-feed**.
+Let's start by creating a **root meta feed**, necessary for using this module.
+It lives alongside your existing "classical" feed, which we'll refer to as
+**main feed**.
 
 ```js
 sbot.metafeeds.create((err, metafeed) => {
@@ -139,25 +139,21 @@ sbot.metafeeds.findOrCreate(
 
 ## API
 
-### `sbot.metafeeds.filter(metafeed, visit, cb)`
+Some of these APIs can only be used on feeds that **you own** (🌻) while other
+APIs can be used on any feed (🌷), i.e. feeds created by other peers.
 
-_Looks for all subfeeds of `metafeed` that satisfy the condition in `visit`._
+### 🌷 `sbot.metafeeds.findById(feedId, cb)`
 
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
-returned by `create()`). If it's null, then the result will be an array
-containing one item, the root meta feed, or zero items if the root meta feed
-does not exist.
+Given a `feedId` that is presumed to be a subfeed of some meta feed, this API
+fetches the metadata associated with the creation of this subfeed on its parent
+meta feed, and returns (via the callback `cb` on the second argument) an object
+with the following shape:
 
-`visit` can be either `null` or a function of the shape
-`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under
-`metafeed` are returned.
+```
+{ feedpurpose, feedformat, metafeed, metafeed }
+```
 
-The response is delivered to the callback `cb`, where the 1st argument is the
-possible error, and the 2nd argument is an array containing the found feeds
-(which can be either the root meta feed `{ seed, keys }` or a sub feed
-`{ feedpurpose, subfeed, keys, metadata }`).
-
-### `sbot.metafeeds.find(metafeed, visit, cb)`
+### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in
 `visit`._
@@ -176,7 +172,25 @@ possible error, and the 2nd argument is the found feed (which can be either the
 root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys, metadata }`).
 
-### `sbot.metafeeds.create(metafeed, details, cb)`
+### 🌻 `sbot.metafeeds.filter(metafeed, visit, cb)`
+
+_Looks for all subfeeds of `metafeed` that satisfy the condition in `visit`._
+
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the result will be an array
+containing one item, the root meta feed, or zero items if the root meta feed
+does not exist.
+
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,keys}) => boolean`. If it's null, then all subfeeds under
+`metafeed` are returned.
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is an array containing the found feeds
+(which can be either the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
+
+### 🌻 `sbot.metafeeds.create(metafeed, details, cb)`
 
 _Creates a new subfeed of `metafeed` matching the properties described in
 `details`._
@@ -198,7 +212,7 @@ possible error, and the 2nd argument is the created feed (which can be either
 the root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys }`).
 
-### `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
+### 🌻 `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in
 `visit`, or creates it matching the properties in `details`._
@@ -225,7 +239,7 @@ possible error, and the 2nd argument is the created feed (which can be either
 the root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys, metadata }`).
 
-### `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
+### 🌻 `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
 
 _Looks for all tombstoned subfeeds of `metafeed` that satisfy the condition in
 `visit`._
@@ -241,7 +255,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is an array containing the found tombstoned
 feeds.
 
-### `sbot.metafeeds.find(metafeed, visit, cb)`
+### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
 
 _Looks for the first tombstoned subfeed of `metafeed` that satisfies the
 condition in `visit`._
@@ -264,21 +278,30 @@ Exposed via the internal API.
 
 _Validate a single meta feed message._
 
-Extracts the `contentSection` from the given `msg` object and calls `validateSingle()` to perform validation checks.
+Extracts the `contentSection` from the given `msg` object and calls
+`validateSingle()` to perform validation checks.
 
-If provided, the `hmacKey` is also given as input to the `validateSingle()` function call. `hmacKey` may be `null` or a valid HMAC key supplied as a `Buffer` or `string`.
+If provided, the `hmacKey` is also given as input to the `validateSingle()`
+function call. `hmacKey` may be `null` or a valid HMAC key supplied as a
+`Buffer` or `string`.
 
-The response is a boolean: `true` if validation is successful, `false` if validation fails in any way. Note that this function does not return the underlying cause of the validation failure.
+The response is a boolean: `true` if validation is successful, `false` if
+validation fails in any way. Note that this function does not return the
+underlying cause of the validation failure.
 
 ### `validateSingle(contentSection, hmacKey)`
 
-_Validate a single meta feed message `contentSection` according to the criteria defined in the [specification](https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec#usage-of-bendy-butt-feed-format)._
+_Validate a single meta feed message `contentSection` according to the criteria
+defined in the [specification](https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec#usage-of-bendy-butt-feed-format)._
 
-`contentSection` must be an array of `content` and `contentSignature`. If a `string` is provided (representing an encrypted message, for instance) an error will be returned; an encrypted `contentSection` cannot be validated.
+`contentSection` must be an array of `content` and `contentSignature`. If a
+`string` is provided (representing an encrypted message, for instance) an error
+will be returned; an encrypted `contentSection` cannot be validated.
 
 `hmacKey` may be `null` or a valid HMAC key supplied as a `Buffer` or `string`.
 
-The response will be `undefined` (for successful validation) or an `Error` object with a `message` describing the error.
+The response will be `undefined` (for successful validation) or an `Error`
+object with a `message` describing the error.
 
 ## License
 
