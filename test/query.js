@@ -90,13 +90,6 @@ test('metafeed with multiple feeds', (t) => {
   })
 })
 
-test('index metafeed', (t) => {
-  sbot.metafeeds.query.getMetadata(indexKey.id, (err, details) => {
-    t.equal(JSON.parse(details.metadata.query).op, 'and', 'has query')
-    t.end()
-  })
-})
-
 test('metafeed with tombstones', (t) => {
   const reason = 'Feed no longer used'
 

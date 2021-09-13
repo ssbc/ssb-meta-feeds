@@ -195,7 +195,22 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
               t.equals(details.feedpurpose, 'index')
               t.equals(details.metafeed, indexesMF.keys.id)
               t.equals(details.feedformat, 'ed25519')
-              t.end()
+
+              t.throws(
+                () => {
+                  sbot.metafeeds.findByIdSync(f.subfeed)
+                },
+                /Please call loadState/,
+                'findByIdSync throws'
+              )
+
+              sbot.metafeeds.loadState((err) => {
+                t.error(err, 'no err')
+                const details2 = sbot.metafeeds.findByIdSync(f.subfeed)
+                t.deepEquals(details2, details, 'findByIdSync same as findById')
+
+                t.end()
+              })
             })
           }
         )

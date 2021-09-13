@@ -1,5 +1,4 @@
 const validate = require('./validate')
-const { seekKey } = require('bipf')
 const {
   and,
   author,
@@ -7,37 +6,9 @@ const {
   where,
   toCallback,
   paginate,
-  equal,
   descending,
 } = require('ssb-db2/operators')
 const SSBURI = require('ssb-uri2')
-
-const SUBFEED_PREFIX_OFFSET = Math.max(
-  '@'.length,
-  'ssb:feed/bendybutt-v1/'.length,
-  'ssb:feed/gabbygrove-v1/'.length
-)
-
-function subfeed(feedId) {
-  const B_VALUE = Buffer.from('value')
-  const B_CONTENT = Buffer.from('content')
-  const B_SUBFEED = Buffer.from('subfeed')
-
-  function seekSubfeed(buffer) {
-    let p = 0 // note you pass in p!
-    p = seekKey(buffer, p, B_VALUE)
-    if (p < 0) return
-    p = seekKey(buffer, p, B_CONTENT)
-    if (p < 0) return
-    return seekKey(buffer, p, B_SUBFEED)
-  }
-
-  return equal(seekSubfeed, feedId, {
-    prefix: 32,
-    prefixOffset: SUBFEED_PREFIX_OFFSET,
-    indexType: 'value_content_subfeed',
-  })
-}
 
 exports.init = function (sbot, config) {
   const self = {
@@ -81,74 +52,6 @@ exports.init = function (sbot, config) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
         toCallback(cb)
-      )
-    },
-
-    /**
-     * Gets the metafeed message for a given feed to look up metadata.
-     *
-     * ```js
-     * sbot.metafeeds.query.getMetadata(indexKey.id, (err, content) => {
-     *   console.log("query used for index feed", JSON.parse(content.query))
-     * })
-     * ```
-     */
-    getMetadata(feedId, cb) {
-      if (!feedId) {
-        return cb(new Error('feedId should be provided'))
-      }
-      if (typeof feedId !== 'string') {
-        return cb(new Error('feedId should be a string, but got ' + feedId))
-      }
-
-      let feedformat
-      if (feedId.startsWith('@')) {
-        feedformat = 'ed25519'
-      } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
-        feedformat = 'bendybutt-v1'
-      } else {
-        return cb(new Error('Invalid feed format: ' + feedId))
-      }
-
-      sbot.db.query(
-        where(subfeed(feedId)),
-        toCallback((err, msgs) => {
-          if (err) return cb(err)
-
-          msgs = msgs.filter((msg) => validate.isValid(msg))
-          if (msgs.find((m) => m.value.content.type === 'metafeed/tombstone')) {
-            return cb(null, null)
-          }
-          msgs = msgs.filter((m) =>
-            m.value.content.type.startsWith('metafeed/add/')
-          )
-          if (msgs.length === 0) {
-            return cb(null, null)
-          }
-
-          const content = msgs[0].value.content
-          const details = {}
-          details.feedformat = feedformat
-          details.feedpurpose = content.feedpurpose
-          details.metafeed = content.metafeed
-          const metadata = {}
-          const NOT_METADATA = [
-            'metafeed',
-            'feedpurpose',
-            'type',
-            'tangles',
-            'subfeed',
-            'nonce',
-          ]
-          const keys = Object.keys(content).filter(
-            (k) => !NOT_METADATA.includes(k)
-          )
-          for (const key of keys) {
-            metadata[key] = content[key]
-          }
-          details.metadata = metadata
-          cb(null, details)
-        })
       )
     },
 
