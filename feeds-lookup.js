@@ -105,7 +105,7 @@ exports.init = function (sbot, config) {
         where(and(authorIsBendyButtV1(), isPublic())),
         toPullStream()
       ),
-      pull.filter((msg) => msg.value.content.subfeed),
+      pull.filter((msg) => validate.isValid(msg)),
       pull.drain(updateLookup, (err) => {
         if (err) return cb(err)
 
@@ -123,7 +123,7 @@ exports.init = function (sbot, config) {
             live(),
             toPullStream()
           ),
-          pull.filter((msg) => msg.value.content.subfeed),
+          pull.filter((msg) => validate.isValid(msg)),
           (liveDrainer = pull.drain(updateLookup))
         )
       })
