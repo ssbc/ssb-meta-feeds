@@ -110,12 +110,10 @@ exports.init = function (sbot, config) {
           stateLoaded = true
           cb() // signal that we're ready to findByIdSync
 
-          // sbot.close.hook(function (fn, args) {
-          //   console.log('will abort liveDrainer')
-          //   if (liveDrainer) liveDrainer.abort()
-          //   console.log('did abort liveDrainer')
-          //   fn.apply(this, args)
-          // })
+          sbot.close.hook(function (fn, args) {
+            if (liveDrainer) liveDrainer.abort()
+            fn.apply(this, args)
+          })
 
           pull(
             sbot.db.query(
@@ -124,7 +122,7 @@ exports.init = function (sbot, config) {
               toPullStream()
             ),
             pull.filter((msg) => msg.value.content.subfeed),
-            pull.drain(updateLookup)
+            (liveDrainer = pull.drain(updateLookup))
           )
         })
       )
