@@ -1,6 +1,7 @@
 const { seekKey } = require('bipf')
 const pull = require('pull-stream')
 const SSBURI = require('ssb-uri2')
+const DeferredPromise = require('p-defer')
 const {
   where,
   and,
@@ -42,6 +43,8 @@ function subfeed(feedId) {
 
 exports.init = function (sbot, config) {
   let stateLoaded = false
+  const stateLoadedP = DeferredPromise()
+  let loadStateRequested = false
   let liveDrainer = null
   const lookup = new Map()
 
@@ -96,36 +99,44 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function loadState() {
+    pull(
+      sbot.db.query(
+        where(and(authorIsBendyButtV1(), isPublic())),
+        toPullStream()
+      ),
+      pull.filter((msg) => msg.value.content.subfeed),
+      pull.drain(updateLookup, (err) => {
+        if (err) return cb(err)
+
+        stateLoaded = true
+        stateLoadedP.resolve()
+
+        sbot.close.hook(function (fn, args) {
+          if (liveDrainer) liveDrainer.abort()
+          fn.apply(this, args)
+        })
+
+        pull(
+          sbot.db.query(
+            where(and(authorIsBendyButtV1(), isPublic())),
+            live(),
+            toPullStream()
+          ),
+          pull.filter((msg) => msg.value.content.subfeed),
+          (liveDrainer = pull.drain(updateLookup))
+        )
+      })
+    )
+  }
+
   return {
     loadState(cb) {
-      pull(
-        sbot.db.query(
-          where(and(authorIsBendyButtV1(), isPublic())),
-          toPullStream()
-        ),
-        pull.filter((msg) => msg.value.content.subfeed),
-        pull.drain(updateLookup, (err) => {
-          if (err) return cb(err)
-
-          stateLoaded = true
-          cb() // signal that we're ready to findByIdSync
-
-          sbot.close.hook(function (fn, args) {
-            if (liveDrainer) liveDrainer.abort()
-            fn.apply(this, args)
-          })
-
-          pull(
-            sbot.db.query(
-              where(and(authorIsBendyButtV1(), isPublic())),
-              live(),
-              toPullStream()
-            ),
-            pull.filter((msg) => msg.value.content.subfeed),
-            (liveDrainer = pull.drain(updateLookup))
-          )
-        })
-      )
+      if (!loadStateRequested) {
+        loadStateRequested = true
+        loadState()
+      }
+      stateLoadedP.promise.then(cb)
     },
 
     findByIdSync(feedId) {
