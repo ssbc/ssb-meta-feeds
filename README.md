@@ -153,6 +153,12 @@ with the following shape:
 { feedpurpose, feedformat, metafeed, metafeed }
 ```
 
+### 🌷 `sbot.metafeeds.findByIdSync(feedId)`
+
+Similar to `findById`, but returns synchronously. :warning: Note, in order to
+use this API, you **must** call `sbot.metafeeds.loadState(cb)` first, and wait
+for `cb` to be called.
+
 ### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in

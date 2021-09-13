@@ -71,7 +71,15 @@ exports.init = function (sbot, config) {
   }
 
   function findById(feedId, cb) {
-    sbot.metafeeds.query.getMetadata(feedId, cb)
+    sbot.metafeeds.lookup.findById(feedId, cb)
+  }
+
+  function loadState(cb) {
+    sbot.metafeeds.lookup.loadState(cb)
+  }
+
+  function findByIdSync(feedId) {
+    return sbot.metafeeds.lookup.findByIdSync(feedId)
   }
 
   function filterTombstoned(metafeed, maybeVisit, cb) {
@@ -233,6 +241,8 @@ exports.init = function (sbot, config) {
     filter,
     find,
     findById,
+    findByIdSync,
+    loadState,
     create,
     findOrCreate,
     filterTombstoned,
