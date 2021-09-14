@@ -50,10 +50,10 @@ exports.init = function (sbot, config) {
 
   function assertFeedId(feedId) {
     if (!feedId) {
-      return cb(new Error('feedId should be provided'))
+      throw new Error('feedId should be provided')
     }
     if (typeof feedId !== 'string') {
-      return cb(new Error('feedId should be a string, but got ' + feedId))
+      throw new Error('feedId should be a string, but got ' + feedId)
     }
   }
 
@@ -149,8 +149,8 @@ exports.init = function (sbot, config) {
     },
 
     findById(feedId, cb) {
-      assertFeedId(feedId)
       try {
+        assertFeedId(feedId)
         detectFeedFormat(feedId)
       } catch (err) {
         return cb(err)
