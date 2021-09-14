@@ -162,13 +162,19 @@ tape('findOrCreate() a sub meta feed', (t) => {
   })
 })
 
+let testRootMF
+let testIndexesMF
+let testIndexFeed
+
 tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
   sbot.metafeeds.find((err, rootMF) => {
+    testRootMF = rootMF
     sbot.metafeeds.find(
       rootMF,
       (f) => f.feedpurpose === 'indexes',
       (err, indexesMF) => {
         t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
+        testIndexesMF = indexesMF
 
         sbot.metafeeds.findOrCreate(
           indexesMF,
@@ -179,43 +185,53 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
             metadata: { query: 'foo' },
           },
           (err, f) => {
+            testIndexFeed = f.subfeed
             t.error(err, 'no err')
             t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
             t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
 
-            sbot.metafeeds.findById(f.subfeed, (err, details) => {
-              t.error(err, 'no err')
-              t.deepEquals(Object.keys(details), [
-                'feedformat',
-                'feedpurpose',
-                'metafeed',
-                'metadata',
-              ])
-              t.equals(details.feedpurpose, 'index')
-              t.equals(details.metafeed, indexesMF.keys.id)
-              t.equals(details.feedformat, 'ed25519')
-
-              t.throws(
-                () => {
-                  sbot.metafeeds.findByIdSync(f.subfeed)
-                },
-                /Please call loadState/,
-                'findByIdSync throws'
-              )
-
-              sbot.metafeeds.loadState((err) => {
-                t.error(err, 'no err')
-                const details2 = sbot.metafeeds.findByIdSync(f.subfeed)
-                t.deepEquals(details2, details, 'findByIdSync same as findById')
-
-                t.end()
-              })
-            })
+            t.end()
           }
         )
       }
     )
+  })
+})
+
+test('findById and findByIdSync', (t) => {
+  sbot.metafeeds.findById(null, (err, details) => {
+    t.match(err.message, /feedId should be provided/, 'error about feedId')
+    t.notOk(details)
+
+    sbot.metafeeds.findById(testIndexFeed, (err, details) => {
+      t.error(err, 'no err')
+      t.deepEquals(Object.keys(details), [
+        'feedformat',
+        'feedpurpose',
+        'metafeed',
+        'metadata',
+      ])
+      t.equals(details.feedpurpose, 'index')
+      t.equals(details.metafeed, testIndexesMF.keys.id)
+      t.equals(details.feedformat, 'ed25519')
+
+      t.throws(
+        () => {
+          sbot.metafeeds.findByIdSync(testIndexFeed)
+        },
+        /Please call loadState/,
+        'findByIdSync throws'
+      )
+
+      sbot.metafeeds.loadState((err) => {
+        t.error(err, 'no err')
+        const details2 = sbot.metafeeds.findByIdSync(testIndexFeed)
+        t.deepEquals(details2, details, 'findByIdSync same as findById')
+
+        t.end()
+      })
+    })
   })
 })
 
