@@ -196,6 +196,7 @@ exports.init = function init(sbot) {
           const content = {
             type: 'metafeed/announce',
             metafeed: metafeedKeys.id,
+            subfeed: sbot.id,
             tangles: {
               metafeed: {
                 root: rootAnnounceId,
