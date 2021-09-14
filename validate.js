@@ -210,7 +210,7 @@ function validateMetafeedAnnounce(msg) {
   if (!ssbKeys.verifyObj(ed25519Public, msg.value.content)) {
     return new Error(
       `metafeed/announce ${msg.key} is invalid ` +
-        `because content is not a signed by the meta feed: ${msg.value.content}`
+        `because content is not signed by the meta feed: ${msg.value.content}`
     )
   }
 }
