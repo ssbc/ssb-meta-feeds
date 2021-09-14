@@ -197,7 +197,8 @@ function validateMetafeedAnnounce(msg) {
     )
   }
 
-  const metaFeedId = msg.value.content.metafeed
+  const { content } = msg.value
+  const metaFeedId = content.metafeed
   if (!SSBURI.isBendyButtV1FeedSSBURI(metaFeedId)) {
     return new Error(
       `metafeed/announce ${msg.key} is invalid ` +
@@ -205,12 +206,19 @@ function validateMetafeedAnnounce(msg) {
     )
   }
 
-  const { data } = SSBURI.decompose(metaFeedId)
-  const ed25519Public = `${data}.ed25519`
-  if (!ssbKeys.verifyObj(ed25519Public, msg.value.content)) {
+  if (content.subfeed !== msg.value.author) {
     return new Error(
       `metafeed/announce ${msg.key} is invalid ` +
-        `because content is not signed by the meta feed: ${msg.value.content}`
+        `because content.subfeed is not msg.value.author: ${content.subfeed}`
+    )
+  }
+
+  const { data } = SSBURI.decompose(metaFeedId)
+  const ed25519Public = `${data}.ed25519`
+  if (!ssbKeys.verifyObj(ed25519Public, content)) {
+    return new Error(
+      `metafeed/announce ${msg.key} is invalid ` +
+        `because content is not signed by the meta feed: ${content}`
     )
   }
 }
