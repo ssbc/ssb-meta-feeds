@@ -123,7 +123,7 @@ test('seed', (t) => {
 })
 
 test('announce', (t) => {
-  messages.getContentAnnounce(metafeedKeys.id, (err, content) => {
+  messages.getContentAnnounce(metafeedKeys, (err, content) => {
     db.publish(content, (err, publishedAnnounce) => {
       t.error(err, 'no err')
       sbot.metafeeds.query.getAnnounces((err, announcements) => {

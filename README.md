@@ -309,6 +309,15 @@ will be returned; an encrypted `contentSection` cannot be validated.
 The response will be `undefined` (for successful validation) or an `Error`
 object with a `message` describing the error.
 
+### `validateMetafeedAnnounce(msg)`
+
+_Validates a `metafeed/announce` message expected to be published on "main"
+feeds which are in the classic format, but are signed by a meta feed according
+to the [ssb meta feed spec]._
+
+The response will be `undefined` (for successful validation) or an `Error`
+object with a `message` describing the error.
+
 ## License
 
 LGPL-3.0

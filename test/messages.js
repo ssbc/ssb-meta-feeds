@@ -6,6 +6,7 @@ const SecretStack = require('secret-stack')
 const caps = require('ssb-caps')
 
 const keys = require('../keys')
+const { validateMetafeedAnnounce } = require('../validate')
 const seed_hex =
   '4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39'
 const seed = Buffer.from(seed_hex, 'hex')
@@ -135,8 +136,12 @@ test('metafeed announce', (t) => {
     t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
     t.equal(content.tangles.metafeed.root, null, 'no root')
     t.equal(content.tangles.metafeed.previous, null, 'no previous')
+    t.ok(content.signature, 'has a signature')
+    t.ok(ssbKeys.verifyObj(metafeedKeys, content), 'signature is correct')
 
     db.publish(content, (err, announceMsg) => {
+      t.equal(validateMetafeedAnnounce(announceMsg), undefined, 'validated')
+
       // test that we fucked up somehow and need to create a new metafeed
       const newSeed = keys.generateSeed()
       const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')

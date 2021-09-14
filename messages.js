@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const ssbKeys = require('ssb-keys')
 const bb = require('ssb-bendy-butt')
 const {
   where,
@@ -203,7 +204,9 @@ exports.init = function init(sbot) {
             },
           }
 
-          cb(null, content)
+          const signedContent = ssbKeys.signObj(metafeedKeys, content)
+
+          cb(null, signedContent)
         })
       )
     },

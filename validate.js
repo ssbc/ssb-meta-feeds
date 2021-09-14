@@ -11,8 +11,10 @@ const CONTENT_SIG_PREFIX = Buffer.from('bendybutt', 'utf8')
  * Validate a single meta feed message.
  *
  * @param {Object} msg - a meta feed message in the form of a JSON object
- * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature verification
- * @returns {true | false} `true` in the case of successful validation
+ * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature
+ * verification
+ * @returns {Boolean} `true` in the case of successful validation, `false`
+ * otherwise
  */
 function isValid(msg, hmacKey) {
   if (msg.value.content && msg.value.contentSignature) {
@@ -28,9 +30,12 @@ function isValid(msg, hmacKey) {
 /**
  * Validate a single meta feed message `contentSection`.
  *
- * @param {Array | string} contentSection - an array of `content` and `contentSignature` or an encrypted string
- * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature verification
- * @returns {Object | true} an `Error` object or `undefined` in the case of successful validation
+ * @param {Array | string} contentSection - an array of `content` and
+ * `contentSignature` or an encrypted string
+ * @param {Buffer | string | null} hmacKey - a valid HMAC key for signature
+ * verification
+ * @returns {Error | undefined} an `Error` object or `undefined` in the case of
+ * successful validation
  */
 function validateSingle(contentSection, hmacKey) {
   if (contentSection === null || contentSection === undefined)
@@ -102,9 +107,12 @@ function validateSingle(contentSection, hmacKey) {
  *
  * @param {string} subfeedKey - `subfeed` key for the message
  * @param {Buffer} content - Dictionary of meta feed metadata
- * @param {string} contentSignature - Base64-encoded signature for the given `content`
- * @param {Buffer | string | null} hmacKey - HMAC key that was used to sign the payload
- * @returns {Object | undefined} Either an Error containing a message or an `undefined` value for successful verification
+ * @param {string} contentSignature - Base64-encoded signature for the given
+ * `content`
+ * @param {Buffer | string | null} hmacKey - HMAC key that was used to sign the
+ * payload
+ * @returns {Error | undefined} Either an Error containing a message or an
+ * `undefined` value for successful verification
  */
 function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
   const hmacKeyErr = validateHmacKey(hmacKey)
@@ -151,10 +159,11 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
  * Validate an HMAC key.
  *
  * @param {Buffer | string | null | undefined} hmacKey
- * @returns {Object | boolean} Either an Error containing a message or a `false` value for successful validation
+ * @returns {Object | undefined} Either an Error containing a message or
+ * `undefined` for successful validation
  */
 function validateHmacKey(hmacKey) {
-  if (hmacKey === undefined || hmacKey === null) return false
+  if (hmacKey === undefined || hmacKey === null) return
 
   const bytes = Buffer.isBuffer(hmacKey)
     ? hmacKey
@@ -173,5 +182,39 @@ function validateHmacKey(hmacKey) {
     )
 }
 
+/**
+ * Validates a main-feed message for metafeed/announce.
+ *
+ * @param {Object} msg classic msg for a metafeed/announce
+ * @returns {Error | undefined} Either an Error or `undefined` for successful
+ * validation
+ */
+function validateMetafeedAnnounce(msg) {
+  if (!ref.isFeedId(msg.value.author)) {
+    return new Error(
+      `metafeed/announce ${msg.key} is invalid ` +
+        `because author is not a classic feed: ${msg.value.author}`
+    )
+  }
+
+  const metaFeedId = msg.value.content.metafeed
+  if (!SSBURI.isBendyButtV1FeedSSBURI(metaFeedId)) {
+    return new Error(
+      `metafeed/announce ${msg.key} is invalid ` +
+        `because content.metafeed is not a bendy butt feed: ${metaFeedId}`
+    )
+  }
+
+  const { data } = SSBURI.decompose(metaFeedId)
+  const ed25519Public = `${data}.ed25519`
+  if (!ssbKeys.verifyObj(ed25519Public, msg.value.content)) {
+    return new Error(
+      `metafeed/announce ${msg.key} is invalid ` +
+        `because content is not signed by the meta feed: ${msg.value.content}`
+    )
+  }
+}
+
 exports.isValid = isValid
 exports.validateSingle = validateSingle
+exports.validateMetafeedAnnounce = validateMetafeedAnnounce
