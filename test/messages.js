@@ -135,6 +135,8 @@ test('metafeed announce', (t) => {
     t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
     t.equal(content.tangles.metafeed.root, null, 'no root')
     t.equal(content.tangles.metafeed.previous, null, 'no previous')
+    t.ok(content.signature, 'has a signature')
+    t.ok(ssbKeys.verifyObj(metafeedKeys, content), 'signature is correct')
 
     db.publish(content, (err, announceMsg) => {
       // test that we fucked up somehow and need to create a new metafeed
