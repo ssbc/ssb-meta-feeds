@@ -162,13 +162,11 @@ tape('findOrCreate() a sub meta feed', (t) => {
   })
 })
 
-let testRootMF
 let testIndexesMF
 let testIndexFeed
 
 tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
   sbot.metafeeds.find((err, rootMF) => {
-    testRootMF = rootMF
     sbot.metafeeds.find(
       rootMF,
       (f) => f.feedpurpose === 'indexes',
