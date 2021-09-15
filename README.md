@@ -165,9 +165,8 @@ _Looks for the first subfeed of `metafeed` that satisfies the condition in
 `visit`._
 
 `metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
-returned by `create()`). If it's null, then the result will be an array
-containing one item, the root meta feed, or zero items if the root meta feed
-does not exist.
+returned by `create()`). If it's null, then the result will be the root meta
+feed, or undefined if it does not exist.
 
 `visit` can be either `null` or a function of the shape
 `({feedpurpose,subfeed,keys}) => boolean`. If it's null, then one arbitrary
@@ -261,7 +260,7 @@ The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is an array containing the found tombstoned
 feeds.
 
-### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
+### 🌻 `sbot.metafeeds.findTombstoned(metafeed, visit, cb)`
 
 _Looks for the first tombstoned subfeed of `metafeed` that satisfies the
 condition in `visit`._
