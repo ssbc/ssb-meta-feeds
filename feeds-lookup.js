@@ -46,7 +46,22 @@ exports.init = function (sbot, config) {
   const stateLoadedP = DeferredPromise()
   let loadStateRequested = false
   let liveDrainer = null
-  const lookup = new Map()
+  const lookup = new Map() // feedId => details
+  const ensureQueue = {
+    _map: new Map(), // feedId => Array<Callback>
+    add(feedId, cb) {
+      if (this._map.has(feedId)) this._map.get(feedId).push(cb)
+      else this._map.set(feedId, [cb])
+    },
+    flush(feedId) {
+      const queue = this._map.get(feedId)
+      this._map.delete(feedId)
+      while (queue && queue.length > 0) {
+        const cb = queue.shift()
+        stateLoadedP.promise.then(cb)
+      }
+    },
+  }
 
   function assertFeedId(feedId) {
     if (!feedId) {
@@ -91,11 +106,13 @@ exports.init = function (sbot, config) {
   }
 
   function updateLookup(msg) {
-    const content = msg.value.content
-    if (content.type.startsWith('metafeed/add/')) {
-      lookup.set(content.subfeed, msgToDetails(msg))
-    } else if (content.type === 'metafeed/tombstone') {
-      lookup.delete(content.subfeed)
+    const { type, subfeed } = msg.value.content
+    if (type.startsWith('metafeed/add/')) {
+      lookup.set(subfeed, msgToDetails(msg))
+      ensureQueue.flush(subfeed)
+    } else if (type === 'metafeed/tombstone') {
+      lookup.delete(subfeed)
+      ensureQueue.flush(subfeed)
     }
   }
 
@@ -136,7 +153,14 @@ exports.init = function (sbot, config) {
         loadStateRequested = true
         loadState()
       }
-      stateLoadedP.promise.then(cb)
+      if (cb) stateLoadedP.promise.then(cb)
+    },
+
+    ensureLoaded(feedId, cb) {
+      if (!loadStateRequested) loadState()
+
+      if (lookup.has(feedId)) cb()
+      else ensureQueue.add(feedId, cb)
     },
 
     findByIdSync(feedId) {

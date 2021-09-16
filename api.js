@@ -78,6 +78,10 @@ exports.init = function (sbot, config) {
     sbot.metafeeds.lookup.loadState(cb)
   }
 
+  function ensureLoaded(feedId, cb) {
+    sbot.metafeeds.lookup.ensureLoaded(feedId, cb)
+  }
+
   function findByIdSync(feedId) {
     return sbot.metafeeds.lookup.findByIdSync(feedId)
   }
@@ -243,6 +247,7 @@ exports.init = function (sbot, config) {
     findById,
     findByIdSync,
     loadState,
+    ensureLoaded,
     create,
     findOrCreate,
     filterTombstoned,

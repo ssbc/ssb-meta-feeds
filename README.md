@@ -159,6 +159,10 @@ Similar to `findById`, but returns synchronously. :warning: Note, in order to
 use this API, you **must** call `sbot.metafeeds.loadState(cb)` first, and wait
 for `cb` to be called.
 
+You can also call `sbot.metafeeds.ensureLoaded(feedId, cb)` on an individual
+basis to make sure that `findByIdSync` will operate at the correct time when the
+`feedId`'s metadata has been processed in the local database.
+
 ### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in
