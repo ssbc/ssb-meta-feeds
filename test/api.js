@@ -243,22 +243,29 @@ test('restart sbot', (t) => {
         path: dir,
       })
 
-    sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
-      t.error(err, 'no err')
-      t.ok(Buffer.isBuffer(mf.seed), 'has seed')
-      t.ok(mf.keys.id.startsWith('ssb:feed/bendybutt-v1/'), 'has key')
+    sbot.metafeeds.ensureLoaded(testIndexFeed, () => {
+      const details = sbot.metafeeds.findByIdSync(testIndexFeed)
+      t.equals(details.feedpurpose, 'index')
+      t.equals(details.metafeed, testIndexesMF.keys.id)
+      t.equals(details.feedformat, 'ed25519')
 
-      sbot.metafeeds.filter(mf, null, (err, filtered) => {
+      sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
         t.error(err, 'no err')
-        t.equal(filtered.length, 3, 'has 3 subfeeds')
-        t.equal(filtered[0].feedpurpose, 'main', 'main')
-        t.equal(filtered[1].feedpurpose, 'chess', 'chess')
-        t.equal(filtered[2].feedpurpose, 'indexes', 'indexes')
+        t.ok(Buffer.isBuffer(mf.seed), 'has seed')
+        t.ok(mf.keys.id.startsWith('ssb:feed/bendybutt-v1/'), 'has key')
 
-        sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+        sbot.metafeeds.filter(mf, null, (err, filtered) => {
           t.error(err, 'no err')
-          t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
-          sbot.close(true, t.end)
+          t.equal(filtered.length, 3, 'has 3 subfeeds')
+          t.equal(filtered[0].feedpurpose, 'main', 'main')
+          t.equal(filtered[1].feedpurpose, 'chess', 'chess')
+          t.equal(filtered[2].feedpurpose, 'indexes', 'indexes')
+
+          sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+            t.error(err, 'no err')
+            t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
+            sbot.close(true, t.end)
+          })
         })
       })
     })
