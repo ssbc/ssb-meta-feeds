@@ -1,7 +1,7 @@
 {
   "name": "ssb-meta-feeds",
   "description": "Manage meta feeds and its sub feeds, as a secret-stack plugin",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "homepage": "https://github.com/ssb-ngi-pointer/ssb-meta-feeds",
   "repository": {
     "type": "git",
