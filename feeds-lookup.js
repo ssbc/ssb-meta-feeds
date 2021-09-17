@@ -74,7 +74,7 @@ exports.init = function (sbot, config) {
 
   function detectFeedFormat(feedId) {
     if (feedId.startsWith('@')) {
-      return 'ed25519'
+      return 'classic'
     } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
       return 'bendybutt-v1'
     } else {

@@ -212,7 +212,7 @@ test('findById and findByIdSync', (t) => {
       ])
       t.equals(details.feedpurpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'ed25519')
+      t.equals(details.feedformat, 'classic')
 
       t.throws(
         () => {
@@ -247,7 +247,7 @@ test('restart sbot', (t) => {
       const details = sbot.metafeeds.findByIdSync(testIndexFeed)
       t.equals(details.feedpurpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'ed25519')
+      t.equals(details.feedformat, 'classic')
 
       sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
         t.error(err, 'no err')
