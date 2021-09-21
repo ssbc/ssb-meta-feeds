@@ -1,5 +1,7 @@
 const { seekKey } = require('bipf')
 const pull = require('pull-stream')
+const cat = require('pull-cat')
+const Notify = require('pull-notify')
 const SSBURI = require('ssb-uri2')
 const DeferredPromise = require('p-defer')
 const {
@@ -46,7 +48,10 @@ exports.init = function (sbot, config) {
   const stateLoadedP = DeferredPromise()
   let loadStateRequested = false
   let liveDrainer = null
-  const lookup = new Map() // feedId => details
+  let notifyNewBranch = null
+  const detailsLookup = new Map() // feedId => details
+  const childrenLookup = new Map() // feedId => Set<FeedID>
+  const roots = new Set()
   const ensureQueue = {
     _map: new Map(), // feedId => Array<Callback>
     add(feedId, cb) {
@@ -106,14 +111,45 @@ exports.init = function (sbot, config) {
   }
 
   function updateLookup(msg) {
-    const { type, subfeed } = msg.value.content
+    const { type, subfeed, metafeed } = msg.value.content
+
+    // Update roots
+    if (!detailsLookup.has(metafeed)) {
+      detailsLookup.set(metafeed, null)
+      roots.add(metafeed)
+    }
+
+    // Update children
+    if (childrenLookup.has(metafeed)) {
+      const subfeeds = childrenLookup.get(metafeed)
+      if (type.startsWith('metafeed/add/')) {
+        subfeeds.add(subfeed)
+      } else if (type === 'metafeed/tombstone') {
+        subfeeds.delete(subfeed)
+        if (subfeeds.size === 0) {
+          childrenLookup.delete(metafeed)
+        }
+      }
+    } else {
+      if (type.startsWith('metafeed/add/')) {
+        const subfeeds = new Set()
+        subfeeds.add(subfeed)
+        childrenLookup.set(metafeed, subfeeds)
+      }
+    }
+
+    // Update details
     if (type.startsWith('metafeed/add/')) {
-      lookup.set(subfeed, msgToDetails(msg))
+      detailsLookup.set(subfeed, msgToDetails(msg))
+      roots.delete(subfeed)
       ensureQueue.flush(subfeed)
     } else if (type === 'metafeed/tombstone') {
-      lookup.delete(subfeed)
+      detailsLookup.delete(subfeed)
+      roots.delete(subfeed)
       ensureQueue.flush(subfeed)
     }
+
+    if (notifyNewBranch) notifyNewBranch(makeBranch(subfeed))
   }
 
   function loadState() {
@@ -128,9 +164,11 @@ exports.init = function (sbot, config) {
 
         stateLoaded = true
         stateLoadedP.resolve()
+        notifyNewBranch = Notify()
 
         sbot.close.hook(function (fn, args) {
-          if (liveDrainer) liveDrainer.abort()
+          if (liveDrainer) liveDrainer.abort(true)
+          if (notifyNewBranch) notifyNewBranch.abort(true)
           fn.apply(this, args)
         })
 
@@ -147,6 +185,38 @@ exports.init = function (sbot, config) {
     )
   }
 
+  function makeBranch(subfeed) {
+    const details = detailsLookup.get(subfeed)
+    const branch = [[subfeed, details]]
+    while (branch[0][1]) {
+      const metafeedId = branch[0][1].metafeed
+      const details = detailsLookup.get(metafeedId) || null
+      branch.unshift([metafeedId, details])
+    }
+    return branch
+  }
+
+  function traverseBranchesUnder(feedId, previousBranch, visit) {
+    const details = detailsLookup.get(feedId) || null
+    const branch = [...previousBranch, [feedId, details]]
+    visit(branch)
+    if (childrenLookup.has(feedId)) {
+      for (const childFeedId of childrenLookup.get(feedId)) {
+        traverseBranchesUnder(childFeedId, branch, visit)
+      }
+    }
+  }
+
+  function branchStreamOld() {
+    const branches = []
+    for (const rootMetafeedId of roots) {
+      traverseBranchesUnder(rootMetafeedId, [], (branch) => {
+        branches.push(branch)
+      })
+    }
+    return pull.values(branches)
+  }
+
   return {
     loadState(cb) {
       if (!loadStateRequested) {
@@ -159,7 +229,7 @@ exports.init = function (sbot, config) {
     ensureLoaded(feedId, cb) {
       if (!loadStateRequested) loadState()
 
-      if (lookup.has(feedId)) cb()
+      if (detailsLookup.has(feedId)) cb()
       else ensureQueue.add(feedId, cb)
     },
 
@@ -169,7 +239,7 @@ exports.init = function (sbot, config) {
       }
       assertFeedId(feedId)
 
-      return lookup.get(feedId)
+      return detailsLookup.get(feedId)
     },
 
     findById(feedId, cb) {
@@ -200,6 +270,27 @@ exports.init = function (sbot, config) {
           cb(null, details)
         })
       )
+    },
+
+    branchStream(opts) {
+      if (!notifyNewBranch) return pull.empty()
+      const { live = true, old = false, root = null } = opts || {}
+      const filterFn = root
+        ? (branch) => branch.length > 0 && branch[0][0] === root
+        : () => true
+
+      if (old && live) {
+        return pull(
+          cat([branchStreamOld(), notifyNewBranch.listen()]),
+          pull.filter(filterFn)
+        )
+      } else if (live) {
+        return pull(notifyNewBranch.listen(), pull.filter(filterFn))
+      } else if (old) {
+        return pull(branchStreamOld(), pull.filter(filterFn))
+      } else {
+        return pull.empty()
+      }
     },
   }
 }
