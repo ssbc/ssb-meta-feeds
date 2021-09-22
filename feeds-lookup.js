@@ -153,6 +153,9 @@ exports.init = function (sbot, config) {
   }
 
   function loadState() {
+    loadStateRequested = true
+    notifyNewBranch = Notify()
+
     pull(
       sbot.db.query(
         where(and(authorIsBendyButtV1(), isPublic())),
@@ -164,7 +167,6 @@ exports.init = function (sbot, config) {
 
         stateLoaded = true
         stateLoadedP.resolve()
-        notifyNewBranch = Notify()
 
         sbot.close.hook(function (fn, args) {
           if (liveDrainer) liveDrainer.abort(true)
@@ -219,10 +221,8 @@ exports.init = function (sbot, config) {
 
   return {
     loadState(cb) {
-      if (!loadStateRequested) {
-        loadStateRequested = true
-        loadState()
-      }
+      if (!loadStateRequested) loadState()
+
       if (cb) stateLoadedP.promise.then(cb)
     },
 
@@ -273,7 +273,7 @@ exports.init = function (sbot, config) {
     },
 
     branchStream(opts) {
-      if (!notifyNewBranch) return pull.empty()
+      if (!loadStateRequested) loadState()
       const { live = true, old = false, root = null } = opts || {}
       const filterFn = root
         ? (branch) => branch.length > 0 && branch[0][0] === root
