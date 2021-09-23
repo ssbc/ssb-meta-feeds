@@ -30,21 +30,21 @@ It lives alongside your existing "classical" feed, which we'll refer to as
 **main feed**.
 
 ```js
-sbot.metafeeds.create((err, metafeed) => {
+sbot.metafeeds.findOrCreate((err, metafeed) => {
   console.log(metafeed) // { seed, keys }
 })
 ```
 
 Now this has created the `seed`, which in turn is used to generate an [ssb-keys]
 `keys` object. The `seed` is actually also published on the _main_ feed as a
-private message to yourself, to allow recovering it in the future. The first two
-arguments above are null when we're creating the _root_ meta feed, but not in
-other use cases of `create`.
+private message to yourself, to allow recovering it in the future.
 
-There can only be one _root_ meta feed, so even if you call `create` many times,
-it will not create duplicates, it will just load the meta feed `{ seed, keys }`.
+There can only be one _root_ meta feed, so even if you call `findOrCreate` many
+times, it will not create duplicates, it will just load the meta feed
+`{ seed, keys }`.
 
-Now you can create subfeeds _under_ that root meta feed like this:
+Now you can create subfeeds _under_ that root meta feed by passing two arguments
+to `findOrCreate`, before the callback, like this:
 
 ```js
 const details = {
@@ -56,7 +56,7 @@ const details = {
   },
 }
 
-sbot.metafeeds.create(metafeed, details, (err, subfeed) => {
+sbot.metafeeds.findOrCreate(metafeed, details, (err, subfeed) => {
   console.log(subfeed)
   // {
   //   feedpurpose: 'mygame',
@@ -76,22 +76,7 @@ application-specific messages (such as for a game). The `details` argument
 always needs `feedpurpose` and `feedformat` (supports `classic` for ed25519
 normal SSB feeds, and `bendy butt`).
 
-To look up sub feeds belonging to the root meta feed, we can use `filter` and
-`find`. These are similar to Array [filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter)
-and [find](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find):
-
-```js
-sbot.metafeeds.filter(
-  metafeed,
-  (f) => f.feedpurpose === 'mygame',
-  (err, feeds) => {
-    console.log(feeds)
-    // [
-    //   { feedpurpose, subfeed, keys }
-    // ]
-  }
-)
-```
+To look up sub feeds belonging to the root meta feed, we can use `find`.
 
 ```js
 sbot.metafeeds.find(
@@ -111,31 +96,6 @@ with the fields:
 - `subfeed`: the SSB identifier for this subfeed
 - `keys`: the [ssb-keys] compatible `{ curve, public, private, id }` object
 - `metadata`: the same object used when creating the subfeed
-
-Finally, there are many cases where you want to create a subfeed **only if** it
-doesn't yet exist. For those purposes, use `findOrCreate`, which is a mix of
-`find` and `create`. It literally will internally call `find`, and only call
-`create` if `find` did not find a subfeed. For instance:
-
-```js
-const details = {
-  feedpurpose: 'mygame',
-  feedformat: 'classic',
-  metadata: {
-    score: 0,
-    whateverElse: true,
-  },
-}
-
-sbot.metafeeds.findOrCreate(
-  metafeed,
-  (f) => f.feedpurpose === 'mygame',
-  details, // only used if the "find" part fails
-  (err, feed) => {
-    console.log(feed)
-  }
-)
-```
 
 ## API
 
@@ -163,6 +123,64 @@ You can also call `sbot.metafeeds.ensureLoaded(feedId, cb)` on an individual
 basis to make sure that `findByIdSync` will operate at the correct time when the
 `feedId`'s metadata has been processed in the local database.
 
+### 🌷 `sbot.metafeeds.branchStream(opts)`
+
+Returns a **[pull-stream] source** of all "branches" in the meta feed trees.
+
+A "branch" is an array where the first item is the root meta feed and the
+subsequent items are the children and grandchildren of the root. A branch looks
+like this:
+
+```js
+[
+  [rootMetafeedId, null],
+  [childMetafeedId, childDetails],
+  [grandchildMetafeedId, grandchildDetails],
+  [grandgrandchildSubfeedId, grandgrandChildDetails],
+]
+```
+
+Or in general, an `Array<[FeedId, Details | null]>`. **details** if the object
+with `{feedpurpose, feedformat, metafeed, metadata}` like in `findById`.
+
+`branchStream` will emit all possible branches, which means sub-branches are
+included. For instance, in the example above, `branchStream` would also emit:
+
+```js
+[
+  [rootMetafeedId, null]
+]
+```
+
+and
+
+```js
+[
+  [rootMetafeedId, null],
+  [childMetafeedId, childDetails],
+]
+```
+
+and
+
+```js
+[
+  [rootMetafeedId, null],
+  [childMetafeedId, childDetails],
+  [grandchildMetafeedId, grandchildDetails],
+]
+```
+
+The `opts` argument can have the following properties:
+
+- `opts.root` _String_ - a feed ID for a root meta feed, only branches that have
+  this root would appear in the pull-stream source, otherwise all branches from
+  all possible root meta feeds will be included. (Default: `null`)
+- `opts.old` _Boolean_ - whether or not to include currently loaded (by
+  `loadState`) trees. (Default: `false`)
+- `opts.live` _Boolean_ - whether or not to include subsequent meta feed trees
+  during the execution of your program. (Default: `true`)
+
 ### 🌻 `sbot.metafeeds.find(metafeed, visit, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in
@@ -180,6 +198,35 @@ The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is the found feed (which can be either the
 root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys, metadata }`).
+
+### 🌻 `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
+
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit`, or creates it matching the properties in `details`._
+
+`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
+returned by `create()`). If it's null, then the root meta feed will be created,
+if and only if it does not already exist. If it's null and the root meta feed
+exists, the root meta feed will be returned via the `cb`. Alternatively, you can
+call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
+
+`visit` can be either `null` or a function of the shape
+`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
+arbitrary subfeed under `metafeed` is returned.
+
+`details` can be `null` only if if `metafeed` is null, but usually it's an
+object with the properties:
+
+- `feedpurpose`: any string to characterize the purpose of this new subfeed
+- `feedformat`: the string `'classic'` or the string `'bendy butt'`
+- `metadata`: an optional object containing other fields
+
+The response is delivered to the callback `cb`, where the 1st argument is the
+possible error, and the 2nd argument is the created feed (which can be either
+the root meta feed `{ seed, keys }` or a sub feed
+`{ feedpurpose, subfeed, keys, metadata }`).
+
+<!--
 
 ### 🌻 `sbot.metafeeds.filter(metafeed, visit, cb)`
 
@@ -221,32 +268,6 @@ possible error, and the 2nd argument is the created feed (which can be either
 the root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys }`).
 
-### 🌻 `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
-
-_Looks for the first subfeed of `metafeed` that satisfies the condition in
-`visit`, or creates it matching the properties in `details`._
-
-`metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
-returned by `create()`). If it's null, then the root meta feed will be created,
-if and only if it does not already exist. If it's null and the root meta feed
-exists, the root meta feed will be returned via the `cb`. Alternatively, you can
-call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
-
-`visit` can be either `null` or a function of the shape
-`({feedpurpose,subfeed,metadata,keys}) => boolean`. If it's null, then one
-arbitrary subfeed under `metafeed` is returned.
-
-`details` can be `null` only if if `metafeed` is null, but usually it's an
-object with the properties:
-
-- `feedpurpose`: any string to characterize the purpose of this new subfeed
-- `feedformat`: the string `'classic'` or the string `'bendy butt'`
-- `metadata`: an optional object containing other fields
-
-The response is delivered to the callback `cb`, where the 1st argument is the
-possible error, and the 2nd argument is the created feed (which can be either
-the root meta feed `{ seed, keys }` or a sub feed
-`{ feedpurpose, subfeed, keys, metadata }`).
 
 ### 🌻 `sbot.metafeeds.filterTombstoned(metafeed, visit, cb)`
 
@@ -278,6 +299,8 @@ arbitrary tombstoned subfeed under `metafeed` is returned.
 
 The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is the found tombstoned feed.
+
+-->
 
 ## Validation
 
@@ -327,3 +350,4 @@ LGPL-3.0
 
 [ssb-keys]: https://github.com/ssb-js/ssb-keys
 [ssb meta feed spec]: https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec
+[pull-stream]: https://github.com/pull-stream/pull-stream/
