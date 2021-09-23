@@ -177,11 +177,17 @@ exports.init = function (sbot, config) {
   // lock to solve concurrent getOrCreateRootMetafeed
   const rootMetaFeedLock = {
     _cbs: [],
+    _cachedMF: null,
     acquire(cb) {
+      if (this._cachedMF) {
+        cb(null, this._cachedMF)
+        return false
+      }
       this._cbs.push(cb)
       return this._cbs.length === 1
     },
     release(err, mf) {
+      this._cachedMF = mf
       const cbs = this._cbs
       this._cbs = []
       for (const cb of cbs) cb(err, mf)
