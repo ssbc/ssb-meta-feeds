@@ -22,16 +22,11 @@ let sbot = SecretStack({ appKey: caps.shs })
   })
 let db = sbot.db
 
-test('find() and filter() when there is nothing', (t) => {
-  sbot.metafeeds.find(null, null, (err, found) => {
+test('getRoot() when there is nothing', (t) => {
+  sbot.metafeeds.getRoot((err, found) => {
     t.error(err, 'no err for find()')
     t.notOk(found, 'nothing found')
-
-    sbot.metafeeds.filter(null, null, (err, found) => {
-      t.error(err, 'no err for filter()')
-      t.equals(found.length, 0, 'nothing found')
-      t.end()
-    })
+    t.end()
   })
 })
 
@@ -53,92 +48,42 @@ test('findOrCreate(null, ...) can create the root metafeed', (t) => {
   )
 })
 
-test('find / create / findOrCreate are idempotent', (t) => {
-  sbot.metafeeds.find((err, mf) => {
-    t.error(err, 'no err for find()')
+test('findOrCreate is idempotent', (t) => {
+  sbot.metafeeds.getRoot((err, mf) => {
+    t.error(err, 'no err for getRoot()')
     t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
     t.equals(typeof mf.keys.id, 'string', 'key seems okay')
     const originalSeed = mf.seed.toString('hex')
     const originalID = mf.keys.id
 
-    sbot.metafeeds.filter((err, allFound) => {
-      t.equals(allFound.length, 1, 'got root metafeed without creating it')
+    sbot.metafeeds.findOrCreate((err, mf) => {
+      t.error(err, 'no err for findOrCreate(null, ...)')
+      t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
+      t.equals(mf.keys.id, originalID, 'same ID')
 
-      sbot.metafeeds.findOrCreate((err, mf) => {
-        t.error(err, 'no err for findOrCreate(null, ...)')
-        t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
-        t.equals(mf.keys.id, originalID, 'same ID')
-
-        sbot.metafeeds.create((err, mf) => {
-          t.error(err, 'no err for create(null, ...)')
-          t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
-          t.equals(mf.keys.id, originalID, 'same ID')
-
-          sbot.metafeeds.filter(null, null, (err, allFound) => {
-            t.equals(
-              allFound.length,
-              1,
-              'got root metafeed without creating it'
-            )
-            t.end()
-          })
-        })
-      })
-    })
-  })
-})
-
-tape('find() and filter() when there is a root metafeed', (t) => {
-  sbot.metafeeds.filter(null, null, (err, allFound) => {
-    t.error(err, 'no err filtering root metafeed')
-    t.equals(allFound.length, 1, '1 root metafeed filtered')
-    const mf = allFound[0]
-    t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
-    t.equals(typeof mf.keys.id, 'string', 'key seems okay')
-
-    sbot.metafeeds.find(null, null, (err, mf) => {
-      t.error(err, 'no err finding root metafeed')
-      t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
-      t.equals(typeof mf.keys.id, 'string', 'key seems okay')
       t.end()
     })
   })
 })
 
 tape('findOrCreate() a sub feed', (t) => {
-  sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
+  sbot.metafeeds.getRoot((err, mf) => {
     t.error(err, 'no err')
 
-    sbot.metafeeds.find(
+    // lets create a new chess feed
+    sbot.metafeeds.findOrCreate(
       mf,
       (f) => f.feedpurpose === 'chess',
-      (err, found) => {
+      {
+        feedpurpose: 'chess',
+        feedformat: 'classic',
+        metadata: { score: 0 },
+      },
+      (err, feed) => {
         t.error(err, 'no err')
-        t.notOk(found, 'no chess subfeed found')
-
-        // lets create a new chess feed
-        sbot.metafeeds.findOrCreate(
-          mf,
-          (f) => f.feedpurpose === 'chess',
-          {
-            feedpurpose: 'chess',
-            feedformat: 'classic',
-            metadata: { score: 0 },
-          },
-          (err, feed) => {
-            t.error(err, 'no err')
-            t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
-            t.equals(feed.metadata.score, 0, 'it has metadata')
-
-            sbot.metafeeds.filter(mf, null, (err, filtered) => {
-              t.error(err, 'no err')
-              t.equals(filtered.length, 2, '2 sub feeds in the root metafeed')
-              t.equals(filtered[0].feedpurpose, 'main', 'the main')
-              t.equals(filtered[1].feedpurpose, 'chess', 'the chess')
-              t.end()
-            })
-          }
-        )
+        t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
+        t.equals(feed.metadata.score, 0, 'it has metadata')
+        t.end()
       }
     )
   })
@@ -167,10 +112,11 @@ let testIndexesMF
 let testIndexFeed
 
 tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
-  sbot.metafeeds.find((err, rootMF) => {
-    sbot.metafeeds.find(
+  sbot.metafeeds.getRoot((err, rootMF) => {
+    sbot.metafeeds.findOrCreate(
       rootMF,
       (f) => f.feedpurpose === 'indexes',
+      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
       (err, indexesMF) => {
         t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
         testIndexesMF = indexesMF
@@ -278,24 +224,40 @@ test('restart sbot', (t) => {
       t.equals(details.metafeed, testIndexesMF.keys.id)
       t.equals(details.feedformat, 'classic')
 
-      sbot.metafeeds.findOrCreate(null, null, {}, (err, mf) => {
+      sbot.metafeeds.getRoot((err, mf) => {
         t.error(err, 'no err')
         t.ok(Buffer.isBuffer(mf.seed), 'has seed')
         t.ok(mf.keys.id.startsWith('ssb:feed/bendybutt-v1/'), 'has key')
 
-        sbot.metafeeds.filter(mf, null, (err, filtered) => {
-          t.error(err, 'no err')
-          t.equal(filtered.length, 3, 'has 3 subfeeds')
-          t.equal(filtered[0].feedpurpose, 'main', 'main')
-          t.equal(filtered[1].feedpurpose, 'chess', 'chess')
-          t.equal(filtered[2].feedpurpose, 'indexes', 'indexes')
-
-          sbot.metafeeds.filterTombstoned(mf, null, (err, tombstoned) => {
+        pull(
+          sbot.metafeeds.branchStream({
+            root: mf.keys.id,
+            old: true,
+            live: false,
+          }),
+          pull.collect((err, branches) => {
             t.error(err, 'no err')
-            t.equal(tombstoned.length, 0, 'has 0 tombstoned feeds')
+            t.equal(branches.length, 5, '5 branches')
+
+            t.equal(branches[0].length, 1, 'root mf alone')
+            t.equal(typeof branches[0][0][0], 'string', 'root mf alone')
+            t.equal(branches[0][0][1], null, 'root mf alone')
+
+            t.equal(branches[1].length, 2, 'main branch')
+            t.equal(branches[1][1][1].feedpurpose, 'main', 'main branch')
+
+            t.equal(branches[2].length, 2, 'chess branch')
+            t.equal(branches[2][1][1].feedpurpose, 'chess', 'chess branch')
+
+            t.equal(branches[3].length, 2, 'indexes branch')
+            t.equal(branches[3][1][1].feedpurpose, 'indexes', 'indexes branch')
+
+            t.equal(branches[4].length, 3, 'index branch')
+            t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
+
             sbot.close(true, t.end)
           })
-        })
+        )
       })
     })
   })

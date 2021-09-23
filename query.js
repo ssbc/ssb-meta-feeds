@@ -110,6 +110,8 @@ exports.init = function (sbot, config) {
             feedformat
           )
       return {
+        metafeed: msg.value.author,
+        feedformat,
         feedpurpose,
         subfeed,
         keys,
