@@ -128,23 +128,22 @@ basis to make sure that `findByIdSync` will operate at the correct time when the
 Returns a **[pull-stream] source** of all "branches" in the meta feed trees.
 
 A "branch" is an array where the first item is the root meta feed and the
-subsequent items are the children and grandchildren of the root. A branch looks
-like this:
+subsequent items are the children and grandchildren (and etc) of the root. A
+branch looks like this:
 
 ```js
 [
   [rootMetafeedId, null],
   [childMetafeedId, childDetails],
   [grandchildMetafeedId, grandchildDetails],
-  [grandgrandchildSubfeedId, grandgrandChildDetails],
 ]
 ```
 
-Or in general, an `Array<[FeedId, Details | null]>`. **details** if the object
-with `{feedpurpose, feedformat, metafeed, metadata}` like in `findById`.
+Or in general, an `Array<[FeedId, Details | null]>`. The **details** object has
+the shape `{ feedpurpose, feedformat, metafeed, metadata }` like in `findById`.
 
 `branchStream` will emit all possible branches, which means sub-branches are
-included. For instance, in the example above, `branchStream` would also emit:
+included. For instance, in the example above, `branchStream` would emit:
 
 ```js
 [
