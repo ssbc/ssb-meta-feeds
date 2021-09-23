@@ -86,6 +86,10 @@ exports.init = function (sbot, config) {
     return sbot.metafeeds.lookup.findByIdSync(feedId)
   }
 
+  function branchStream(opts) {
+    return sbot.metafeeds.lookup.branchStream(opts)
+  }
+
   function filterTombstoned(metafeed, maybeVisit, cb) {
     if (!metafeed || typeof metafeed === 'function') {
       cb(new Error('filterTombstoned() requires a valid metafeed argument'))
@@ -250,6 +254,7 @@ exports.init = function (sbot, config) {
     ensureLoaded,
     create,
     findOrCreate,
+    branchStream,
     filterTombstoned,
     findTombstoned,
   }

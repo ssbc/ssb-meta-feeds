@@ -2,6 +2,7 @@ const test = require('tape')
 const ssbKeys = require('ssb-keys')
 const path = require('path')
 const rimraf = require('rimraf')
+const pull = require('pull-stream')
 const SecretStack = require('secret-stack')
 const caps = require('ssb-caps')
 const { author, where, toCallback } = require('ssb-db2/operators')
@@ -231,6 +232,34 @@ test('findById and findByIdSync', (t) => {
       })
     })
   })
+})
+
+test('branchStream', (t) => {
+  pull(
+    sbot.metafeeds.branchStream({ old: true, live: false }),
+    pull.collect((err, branches) => {
+      t.error(err, 'no err')
+      t.equal(branches.length, 5, '5 branches')
+
+      t.equal(branches[0].length, 1, 'root mf alone')
+      t.equal(typeof branches[0][0][0], 'string', 'root mf alone')
+      t.equal(branches[0][0][1], null, 'root mf alone')
+
+      t.equal(branches[1].length, 2, 'main branch')
+      t.equal(branches[1][1][1].feedpurpose, 'main', 'main branch')
+
+      t.equal(branches[2].length, 2, 'chess branch')
+      t.equal(branches[2][1][1].feedpurpose, 'chess', 'chess branch')
+
+      t.equal(branches[3].length, 2, 'indexes branch')
+      t.equal(branches[3][1][1].feedpurpose, 'indexes', 'indexes branch')
+
+      t.equal(branches[4].length, 3, 'index branch')
+      t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
+
+      t.end()
+    })
+  )
 })
 
 test('restart sbot', (t) => {
