@@ -30,12 +30,10 @@ function encodedDataToContentSection(data) {
   return contentSection
 }
 
-tape('validation works', function (t) {
+tape('basic validation works', function (t) {
   const contentSection1 = entryToContentSection(vec.Entries[0])
   const contentSection2 = entryToContentSection(vec.Entries[1])
   const contentSection3 = entryToContentSection(vec.Entries[2])
-
-  t.pass('[ basic tests ]')
 
   const msg1ValidationResult = mf.validateSingle(contentSection1, null)
   t.deepEqual(
@@ -138,9 +136,10 @@ tape('validation works', function (t) {
   // revert nonce change
   contentSection2[0].nonce = 'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI='
 
-  /* vector tests for messages with invalid content */
-  t.pass('[ bad message vector tests ]')
+  t.end()
+})
 
+tape('bad message vector tests', function (t) {
   // "1.1: bad type value"
   // convert json vector entry to testable contentSection
   const badMsg1 = Buffer.from(badVec.Cases[0].Entries[0].EncodedData, 'hex')

@@ -87,26 +87,30 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function msgToDetails(msg) {
+  function msgToDetails(prevDetails, msg) {
     const content = msg.value.content
-    const details = {}
+    const details = { ...prevDetails }
     details.feedformat = detectFeedFormat(content.subfeed)
-    details.feedpurpose = content.feedpurpose
-    details.metafeed = content.metafeed
-    const metadata = {}
+    details.feedpurpose = content.feedpurpose || details.feedpurpose
+    details.metafeed = content.metafeed || details.metafeed
+    details.metadata = {} || details.metafeed
     const NOT_METADATA = [
       'metafeed',
       'feedpurpose',
       'type',
       'tangles',
+      'reason',
       'subfeed',
       'nonce',
     ]
     const keys = Object.keys(content).filter((k) => !NOT_METADATA.includes(k))
     for (const key of keys) {
-      metadata[key] = content[key]
+      details.metadata[key] = content[key]
     }
-    details.metadata = metadata
+    if (content.type === 'metafeed/tombstone') {
+      details.tombstoned = true
+      details.reason = content.reason
+    }
     return details
   }
 
@@ -120,18 +124,11 @@ exports.init = function (sbot, config) {
     }
 
     // Update children
-    if (childrenLookup.has(metafeed)) {
-      const subfeeds = childrenLookup.get(metafeed)
-      if (type.startsWith('metafeed/add/')) {
+    if (type.startsWith('metafeed/add/')) {
+      if (childrenLookup.has(metafeed)) {
+        const subfeeds = childrenLookup.get(metafeed)
         subfeeds.add(subfeed)
-      } else if (type === 'metafeed/tombstone') {
-        subfeeds.delete(subfeed)
-        if (subfeeds.size === 0) {
-          childrenLookup.delete(metafeed)
-        }
-      }
-    } else {
-      if (type.startsWith('metafeed/add/')) {
+      } else {
         const subfeeds = new Set()
         subfeeds.add(subfeed)
         childrenLookup.set(metafeed, subfeeds)
@@ -139,15 +136,10 @@ exports.init = function (sbot, config) {
     }
 
     // Update details
-    if (type.startsWith('metafeed/add/')) {
-      detailsLookup.set(subfeed, msgToDetails(msg))
-      roots.delete(subfeed)
-      ensureQueue.flush(subfeed)
-    } else if (type === 'metafeed/tombstone') {
-      detailsLookup.delete(subfeed)
-      roots.delete(subfeed)
-      ensureQueue.flush(subfeed)
-    }
+    const details = msgToDetails(detailsLookup.get(subfeed), msg)
+    detailsLookup.set(subfeed, details)
+    roots.delete(subfeed)
+    ensureQueue.flush(subfeed)
 
     if (notifyNewBranch) notifyNewBranch(makeBranch(subfeed))
   }
@@ -266,7 +258,7 @@ exports.init = function (sbot, config) {
             return cb(null, null)
           }
 
-          const details = msgToDetails(msgs[0])
+          const details = msgToDetails(undefined, msgs[0])
           cb(null, details)
         })
       )
@@ -274,20 +266,44 @@ exports.init = function (sbot, config) {
 
     branchStream(opts) {
       if (!loadStateRequested) loadState()
-      const { live = true, old = false, root = null } = opts || {}
-      const filterFn = root
+      const {
+        live = true,
+        old = false,
+        root = null,
+        tombstoned = false,
+      } = opts || {}
+
+      const filterRootFn = root
         ? (branch) => branch.length > 0 && branch[0][0] === root
         : () => true
+
+      const filterTombstoneOrNot = (branch) => {
+        if (branch.length === 1) return !tombstoned && branch[0][1] === null
+        else {
+          return branch.every(
+            ([, details]) => !details || !!details.tombstoned === tombstoned
+          )
+        }
+      }
 
       if (old && live) {
         return pull(
           cat([branchStreamOld(), notifyNewBranch.listen()]),
-          pull.filter(filterFn)
+          pull.filter(filterRootFn),
+          pull.filter(filterTombstoneOrNot)
         )
       } else if (live) {
-        return pull(notifyNewBranch.listen(), pull.filter(filterFn))
+        return pull(
+          notifyNewBranch.listen(),
+          pull.filter(filterRootFn),
+          pull.filter(filterTombstoneOrNot)
+        )
       } else if (old) {
-        return pull(branchStreamOld(), pull.filter(filterFn))
+        return pull(
+          branchStreamOld(),
+          pull.filter(filterRootFn),
+          pull.filter(filterTombstoneOrNot)
+        )
       } else {
         return pull.empty()
       }

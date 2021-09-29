@@ -5,31 +5,11 @@ const validate = require('./validate')
 const alwaysTrue = () => true
 
 exports.init = function (sbot, config) {
-  function filterRootMetafeed(visit, cb) {
-    sbot.metafeeds.query.getSeed((err, seed) => {
-      if (err) return cb(err)
-      if (!seed) return cb(null, [])
-      const metafeed = {
-        seed,
-        keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
-      }
-
-      if (visit(metafeed)) {
-        cb(null, [metafeed])
-      } else {
-        cb(null, [])
-      }
-    })
-  }
-
-  function filter(metafeed, maybeVisit, maybeCB) {
-    const visit = maybeVisit || alwaysTrue
+  function filter(metafeed, visit, maybeCB) {
     if (!metafeed) {
-      const cb = maybeCB
-      filterRootMetafeed(visit, cb)
+      cb(new Error('expected metafeed argument'))
     } else if (typeof metafeed === 'function') {
-      const cb = metafeed
-      filterRootMetafeed(visit, cb)
+      cb(new Error('expected metafeed argument and visit argument'))
     } else {
       const cb = maybeCB
       sbot.metafeeds.query.hydrate(
@@ -45,20 +25,11 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function find(metafeed, maybeVisit, maybeCB) {
-    const visit = maybeVisit || alwaysTrue
+  function find(metafeed, visit, maybeCB) {
     if (!metafeed) {
-      const cb = maybeCB
-      filterRootMetafeed(visit, (err, metafeeds) => {
-        if (err) return cb(err)
-        cb(null, metafeeds[0])
-      })
+      cb(new Error('expected metafeed argument'))
     } else if (typeof metafeed === 'function') {
-      const cb = metafeed
-      filterRootMetafeed(visit, (err, metafeeds) => {
-        if (err) return cb(err)
-        cb(null, metafeeds[0])
-      })
+      cb(new Error('expected metafeed argument and visit argument'))
     } else {
       const cb = maybeCB
       filter(metafeed, visit, (err, feeds) => {
@@ -88,37 +59,6 @@ exports.init = function (sbot, config) {
 
   function branchStream(opts) {
     return sbot.metafeeds.lookup.branchStream(opts)
-  }
-
-  function filterTombstoned(metafeed, maybeVisit, cb) {
-    if (!metafeed || typeof metafeed === 'function') {
-      cb(new Error('filterTombstoned() requires a valid metafeed argument'))
-    } else {
-      const visit = maybeVisit || alwaysTrue
-      sbot.metafeeds.query.hydrate(
-        metafeed.keys.id,
-        metafeed.seed,
-        (err, hydrated) => {
-          if (err) return cb(err)
-          if (visit === alwaysTrue) return cb(null, hydrated.tombstoned)
-          const filtered = hydrated.tombstoned.filter((feed) => visit(feed))
-          cb(null, filtered)
-        }
-      )
-    }
-  }
-
-  function findTombstoned(metafeed, maybeVisit, cb) {
-    if (!metafeed || typeof metafeed === 'function') {
-      cb(new Error('findTombstoned() requires a valid metafeed argument'))
-    } else {
-      filterTombstoned(metafeed, maybeVisit, (err, tombstoned) => {
-        if (err) return cb(err)
-        if (tombstoned.length === 0) return cb(null, null)
-        const found = tombstoned[0]
-        cb(null, found)
-      })
-    }
   }
 
   function create(metafeed, details, maybeCB) {
@@ -166,12 +106,43 @@ exports.init = function (sbot, config) {
       getOrCreateRootMetafeed(cb)
     } else {
       const cb = maybeCB
-      find(metafeed, maybeVisit, (err, found) => {
+      const visit = maybeVisit || alwaysTrue
+      find(metafeed, visit, (err, found) => {
         if (err) return cb(err)
         if (found) return cb(null, found)
         create(metafeed, details, cb)
       })
     }
+  }
+
+  function findAndTombstone(metafeed, visit, reason, cb) {
+    const { getLatest } = sbot.metafeeds.query
+    const { getMsgValTombstone } = sbot.metafeeds.messages
+
+    find(metafeed, visit, (err, found) => {
+      if (err) return cb(err)
+      if (!found) return cb(new Error('Cannot find subfeed to tombstone'))
+
+      getLatest(metafeed.keys.id, (err, latest) => {
+        if (err) return cb(err)
+
+        getMsgValTombstone(
+          metafeed.keys,
+          latest,
+          found.keys,
+          reason,
+          (err, msgVal) => {
+            if (err) return cb(err)
+
+            sbot.db.add(msgVal, (err, msg) => {
+              if (err) return cb(err)
+
+              cb(null, true)
+            })
+          }
+        )
+      })
+    })
   }
 
   // lock to solve concurrent getOrCreateRootMetafeed
@@ -192,6 +163,18 @@ exports.init = function (sbot, config) {
       this._cbs = []
       for (const cb of cbs) cb(err, mf)
     },
+  }
+
+  function getRoot(cb) {
+    sbot.metafeeds.query.getSeed((err, seed) => {
+      if (err) return cb(err)
+      if (!seed) return cb(null, null)
+      const metafeed = {
+        seed,
+        keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
+      }
+      cb(null, metafeed)
+    })
   }
 
   async function getOrCreateRootMetafeed(cb) {
@@ -252,16 +235,13 @@ exports.init = function (sbot, config) {
   }
 
   return {
-    filter,
-    find,
+    getRoot,
+    findOrCreate,
+    findAndTombstone,
     findById,
     findByIdSync,
     loadState,
     ensureLoaded,
-    create,
-    findOrCreate,
     branchStream,
-    filterTombstoned,
-    findTombstoned,
   }
 }
