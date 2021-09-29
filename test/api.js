@@ -255,10 +255,64 @@ test('restart sbot', (t) => {
             t.equal(branches[4].length, 3, 'index branch')
             t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
 
-            sbot.close(true, t.end)
+            t.end()
           })
         )
       })
     })
   })
+})
+
+tape('findAndTombstone and tombstoning branchStream', (t) => {
+  sbot.metafeeds.getRoot((err, mf) => {
+    pull(
+      sbot.metafeeds.branchStream({ tombstoned: true, old: false, live: true }),
+      pull.drain((branch) => {
+        t.equals(branch.length, 2)
+        t.equals(branch[0][0], mf.keys.id)
+        t.equals(branch[1][1].feedpurpose, 'chess')
+        t.equals(branch[1][1].reason, 'This game is too good')
+
+        pull(
+          sbot.metafeeds.branchStream({
+            tombstoned: true,
+            old: true,
+            live: false,
+          }),
+          pull.drain((branch) => {
+            t.equals(branch.length, 2)
+            t.equals(branch[0][0], mf.keys.id)
+            t.equals(branch[1][1].feedpurpose, 'chess')
+            t.equals(branch[1][1].reason, 'This game is too good')
+
+            pull(
+              sbot.metafeeds.branchStream({
+                tombstoned: false,
+                old: true,
+                live: false,
+              }),
+              pull.collect((err, branches) => {
+                t.error(err, 'no err')
+                t.equal(branches.length, 4, '4 branches')
+                t.end()
+              })
+            )
+          })
+        )
+      })
+    )
+
+    sbot.metafeeds.findAndTombstone(
+      mf,
+      (f) => f.feedpurpose === 'chess',
+      'This game is too good',
+      (err) => {
+        t.error(err, 'no err')
+      }
+    )
+  })
+})
+
+tape('teardown', (t) => {
+  sbot.close(true, t.end)
 })

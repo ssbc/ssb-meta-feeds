@@ -178,7 +178,7 @@ This is strictly concerned with meta feeds and sub feeds that **you own**, not
 with those that belong to other peers.
 
 `metafeed` can be either `null` or a meta feed object `{ seed, keys }` (as
-returned by `create()`). If it's null, then the root meta feed will be created,
+returned by `getRoot()`). If it's null, then the root meta feed will be created,
 if and only if it does not already exist. If it's null and the root meta feed
 exists, the root meta feed will be returned via the `cb`. Alternatively, you can
 call this API with just the callback: `sbot.metafeeds.findOrCreate(cb)`.
@@ -198,6 +198,24 @@ The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is the created feed (which can be either
 the root meta feed `{ seed, keys }` or a sub feed
 `{ feedpurpose, subfeed, keys, metadata }`).
+
+### `sbot.metafeeds.findAndTombstone(metafeed, visit, reason, cb)`
+
+_Looks for the first subfeed of `metafeed` that satisfies the condition in
+`visit` and, if found, tombstones it with the string `reason`.
+
+This is strictly concerned with meta feeds and sub feeds that **you own**, not
+with those that belong to other peers.
+
+`metafeed` must be a meta feed object `{ seed, keys }` (as returned by
+`getRoot()`).
+
+`visit` must be a function of the shape `({feedpurpose, subfeed, metadata, keys}) => boolean`.
+
+`reason` must be a string to describe why the found feed is being tombstoned.
+
+The callback is called with `true` on the 2nd argument if tombstoning suceeded,
+or called with an error object on the 1st argument if it failed.
 
 ### `sbot.metafeeds.getRoot(cb)`
 

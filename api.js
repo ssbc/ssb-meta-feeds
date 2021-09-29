@@ -115,6 +115,36 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function findAndTombstone(metafeed, visit, reason, cb) {
+    const { getLatest } = sbot.metafeeds.query
+    const { getMsgValTombstone } = sbot.metafeeds.messages
+
+    find(metafeed, visit, (err, found) => {
+      if (err) return cb(err)
+      if (!found) return cb(new Error('Cannot find subfeed to tombstone'))
+
+      getLatest(metafeed.keys.id, (err, latest) => {
+        if (err) return cb(err)
+
+        getMsgValTombstone(
+          metafeed.keys,
+          latest,
+          found.keys,
+          reason,
+          (err, msgVal) => {
+            if (err) return cb(err)
+
+            sbot.db.add(msgVal, (err, msg) => {
+              if (err) return cb(err)
+
+              cb(null, true)
+            })
+          }
+        )
+      })
+    })
+  }
+
   // lock to solve concurrent getOrCreateRootMetafeed
   const rootMetaFeedLock = {
     _cbs: [],
@@ -207,6 +237,7 @@ exports.init = function (sbot, config) {
   return {
     getRoot,
     findOrCreate,
+    findAndTombstone,
     findById,
     findByIdSync,
     loadState,
