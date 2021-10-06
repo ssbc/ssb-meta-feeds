@@ -82,8 +82,11 @@ exports.init = function (sbot, config) {
       return 'classic'
     } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
       return 'bendybutt-v1'
+    } else if (SSBURI.isGabbyGroveV1FeedSSBURI(feedId)) {
+      return 'gabbygrove-v1'
     } else {
-      throw new Error('Invalid feed format: ' + feedId)
+      console.warn('Unknown feed format: ' + feedId)
+      return null
     }
   }
 
@@ -155,7 +158,7 @@ exports.init = function (sbot, config) {
       ),
       pull.filter((msg) => validate.isValid(msg)),
       pull.drain(updateLookup, (err) => {
-        if (err) return cb(err)
+        if (err) return console.error(err)
 
         stateLoaded = true
         stateLoadedP.resolve()
