@@ -249,13 +249,40 @@ test('restart sbot', (t) => {
             t.equal(branches[2].length, 2, 'chess branch')
             t.equal(branches[2][1][1].feedpurpose, 'chess', 'chess branch')
 
+            const indexesId = branches[3][1][0]
             t.equal(branches[3].length, 2, 'indexes branch')
             t.equal(branches[3][1][1].feedpurpose, 'indexes', 'indexes branch')
 
             t.equal(branches[4].length, 3, 'index branch')
             t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
 
-            t.end()
+            pull(
+              sbot.metafeeds.branchStream({
+                root: indexesId,
+                old: true,
+                live: false,
+              }),
+              pull.collect((err, branches) => {
+                t.error(err, 'no err')
+                t.equal(branches.length, 2, '2 branches')
+
+                t.equal(branches[0].length, 1, 'indexes branch')
+                t.equal(
+                  branches[0][0][1].feedpurpose,
+                  'indexes',
+                  'indexes branch'
+                )
+
+                t.equal(branches[1].length, 2, 'index branch')
+                t.equal(
+                  branches[1][1][1].feedpurpose,
+                  'index',
+                  'indexes branch'
+                )
+
+                t.end()
+              })
+            )
           })
         )
       })
