@@ -273,7 +273,7 @@ exports.init = function (sbot, config) {
         live = true,
         old = false,
         root = null,
-        tombstoned = false,
+        tombstoned = null,
       } = opts || {}
 
       const filterRootFn = root
@@ -281,11 +281,16 @@ exports.init = function (sbot, config) {
         : () => true
 
       const filterTombstoneOrNot = (branch) => {
-        if (branch.length === 1) return !tombstoned && branch[0][1] === null
-        else {
-          return branch.every(
-            ([, details]) => !details || !!details.tombstoned === tombstoned
-          )
+        const [, leafDetails] = branch[branch.length - 1]
+        if (tombstoned === null) {
+          // Anything goes
+          return true
+        } else if (tombstoned === false) {
+          // All nodes in the branch must be non-tombstoned
+          return branch.every(([, details]) => !details || !details.tombstoned)
+        } else if (tombstoned === true) {
+          // The leaf must be tombstoned for this branch to be interesting to us
+          return leafDetails && !!leafDetails.tombstoned
         }
       }
 

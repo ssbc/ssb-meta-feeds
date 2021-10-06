@@ -169,8 +169,8 @@ The `opts` argument can have the following properties:
 - `opts.live` _Boolean_ - whether or not to include subsequent meta feed trees
   during the execution of your program. (Default: `true`)
 - `opts.tombstoned` _Boolean_ - if `false`, no tombstoned branches are included
-  in the results; if `true`, only tombstoned branches are included. (Default:
-  `false`)
+  in the results; if `true`, only tombstoned branches are included; if `null`,
+  all branches are included regardless of tombstoning. (Default: `null`)
 
 ### `sbot.metafeeds.findOrCreate(metafeed, visit, details, cb)`
 
