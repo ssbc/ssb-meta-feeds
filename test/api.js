@@ -294,7 +294,20 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
               pull.collect((err, branches) => {
                 t.error(err, 'no err')
                 t.equal(branches.length, 4, '4 branches')
-                t.end()
+
+                pull(
+                  sbot.metafeeds.branchStream({
+                    tombstone: null,
+                    old: true,
+                    live: false,
+                  }),
+                  pull.collect((err, branches) => {
+                    t.error(err, 'no err')
+                    t.equal(branches.length, 5, '5 branches')
+
+                    t.end()
+                  })
+                )
               })
             )
           })
