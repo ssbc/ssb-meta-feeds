@@ -161,9 +161,10 @@ and
 
 The `opts` argument can have the following properties:
 
-- `opts.root` _String_ - a feed ID for a root meta feed, only branches that have
-  this root would appear in the pull-stream source, otherwise all branches from
-  all possible root meta feeds will be included. (Default: `null`)
+- `opts.root` _String_ - a feed ID for a meta feed, only branches that are
+  descendants of this feed ID would appear in the pull-stream source, otherwise
+  all branches from all possible root meta feeds will be included. (Default:
+  `null`)
 - `opts.old` _Boolean_ - whether or not to include currently loaded (by
   `loadState`) trees. (Default: `false`)
 - `opts.live` _Boolean_ - whether or not to include subsequent meta feed trees

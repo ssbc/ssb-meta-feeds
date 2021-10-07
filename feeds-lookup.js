@@ -204,14 +204,39 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function branchStreamOld() {
+  function branchStreamOld(rootMetafeedId) {
     const branches = []
-    for (const rootMetafeedId of roots) {
+    if (rootMetafeedId) {
       traverseBranchesUnder(rootMetafeedId, [], (branch) => {
         branches.push(branch)
       })
+    } else {
+      for (const rootMetafeedId of roots) {
+        traverseBranchesUnder(rootMetafeedId, [], (branch) => {
+          branches.push(branch)
+        })
+      }
     }
     return pull.values(branches)
+  }
+
+  function branchStreamLive(rootMetafeedId) {
+    if (rootMetafeedId) {
+      return pull(
+        notifyNewBranch.listen(),
+        pull.map(function cutBranch(branch) {
+          const idx = branch.findIndex(([feedId]) => feedId === rootMetafeedId)
+          if (idx < 0) return []
+          else if (idx === 0) return branch
+          else return branch.slice(idx)
+        }),
+        pull.filter(function hasRoot(branch) {
+          return branch.length > 0 && branch[0][0] === rootMetafeedId
+        })
+      )
+    } else {
+      return notifyNewBranch.listen()
+    }
   }
 
   return {
@@ -276,10 +301,6 @@ exports.init = function (sbot, config) {
         tombstoned = null,
       } = opts || {}
 
-      const filterRootFn = root
-        ? (branch) => branch.length > 0 && branch[0][0] === root
-        : () => true
-
       const filterTombstoneOrNot = (branch) => {
         const [, leafDetails] = branch[branch.length - 1]
         if (tombstoned === null) {
@@ -296,22 +317,13 @@ exports.init = function (sbot, config) {
 
       if (old && live) {
         return pull(
-          cat([branchStreamOld(), notifyNewBranch.listen()]),
-          pull.filter(filterRootFn),
-          pull.filter(filterTombstoneOrNot)
-        )
-      } else if (live) {
-        return pull(
-          notifyNewBranch.listen(),
-          pull.filter(filterRootFn),
+          cat([branchStreamOld(root), branchStreamLive(root)]),
           pull.filter(filterTombstoneOrNot)
         )
       } else if (old) {
-        return pull(
-          branchStreamOld(),
-          pull.filter(filterRootFn),
-          pull.filter(filterTombstoneOrNot)
-        )
+        return pull(branchStreamOld(root), pull.filter(filterTombstoneOrNot))
+      } else if (live) {
+        return pull(branchStreamLive(root), pull.filter(filterTombstoneOrNot))
       } else {
         return pull.empty()
       }
