@@ -8,7 +8,9 @@
     "url": "git://github.com/ssb-ngi-pointer/ssb-meta-feeds.git"
   },
   "files": [
-    "*.js"
+    "*.js",
+    "package.json.license",
+    "LICENSES/*"
   ],
   "dependencies": {
     "bencode": "^2.0.2",

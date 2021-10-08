@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2021 Anders Rune Jensen
+//
+// SPDX-License-Identifier: LGPL-3.0-only
+
 const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
 const validate = require('./validate')

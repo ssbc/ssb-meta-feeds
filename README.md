@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 Anders Rune Jensen
+
+SPDX-License-Identifier: CC0-1.0
+-->
+
 # SSB meta feeds
 
 An implementation of the [ssb meta feed spec] in JS as a secret stack
