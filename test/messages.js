@@ -195,3 +195,40 @@ test('metafeed seed save', (t) => {
     })
   })
 })
+
+test('recps', (t) => {
+  let sbotBox2 = SecretStack({ appKey: caps.shs })
+    .use(require('ssb-db2'))
+    .use(require('ssb-db2-box2'))
+    .use(require('../'))
+    .call(null, {
+      keys: mainKey,
+      path: dir,
+    })
+
+  const testkey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+
+  sbotBox2.box2.addOwnDMKey(testkey)
+  sbotBox2.box2.setReady()
+
+  const msgVal = sbotBox2.metafeeds.messages.getMsgValAddExisting(
+    metafeedKeys,
+    null,
+    'main',
+    mainKey,
+    {
+      recps: [mainKey.id],
+    }
+  )
+
+  sbotBox2.db.add(msgVal, (err, kv) => {
+    t.true(kv.value.content.endsWith('.box2'), 'box2 encoded')
+    sbotBox2.db.get(kv.key, (err, msg) => {
+      t.equal(msg.content.feedpurpose, 'main')
+      sbotBox2.close(t.end)
+    })
+  })
+})

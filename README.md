@@ -202,7 +202,8 @@ object with the properties:
 
 - `feedpurpose`: any string to characterize the purpose of this new subfeed
 - `feedformat`: the string `'classic'` or the string `'bendybutt-v1'`
-- `metadata`: an optional object containing other fields
+- `metadata`: an optional object containing other fields. One can
+  include `recps` here to encrypt the message
 
 The response is delivered to the callback `cb`, where the 1st argument is the
 possible error, and the 2nd argument is the created feed (which can be either
