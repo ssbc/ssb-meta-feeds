@@ -357,6 +357,50 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
   })
 })
 
+tape('findOrCreate() recps', (t) => {
+  const boxdir = '/tmp/metafeeds-metafeed-box2'
+  const boxKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
+
+  rimraf.sync(dir)
+
+  let sbotBox2 = SecretStack({ appKey: caps.shs })
+    .use(require('ssb-db2'))
+    .use(require('ssb-db2-box2'))
+    .use(require('../'))
+    .call(null, {
+      keys: boxKey,
+      path: boxdir,
+    })
+
+  const testkey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+
+  sbotBox2.box2.addOwnDMKey(testkey)
+  sbotBox2.box2.setReady()
+
+  sbotBox2.metafeeds.findOrCreate((err, mf) => {
+    sbotBox2.metafeeds.findOrCreate(
+      mf,
+      (f) => f.feedpurpose === 'private',
+      {
+        feedpurpose: 'private',
+        feedformat: 'classic',
+        metadata: {
+          recps: [sbotBox2.id],
+        },
+      },
+      (err, f) => {
+        t.error(err, 'no err')
+        t.equal(f.feedpurpose, 'private')
+        t.equal(f.metadata.recps[0], sbotBox2.id)
+        sbotBox2.close(t.end)
+      }
+    )
+  })
+})
+
 tape('teardown', (t) => {
   sbot.close(true, t.end)
 })
