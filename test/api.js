@@ -359,7 +359,7 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
 
 tape('findOrCreate() recps', (t) => {
   const boxdir = '/tmp/metafeeds-metafeed-box2'
-  const boxKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
+  const boxKey = ssbKeys.loadOrCreateSync(path.join(boxdir, 'secret'))
 
   rimraf.sync(dir)
 
