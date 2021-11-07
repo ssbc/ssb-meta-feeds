@@ -98,22 +98,20 @@ exports.init = function (sbot, config) {
         sbot.db.add(msgVal, (err, addedMsg) => {
           if (err) return cb(err)
 
-          function hydrate(msg) {
-            const hydratedSubfeed = sbot.metafeeds.query.hydrateFromMsg(
-              msg,
-              metafeed.seed
-            )
-            cb(null, hydratedSubfeed)
-          }
-
           if (encrypted)
-            sbot.db.get(addedMsg.key, (err, msgVal) =>
-              hydrate({
+            sbot.db.get(addedMsg.key, (err, msgVal) => {
+              const msg = {
                 key: addedMsg.key,
                 value: msgVal,
-              })
+              }
+              cb(null, sbot.metafeeds.query.hydrateFromMsg(msg, metafeed.seed))
+            })
+          else {
+            cb(
+              null,
+              sbot.metafeeds.query.hydrateFromMsg(addedMsg, metafeed.seed)
             )
-          else hydrate(addedMsg)
+          }
         })
       })
     }
