@@ -86,16 +86,32 @@ exports.init = function (sbot, config) {
           details.feedformat,
           details.metadata
         )
-        const contentSection = [msgVal.content, msgVal.contentSignature]
-        const validationResult = validate.validateSingle(contentSection)
-        if (validationResult instanceof Error) return cb(validationResult)
-        sbot.db.add(msgVal, (err, msg) => {
+
+        const encrypted = typeof msgVal.content === 'string'
+
+        if (!encrypted) {
+          const contentSection = [msgVal.content, msgVal.contentSignature]
+          const validationResult = validate.validateSingle(contentSection)
+          if (validationResult instanceof Error) return cb(validationResult)
+        }
+
+        sbot.db.add(msgVal, (err, addedMsg) => {
           if (err) return cb(err)
-          const hydratedSubfeed = sbot.metafeeds.query.hydrateFromMsg(
-            msg,
-            metafeed.seed
-          )
-          cb(null, hydratedSubfeed)
+
+          if (encrypted)
+            sbot.db.get(addedMsg.key, (err, msgVal) => {
+              const msg = {
+                key: addedMsg.key,
+                value: msgVal,
+              }
+              cb(null, sbot.metafeeds.query.hydrateFromMsg(msg, metafeed.seed))
+            })
+          else {
+            cb(
+              null,
+              sbot.metafeeds.query.hydrateFromMsg(addedMsg, metafeed.seed)
+            )
+          }
         })
       })
     }
