@@ -71,19 +71,22 @@ Add this plugin like this:
 
 We create a subfeed for messages which describe us under our `root` feed
 ```js
-const find = (feed) => (
-  feed.feedpurpose === 'aboutMe' &&
-  feed.feedformat === 'classic'
-)
-const details = {
-  feedpurpose: 'aboutMe',
-  feedformat: 'classic',
-}
-
-sbot.metafeeds.findOrCreate(null, find, details, (err, aboutMeFeed) => {
+sbot.metafeeds.findOrCreate((err, rootFeed) => {
   console.log(rootFeed)
 
-  // publish things to aboutMeFeed!
+  const isFeed = (feed) => (
+    feed.feedpurpose === 'aboutMe' &&
+    feed.feedformat === 'classic'
+  )
+  const details = {
+    feedpurpose: 'aboutMe',
+    feedformat: 'classic',
+  }
+  sbot.metafeeds.findOrCreate(null, isFeed, details, (err, aboutMeFeed) => {
+    console.log(aboutMeFeed)
+
+    // publish things to aboutMeFeed!
+  })
 })
 ```
 
@@ -109,10 +112,10 @@ Calls back with your `root` Metafeed object which has the form:
 ```js
 {
   metafeed: null,
+  subfeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
   feedpurpose: 'root',
-  feedtype: 'bendybutt-v1',
+  feedformat: 'bendybutt-v1',
   seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>,
-  id: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
   keys: {
     curve: 'ed25519',
     public: 'sxK3OnHxdo7yGZ+28HrgpVq8nRBFaOCEGjRE4nB7CO8=.ed25519',
@@ -124,20 +127,20 @@ Calls back with your `root` Metafeed object which has the form:
 
 Meaning:
 - `metafeed` - the id of the feed this is underneath. As this is the topmost feed, this is empty
+- `subfeed` - the id of this feed, same as `keys.id`
 - `feedpurpose` - a human readable ideally unique handle for this feed
-- `feedtype` - the feed format ("classic" or "bendybutt-v1" are current options)
+- `feedformat` - the feed format ("classic" or "bendybutt-v1" are current options)
 - `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `keys` - cryptographic keys used for signing messages published by this feed (see [ssb-keys])
-- `id` - the feedId (same as `keys.id`)
 - `metadata` - additional data
 
 NOTES:
 - the `root` metafeed is unique - you have only one, and it has no metafeed (it's at the top!)
 - if you have a legacy `main` feed, this will also set that up as a subfeed of your `root` feed.
 
-### `sbot.metafeeds.findOrCreate(metafeed, find, details, cb)`
+### `sbot.metafeeds.findOrCreate(metafeed, isFeed, details, cb)`
 
-Looks for the first subfeed of `metafeed` that satisfies the condition in `find`,
+Looks for the first subfeed of `metafeed` that satisfies the condition in `isFeed`,
 or creates it matching the properties in `details`.
 
 This is strictly concerned with meta feeds and sub feeds that **you own**, not
@@ -147,7 +150,7 @@ Arguments:
 - `metafeed` - the metafeed you are finding/ creating under, can be:
     - *FeedDetail* object (as returned by `findOrCreate()` or `getRoot()`)
     - *null* which is short-hand for the `rootFeed` (this will be created if doesn't exist)
-- `find` - method you use to find an existing *FeedDetail*, can be:
+- `isFeed` - method you use to find an existing *FeedDetail*, can be:
     - *function* of shape `(FeedDetail) => boolean`
     - *null* - this method will then return an arbitrary subfeed under provided `metafeed`
 - `details` - used to create a new subfeed if a match for an existing one is not found, can be 
@@ -161,10 +164,9 @@ Arguments:
     ```js
     {
       metafeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
-      // metafeed = the feed this is a subfeed of
+      subfeed: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
       feedpurpose: 'chess',
       feedformat: 'classic',
-      id: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
       seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>
       keys: {
         curve: 'ed25519',
@@ -270,17 +272,17 @@ The `opts` argument can have the following properties:
   all branches are included regardless of tombstoning. (Default: `null`)
 
 
-### `sbot.metafeeds.findAndTombstone(metafeed, find, reason, cb)`
+### `sbot.metafeeds.findAndTombstone(metafeed, isFeed, reason, cb)`
 
 _Looks for the first subfeed of `metafeed` that satisfies the condition in
-`find` and, if found, tombstones it with the string `reason`.
+`isFeed` and, if found, tombstones it with the string `reason`.
 
 This is strictly concerned with meta feeds and sub feeds that **you own**, not
 with those that belong to other peers.
 
 Arguments: 
 - `metafeed` *FeedDetail* object (as returned by e.g. `findOrCreate()`, `getRoot()`).
-- `find` *function* of the shape `(FeedDetail) => boolean`.
+- `isFeed` *function* of the shape `(FeedDetail) => Boolean`.
 - `reason` *String* - describes why the found feed is being tombstoned.
 
 The callback is called with `true` on the 2nd argument if tombstoning suceeded,
