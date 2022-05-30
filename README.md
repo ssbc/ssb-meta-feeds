@@ -74,18 +74,15 @@ We create a subfeed for messages which describe us under our `root` feed
 sbot.metafeeds.findOrCreate((err, rootFeed) => {
   console.log(rootFeed)
 
-  const isFeed = (feed) => (
-    feed.feedpurpose === 'aboutMe' &&
-    feed.feedformat === 'classic'
-  )
-  const details = {
-    feedpurpose: 'aboutMe',
-    feedformat: 'classic',
-  }
-  sbot.metafeeds.findOrCreate(null, isFeed, details, (err, aboutMeFeed) => {
+  // find an existing feed
+  const isFeed = (feed) => feed.feedpurpose === 'aboutMe'
+  // details for creating a sub-feed feed if it doesn't already exist
+  const details = { feedpurpose: 'aboutMe', feedformat: 'classic' }
+
+  sbot.metafeeds.findOrCreate(rootFeed, isFeed, details, (err, aboutMeFeed) => {
     console.log(aboutMeFeed)
 
-    // publish things to aboutMeFeed!
+    // ...
   })
 })
 ```
@@ -95,7 +92,6 @@ Once you have these the *FeedDetail* object `aboutMeFeed` you can publish to tha
 ```js
 const content = {
   type: 'about',
-  about: rootFeed.keys.id,
   name: 'baba yaga'
   description: 'lives in a hutt in the forest, swing by sometime!'
 }
@@ -294,7 +290,7 @@ or called with an error object on the 1st argument if it failed.
 Looks for the root meta feed declared by your main feed, and returns it (as
 `{ seed, keys}`) via the callback `cb` if it exists.
 
-NOTE: If it does not exist, this API will **not** create the root meta feed.
+If it does not exist, this API will **not** create the root meta feed.
 
 
 ## Validation
