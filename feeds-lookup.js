@@ -97,13 +97,13 @@ exports.init = function (sbot, config) {
   function msgToDetails(prevDetails, msg) {
     const content = msg.value.content
     const details = { ...prevDetails }
-    details.feedformat = detectFeedFormat(content.subfeed)
-    details.feedpurpose = content.feedpurpose || details.feedpurpose
+    details.format = detectFeedFormat(content.subfeed)
+    details.purpose = content.purpose || details.purpose
     details.metafeed = content.metafeed || details.metafeed
     details.metadata = {} || details.metafeed
     const NOT_METADATA = [
       'metafeed',
-      'feedpurpose',
+      'purpose',
       'type',
       'tangles',
       'reason',

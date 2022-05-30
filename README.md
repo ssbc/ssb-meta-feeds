@@ -75,12 +75,12 @@ sbot.metafeeds.findOrCreate((err, rootFeed) => {
   console.log(rootFeed)
 
   const isFeed = (feed) => (
-    feed.feedpurpose === 'aboutMe' &&
-    feed.feedformat === 'classic'
+    feed.purpose === 'aboutMe' &&
+    feed.format === 'classic'
   )
   const details = {
-    feedpurpose: 'aboutMe',
-    feedformat: 'classic',
+    purpose: 'aboutMe',
+    format: 'classic',
   }
   sbot.metafeeds.findOrCreate(null, isFeed, details, (err, aboutMeFeed) => {
     console.log(aboutMeFeed)
@@ -113,8 +113,8 @@ Calls back with your `root` Metafeed object which has the form:
 {
   metafeed: null,
   subfeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
-  feedpurpose: 'root',
-  feedformat: 'bendybutt-v1',
+  purpose: 'root',
+  format: 'bendybutt-v1',
   seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>,
   keys: {
     curve: 'ed25519',
@@ -128,8 +128,8 @@ Calls back with your `root` Metafeed object which has the form:
 Meaning:
 - `metafeed` - the id of the feed this is underneath. As this is the topmost feed, this is empty
 - `subfeed` - the id of this feed, same as `keys.id`
-- `feedpurpose` - a human readable ideally unique handle for this feed
-- `feedformat` - the feed format ("classic" or "bendybutt-v1" are current options)
+- `purpose` - a human readable ideally unique handle for this feed
+- `format` - the feed format ("classic" or "bendybutt-v1" are current options)
 - `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `keys` - cryptographic keys used for signing messages published by this feed (see [ssb-keys])
 - `metadata` - additional data
@@ -155,8 +155,8 @@ Arguments:
     - *null* - this method will then return an arbitrary subfeed under provided `metafeed`
 - `details` - used to create a new subfeed if a match for an existing one is not found, can be 
     - *Object*: 
-        - `details.feedpurpose` *String* any string to characterize the purpose of this new subfeed
-        - `details.feedformat` *String* either `'classic'` or `'bendybutt-v1'`
+        - `details.purpose` *String* any string to characterize the purpose of this new subfeed
+        - `details.format` *String* either `'classic'` or `'bendybutt-v1'`
         - `details.metadata` *Object* (optional) - for containing other data
             - if `details.metadata.recps` is used, the subfeed announcement will be encrypted
     - *null* - only allowed if `metafeed` is null (i.e. the details of the `root` FeedDetail)
@@ -165,8 +165,8 @@ Arguments:
     {
       metafeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
       subfeed: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
-      feedpurpose: 'chess',
-      feedformat: 'classic',
+      purpose: 'chess',
+      format: 'classic',
       seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>
       keys: {
         curve: 'ed25519',
@@ -189,8 +189,8 @@ fetches the *Details* object describing that feed, which is of form:
 ```js
 {
   metafeed,
-  feedpurpose,
-  feedformat,
+  purpose,
+  format,
   id,
   // seed
   // keys
@@ -227,7 +227,7 @@ branch looks like this:
 ```
 
 Or in general, an `Array<[FeedId, Details | null]>`. The *Details* object has
-the shape `{ feedpurpose, feedformat, metafeed, metadata }` like in `findById`.
+the shape `{ purpose, format, metafeed, metadata }` like in `findById`.
 
 `branchStream` will emit all possible branches, which means sub-branches are
 included. For instance, in the example above, `branchStream` would emit:

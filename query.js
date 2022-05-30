@@ -81,7 +81,7 @@ exports.init = function (sbot, config) {
     collectMetadata(msg) {
       const metadata = {}
       const ignored = [
-        'feedpurpose',
+        'purpose',
         'subfeed',
         'nonce',
         'metafeed',
@@ -100,9 +100,9 @@ exports.init = function (sbot, config) {
      * "added" the subfeed
      */
     hydrateFromMsg(msg, seed) {
-      const { type, feedpurpose, subfeed, nonce } = msg.value.content
+      const { type, purpose, subfeed, nonce } = msg.value.content
       const metadata = self.collectMetadata(msg)
-      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
+      const format = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
         ? 'bendybutt-v1'
         : 'classic'
       const existing = type === 'metafeed/add/existing'
@@ -111,12 +111,12 @@ exports.init = function (sbot, config) {
         : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
             seed,
             nonce.toString('base64'),
-            feedformat
+            format
           )
       return {
         metafeed: msg.value.author,
-        feedformat,
-        feedpurpose,
+        format,
+        purpose,
         subfeed,
         keys,
         metadata,
@@ -130,7 +130,7 @@ exports.init = function (sbot, config) {
      * ```js
      * sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
      *   console.log(hydrated.feeds) // the feeds
-     *   console.log(hydrated.feeds[0].feedpurpose) // 'main'
+     *   console.log(hydrated.feeds[0].purpose) // 'main'
      * })
      * ```
      */
@@ -149,9 +149,9 @@ exports.init = function (sbot, config) {
           const tombstoned = validatedMsgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
-              const { feedpurpose, subfeed } = msg.value.content
+              const { purpose, subfeed } = msg.value.content
               const metadata = self.collectMetadata(msg)
-              return { feedpurpose, subfeed, metadata }
+              return { purpose, subfeed, metadata }
             })
 
           const feeds = addedFeeds.filter(

@@ -73,7 +73,7 @@ test('metafeed with multiple feeds', (t) => {
       indexMsg = m
       sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
         t.equal(hydrated.feeds.length, 2, 'multiple feeds')
-        t.equal(hydrated.feeds[0].feedpurpose, 'main')
+        t.equal(hydrated.feeds[0].purpose, 'main')
         t.equal(hydrated.feeds[0].seed, undefined, 'no seed')
         t.equal(
           hydrated.feeds[0].subfeed,
@@ -81,7 +81,7 @@ test('metafeed with multiple feeds', (t) => {
           'correct main keys'
         )
         t.equal(typeof hydrated.feeds[0].keys.id, 'string', 'has key')
-        t.equal(hydrated.feeds[1].feedpurpose, 'index')
+        t.equal(hydrated.feeds[1].purpose, 'index')
         t.true(Buffer.isBuffer(hydrated.feeds[1].seed), 'has seed')
         t.equal(
           hydrated.feeds[1].subfeed,
@@ -106,7 +106,7 @@ test('metafeed with tombstones', (t) => {
       db.add(msgVal, (err) => {
         sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
           t.equal(hydrated.feeds.length, 1, 'single feed')
-          t.equal(hydrated.feeds[0].feedpurpose, 'main')
+          t.equal(hydrated.feeds[0].purpose, 'main')
           t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
           t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
           t.end()

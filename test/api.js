@@ -43,7 +43,7 @@ test('findOrCreate(null, ...) can create the root metafeed', (t) => {
       sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
         t.error(err, 'no err for findOrCreate()')
         // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
-        // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
+        // t.equals(mf.feeds[0].purpose, 'main', 'it is the main feed')
         t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
         t.equals(typeof mf.keys.id, 'string', 'key seems okay')
         t.end()
@@ -77,15 +77,15 @@ tape('findOrCreate() a sub feed', (t) => {
     // lets create a new chess feed
     sbot.metafeeds.findOrCreate(
       mf,
-      (f) => f.feedpurpose === 'chess',
+      (f) => f.purpose === 'chess',
       {
-        feedpurpose: 'chess',
-        feedformat: 'classic',
+        purpose: 'chess',
+        format: 'classic',
         metadata: { score: 0 },
       },
       (err, feed) => {
         t.error(err, 'no err')
-        t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
+        t.equals(feed.purpose, 'chess', 'it is the chess feed')
         t.equals(feed.metadata.score, 0, 'it has metadata')
         t.end()
       }
@@ -97,11 +97,11 @@ tape('findOrCreate() a sub meta feed', (t) => {
   sbot.metafeeds.findOrCreate((err, mf) => {
     sbot.metafeeds.findOrCreate(
       mf,
-      (f) => f.feedpurpose === 'indexes',
-      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
+      (f) => f.purpose === 'indexes',
+      { purpose: 'indexes', format: 'bendybutt-v1' },
       (err, f) => {
         t.error(err, 'no err')
-        t.equals(f.feedpurpose, 'indexes', 'it is the indexes subfeed')
+        t.equals(f.purpose, 'indexes', 'it is the indexes subfeed')
         t.true(
           f.subfeed.startsWith('ssb:feed/bendybutt-v1/'),
           'has a bendy butt SSB URI'
@@ -119,24 +119,24 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
   sbot.metafeeds.getRoot((err, rootMF) => {
     sbot.metafeeds.findOrCreate(
       rootMF,
-      (f) => f.feedpurpose === 'indexes',
-      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
+      (f) => f.purpose === 'indexes',
+      { purpose: 'indexes', format: 'bendybutt-v1' },
       (err, indexesMF) => {
-        t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
+        t.equals(indexesMF.purpose, 'indexes', 'got the indexes meta feed')
         testIndexesMF = indexesMF
 
         sbot.metafeeds.findOrCreate(
           indexesMF,
-          (f) => f.feedpurpose === 'index',
+          (f) => f.purpose === 'index',
           {
-            feedpurpose: 'index',
-            feedformat: 'classic',
+            purpose: 'index',
+            format: 'classic',
             metadata: { query: 'foo' },
           },
           (err, f) => {
             testIndexFeed = f.subfeed
             t.error(err, 'no err')
-            t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
+            t.equals(f.purpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
             t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
 
@@ -156,14 +156,14 @@ test('findById and findByIdSync', (t) => {
     sbot.metafeeds.findById(testIndexFeed, (err, details) => {
       t.error(err, 'no err')
       t.deepEquals(Object.keys(details), [
-        'feedformat',
-        'feedpurpose',
+        'format',
+        'purpose',
         'metafeed',
         'metadata',
       ])
-      t.equals(details.feedpurpose, 'index')
+      t.equals(details.purpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'classic')
+      t.equals(details.format, 'classic')
 
       t.throws(
         () => {
@@ -196,16 +196,16 @@ test('branchStream', (t) => {
       t.equal(branches[0][0][1], null, 'root mf alone')
 
       t.equal(branches[1].length, 2, 'main branch')
-      t.equal(branches[1][1][1].feedpurpose, 'main', 'main branch')
+      t.equal(branches[1][1][1].purpose, 'main', 'main branch')
 
       t.equal(branches[2].length, 2, 'chess branch')
-      t.equal(branches[2][1][1].feedpurpose, 'chess', 'chess branch')
+      t.equal(branches[2][1][1].purpose, 'chess', 'chess branch')
 
       t.equal(branches[3].length, 2, 'indexes branch')
-      t.equal(branches[3][1][1].feedpurpose, 'indexes', 'indexes branch')
+      t.equal(branches[3][1][1].purpose, 'indexes', 'indexes branch')
 
       t.equal(branches[4].length, 3, 'index branch')
-      t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
+      t.equal(branches[4][2][1].purpose, 'index', 'indexes branch')
 
       t.end()
     })
@@ -224,9 +224,9 @@ test('restart sbot', (t) => {
 
     sbot.metafeeds.ensureLoaded(testIndexFeed, () => {
       const details = sbot.metafeeds.findByIdSync(testIndexFeed)
-      t.equals(details.feedpurpose, 'index')
+      t.equals(details.purpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'classic')
+      t.equals(details.format, 'classic')
 
       sbot.metafeeds.getRoot((err, mf) => {
         t.error(err, 'no err')
@@ -248,17 +248,17 @@ test('restart sbot', (t) => {
             t.equal(branches[0][0][1], null, 'root mf alone')
 
             t.equal(branches[1].length, 2, 'main branch')
-            t.equal(branches[1][1][1].feedpurpose, 'main', 'main branch')
+            t.equal(branches[1][1][1].purpose, 'main', 'main branch')
 
             t.equal(branches[2].length, 2, 'chess branch')
-            t.equal(branches[2][1][1].feedpurpose, 'chess', 'chess branch')
+            t.equal(branches[2][1][1].purpose, 'chess', 'chess branch')
 
             const indexesId = branches[3][1][0]
             t.equal(branches[3].length, 2, 'indexes branch')
-            t.equal(branches[3][1][1].feedpurpose, 'indexes', 'indexes branch')
+            t.equal(branches[3][1][1].purpose, 'indexes', 'indexes branch')
 
             t.equal(branches[4].length, 3, 'index branch')
-            t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
+            t.equal(branches[4][2][1].purpose, 'index', 'indexes branch')
 
             pull(
               sbot.metafeeds.branchStream({
@@ -271,18 +271,10 @@ test('restart sbot', (t) => {
                 t.equal(branches.length, 2, '2 branches')
 
                 t.equal(branches[0].length, 1, 'indexes branch')
-                t.equal(
-                  branches[0][0][1].feedpurpose,
-                  'indexes',
-                  'indexes branch'
-                )
+                t.equal(branches[0][0][1].purpose, 'indexes', 'indexes branch')
 
                 t.equal(branches[1].length, 2, 'index branch')
-                t.equal(
-                  branches[1][1][1].feedpurpose,
-                  'index',
-                  'indexes branch'
-                )
+                t.equal(branches[1][1][1].purpose, 'index', 'indexes branch')
 
                 t.end()
               })
@@ -301,7 +293,7 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
       pull.drain((branch) => {
         t.equals(branch.length, 2)
         t.equals(branch[0][0], mf.keys.id)
-        t.equals(branch[1][1].feedpurpose, 'chess')
+        t.equals(branch[1][1].purpose, 'chess')
         t.equals(branch[1][1].reason, 'This game is too good')
 
         pull(
@@ -313,7 +305,7 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
           pull.drain((branch) => {
             t.equals(branch.length, 2)
             t.equals(branch[0][0], mf.keys.id)
-            t.equals(branch[1][1].feedpurpose, 'chess')
+            t.equals(branch[1][1].purpose, 'chess')
             t.equals(branch[1][1].reason, 'This game is too good')
 
             pull(
@@ -348,7 +340,7 @@ tape('findAndTombstone and tombstoning branchStream', (t) => {
 
     sbot.metafeeds.findAndTombstone(
       mf,
-      (f) => f.feedpurpose === 'chess',
+      (f) => f.purpose === 'chess',
       'This game is too good',
       (err) => {
         t.error(err, 'no err')
@@ -383,17 +375,17 @@ tape('findOrCreate() recps', (t) => {
   sbotBox2.metafeeds.findOrCreate((err, mf) => {
     sbotBox2.metafeeds.findOrCreate(
       mf,
-      (f) => f.feedpurpose === 'private',
+      (f) => f.purpose === 'private',
       {
-        feedpurpose: 'private',
-        feedformat: 'classic',
+        purpose: 'private',
+        format: 'classic',
         metadata: {
           recps: [sbotBox2.id],
         },
       },
       (err, f) => {
         t.error(err, 'no err')
-        t.equal(f.feedpurpose, 'private')
+        t.equal(f.purpose, 'private')
         t.equal(f.metadata.recps[0], sbotBox2.id)
         sbotBox2.close(t.end)
       }

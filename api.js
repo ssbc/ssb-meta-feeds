@@ -74,16 +74,16 @@ exports.init = function (sbot, config) {
       getOrCreateRootMetafeed(cb)
     } else {
       const cb = maybeCB
-      if (!details.feedpurpose) return cb(new Error('Missing feedpurpose'))
-      if (!details.feedformat) return cb(new Error('Missing feedformat'))
+      if (!details.purpose) return cb(new Error('Missing purpose'))
+      if (!details.format) return cb(new Error('Missing format'))
       sbot.metafeeds.query.getLatest(metafeed.keys.id, (err, latest) => {
         if (err) return cb(err)
         const msgVal = sbot.metafeeds.messages.getMsgValAddDerived(
           metafeed.keys,
           latest,
-          details.feedpurpose,
+          details.purpose,
           metafeed.seed,
-          details.feedformat,
+          details.format,
           details.metadata
         )
 
@@ -238,7 +238,7 @@ exports.init = function (sbot, config) {
     }
 
     // Ensure the main feed was "added" on the root meta feed
-    const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
+    const [err3, added] = await run(find)(mf, (f) => f.purpose === 'main')
     if (err3) return cb(err3)
     if (!added) {
       const [err4, latest] = await run(getLatest)(mf.keys.id)

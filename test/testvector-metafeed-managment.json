@@ -37,7 +37,7 @@
       "HighlevelContent": [
         {
           "type": "metafeed/add/derived",
-          "feedpurpose": "main default",
+          "purpose": "main default",
           "subfeed": "@Oo6OYCGsjLP3n+cep4FiHJJZGHyqKWztnhDk7vJhi3A=.ed25519",
           "metafeed": "ssb:feed/bendybutt-v1/b99R2e7lj8h7NFqGhOu6lCGy8gLxWV-J4ORd1X7rP3c=",
           "nonce": "IyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyM=",
@@ -65,7 +65,7 @@
       "HighlevelContent": [
         {
           "type": "metafeed/add/derived",
-          "feedpurpose": "experimental",
+          "purpose": "experimental",
           "subfeed": "ssb:feed/gabbygrove-v1/FY5OG311W4j_KPh8H9B2MZt4WSziy_p-ABkKERJdujQ=",
           "metafeed": "ssb:feed/bendybutt-v1/b99R2e7lj8h7NFqGhOu6lCGy8gLxWV-J4ORd1X7rP3c=",
           "nonce": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
@@ -121,7 +121,7 @@
       "HighlevelContent": [
         {
           "type": "metafeed/add/existing",
-          "feedpurpose": "metafeed upgrade of existing",
+          "purpose": "metafeed upgrade of existing",
           "subfeed": "ssb:feed/bamboo/4x4183TbjTA46ROc5Uj9FmtE-H2bFVVeGjQzGwdlZCw=",
           "metafeed": "ssb:feed/bendybutt-v1/b99R2e7lj8h7NFqGhOu6lCGy8gLxWV-J4ORd1X7rP3c=",
           "tangles": {

@@ -227,7 +227,7 @@ test('recps', (t) => {
   sbotBox2.db.add(msgVal, (err, kv) => {
     t.true(kv.value.content.endsWith('.box2'), 'box2 encoded')
     sbotBox2.db.get(kv.key, (err, msg) => {
-      t.equal(msg.content.feedpurpose, 'main')
+      t.equal(msg.content.purpose, 'main')
       sbotBox2.close(t.end)
     })
   })

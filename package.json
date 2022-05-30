@@ -36,14 +36,12 @@
     "pretty-quick": "^3.1.0",
     "rimraf": "^3.0.2",
     "secret-stack": "^6.4.0",
-    "ssb-db2-box2": "^0.4.0",
     "ssb-caps": "^1.1.0",
-    "tap-bail": "^1.0.0",
-    "tap-spec": "^5.0.0",
+    "ssb-db2-box2": "^0.4.0",
     "tape": "^5.3.0"
   },
   "scripts": {
-    "test": "tape test/*.js | tap-bail | tap-spec",
+    "test": "tape test/*.js | tap-arc",
     "format-code": "prettier --write \"*.js\" \"test/*.js\"",
     "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"test/*.js\""
   },

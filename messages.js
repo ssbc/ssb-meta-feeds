@@ -21,11 +21,11 @@ const keys = require('./keys')
  * Low level API for generating messages
  */
 exports.init = function init(sbot) {
-  function add(feedpurpose, nonce, previousMsg, subKeys, mfKeys, metadata) {
+  function add(purpose, nonce, previousMsg, subKeys, mfKeys, metadata) {
     const content = nonce
       ? {
           type: 'metafeed/add/derived',
-          feedpurpose,
+          purpose,
           subfeed: subKeys.id,
           metafeed: mfKeys.id,
           nonce,
@@ -35,7 +35,7 @@ exports.init = function init(sbot) {
         }
       : {
           type: 'metafeed/add/existing',
-          feedpurpose,
+          purpose,
           subfeed: subKeys.id,
           metafeed: mfKeys.id,
           tangles: {
@@ -80,13 +80,13 @@ exports.init = function init(sbot) {
      * const msg = sbot.metafeeds.messages.getMsgValAddExisting(metafeedKeys, null, 'main', mainKeys)
      * ```
      */
-    getMsgValAddExisting(mfKeys, previous, feedpurpose, feedKeys, metadata) {
-      return add(feedpurpose, undefined, previous, feedKeys, mfKeys, metadata)
+    getMsgValAddExisting(mfKeys, previous, purpose, feedKeys, metadata) {
+      return add(purpose, undefined, previous, feedKeys, mfKeys, metadata)
     },
 
     /**
      * Generate a message to be posted on meta feed linking feed to a meta feed.
-     * Similar to `deriveFeedKeyFromSeed`, `feedformat` can be either
+     * Similar to `deriveFeedKeyFromSeed`, `format` can be either
      * `bendybutt-v1` for a meta feed or `classic`. `metadata` is an optional
      * object to be included (object spread) in `msg.value.content`.
      *
@@ -94,25 +94,18 @@ exports.init = function init(sbot) {
      * const msg = sbot.metafeeds.messages.getMsgValAddDerived(metafeedKeys, null, 'main', seed, 'classic')
      * ```
      */
-    getMsgValAddDerived(
-      mfKeys,
-      previous,
-      feedpurpose,
-      seed,
-      feedformat,
-      metadata
-    ) {
-      if (feedformat !== 'classic' && feedformat !== 'bendybutt-v1') {
-        throw new Error('Unknown feed format: ' + feedformat)
+    getMsgValAddDerived(mfKeys, previous, purpose, seed, format, metadata) {
+      if (format !== 'classic' && format !== 'bendybutt-v1') {
+        throw new Error('Unknown feed format: ' + format)
       }
       const nonce = getNonce()
       const feedKeys = keys.deriveFeedKeyFromSeed(
         seed,
         nonce.toString('base64'),
-        feedformat
+        format
       )
 
-      return add(feedpurpose, nonce, previous, feedKeys, mfKeys, metadata)
+      return add(purpose, nonce, previous, feedKeys, mfKeys, metadata)
     },
 
     /**
