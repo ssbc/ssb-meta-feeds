@@ -189,17 +189,7 @@ exports.init = function (sbot, config) {
     sbot.metafeeds.query.getSeed((err, seed) => {
       if (err) return cb(err)
       if (!seed) return cb(null, null)
-      const keys = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
-      const metafeed = {
-        metafeed: null,
-        subfeed: keys.id,
-        feedpurpose: 'root',
-        feedformat: 'bendybutt-v1',
-        seed,
-        keys,
-        metadata: {},
-      }
-      cb(null, metafeed)
+      cb(null, buildRootFeedDetails(seed))
     })
   }
 
@@ -213,30 +203,19 @@ exports.init = function (sbot, config) {
       sbot.metafeeds.messages
 
     // Ensure seed exists
-    const mf = {
-      metafeed: null,
-      subfeed: undefined, // loading
-      feedpurpose: 'root',
-      feedformat: 'bendybutt-v1',
-      seed: undefined, //    loading
-      keys: undefined, //    loading
-      metadata: {},
-    }
+    let mf
     const [err1, loadedSeed] = await run(getSeed)()
     if (err1 || !loadedSeed) {
       if (err1) debug('generating a seed because %o', err1)
       else debug('generating a seed')
-      mf.seed = sbot.metafeeds.keys.generateSeed()
-      mf.keys = deriveRootMetaFeedKeyFromSeed(mf.seed)
+      mf = buildRootFeedDetails(sbot.metafeeds.keys.generateSeed())
       const content = getContentSeed(mf.keys.id, sbot.id, mf.seed)
       const [err2] = await run(sbot.db.publish)(content)
       if (err2) return cb(err2)
     } else {
       debug('loaded seed')
-      mf.seed = loadedSeed
-      mf.keys = deriveRootMetaFeedKeyFromSeed(loadedSeed)
+      mf = buildRootFeedDetails(loadedSeed)
     }
-    mf.subfeed = mf.keys.id
 
     // Ensure root meta feed announcement exists on the main feed
     const [err2, announcements] = await run(getAnnounces)()
@@ -266,6 +245,19 @@ exports.init = function (sbot, config) {
     }
 
     rootMetaFeedLock.release(null, mf)
+  }
+
+  function buildRootFeedDetails(seed) {
+    const keys = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
+    return {
+      metafeed: null,
+      subfeed: keys.id,
+      feedpurpose: 'root',
+      feedformat: 'bendybutt-v1',
+      seed,
+      keys,
+      metadata: {},
+    }
   }
 
   return {
