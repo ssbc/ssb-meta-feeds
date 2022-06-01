@@ -7,9 +7,12 @@ SPDX-License-Identifier: CC0-1.0
 # ssb-meta-feeds
 
 An implementation of the [ssb metafeed spec] in JS as a secret stack plugin.
-The core idea is being able to split out content you publish into _subfeeds_,
-which allows for quicker more targetted replication by peers (only get the subfeeds you want).
+The core idea is being able to split out content you publish into _subfeeds_.
+This allows for quicker replication by peers, such that you only get the
+subfeeds, thus content types, you are interested in.
 
+Metafeeds are special types of feeds which own or "contain" other feeds (called
+"subfeeds"), by publishing messages which describe the creation of the subfeeds.
 
 ```mermaid
 graph TB
@@ -43,7 +46,6 @@ This means that when you first meet a peer you can replicate their `root` metafe
 and, having discovered their subfeeds, replicate just their `aboutMe` and `contacts` feeds
 to get enough info to place them socially. Once you decide you want to follow them you may
 replicate their other subfeeds.
-
 
 _NOTE: The ideal state is that all content is split out into subfeeds.
 To add backwards compatability for devices that have already posted a lot of posts to their
@@ -99,7 +101,7 @@ sbot.metafeeds.findOrCreate((err, root) => {
 })
 ```
 
-The `details` argumentis a *FeedDetails* object and it always requires
+The `details` argument is a *FeedDetails* object and it always requires
 `feedpurpose` (any string) and `feedformat` (either `'classic'` for normal
 ed25519 SSB feeds, or `'bendybutt-v1'` if you want a metafeed). The `isFeed`
 function also takes a *FeedDetails* object as input.
