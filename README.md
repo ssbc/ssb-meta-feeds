@@ -6,10 +6,13 @@ SPDX-License-Identifier: CC0-1.0
 
 # ssb-meta-feeds
 
-An implementation of the [ssb meta feed spec] in JS as a secret stack plugin.
-The core idea is being able to split out content you publish into _subfeeds_,
-which allows for quicker more targetted replication by peers (only get the subfeeds you want).
+An implementation of the [ssb metafeed spec] in JS as a secret stack plugin.
+The core idea is being able to split out content you publish into _subfeeds_.
+This allows for quicker replication by peers, such that you only get the
+subfeeds, thus content types, you are interested in.
 
+Metafeeds are special types of feeds which own or "contain" other feeds (called
+"subfeeds"), by publishing messages which describe the creation of the subfeeds.
 
 ```mermaid
 graph TB
@@ -34,14 +37,15 @@ classDef root fill:#8338ec,stroke:#8338ec,color:#fff;
 classDef default fill:#3a86ff,stroke:#3a86ff,color:#fff;
 classDef legacy fill:#3f506c,stroke:#3f506c,color:#fff;
 ```
-How scuttlebutt works with meta-feeds - each device now has a `root` feed,
-whose sole responsibility is to announce (point to) sub-feeds that you publish content to.
+How scuttlebutt works with metafeeds - each device now has a `root` metafeed,
+whose sole responsibility is to announce (point to) subfeeds that you publish
+content to. A subfeed can also be a metafeed, which then allows the existence of
+"sub-subfeeds".
 
-This means that when you first meet a peer you can replicate their `root` feed
-and (having discovered their subfeeds), replicate just their `aboutMe` and `contacts` feeds
+This means that when you first meet a peer you can replicate their `root` metafeed
+and, having discovered their subfeeds, replicate just their `aboutMe` and `contacts` feeds
 to get enough info to place them socially. Once you decide you want to follow them you may
 replicate their other subfeeds.
-
 
 _NOTE: The ideal state is that all content is split out into subfeeds.
 To add backwards compatability for devices that have already posted a lot of posts to their
@@ -69,35 +73,59 @@ Add this plugin like this:
 
 ## Example usage
 
-We create a subfeed for messages which describe us under our `root` feed
-```js
-sbot.metafeeds.findOrCreate((err, rootFeed) => {
-  console.log(rootFeed)
+Let's start by creating a **root metafeed** with `findOrCreate(cb)`, necessary
+for using this module. There can only be one _root_ metafeed, so even if you
+call `findOrCreate(cb)` many times, it will not create duplicates, it will just
+load the root metafeed.
 
-  // find an existing feed
+```js
+sbot.metafeeds.findOrCreate((err, root) => {
+  // ...
+})
+```
+
+Now we create a subfeed for `about` messages under our `root` feed using
+`findOrCreate(parent, isFeed, details, cb)`. This will only create the subfeed
+if there is no existing subfeed that matches the criteria`isFeed`:
+
+```js
+sbot.metafeeds.findOrCreate((err, root) => {
+  // Find an existing feed
   const isFeed = (feed) => feed.feedpurpose === 'aboutMe'
-  // details for creating a sub-feed feed if it doesn't already exist
+  // Details for creating a subfeed if it doesn't already exist:
   const details = { feedpurpose: 'aboutMe', feedformat: 'classic' }
 
-  sbot.metafeeds.findOrCreate(rootFeed, isFeed, details, (err, aboutMeFeed) => {
-    console.log(aboutMeFeed)
-
+  sbot.metafeeds.findOrCreate(root, isFeed, details, (err, aboutMeFeed) => {
     // ...
   })
 })
 ```
 
-Once you have these the *FeedDetail* object `aboutMeFeed` you can publish to that feed:
+The `details` argument is a *FeedDetails* object and it always requires
+`feedpurpose` (any string) and `feedformat` (either `'classic'` for normal
+ed25519 SSB feeds, or `'bendybutt-v1'` if you want a metafeed). The `isFeed`
+function also takes a *FeedDetails* object as input.
+
+Once you have a *FeedDetails* object, like `aboutMeFeed`, you can publish on
+the new subfeed:
 
 ```js
-const content = {
-  type: 'about',
-  name: 'baba yaga'
-  description: 'lives in a hutt in the forest, swing by sometime!'
-}
-sbot.db.publishAs(aboutMeFeed.keys, content, cb)
-```
+sbot.metafeeds.findOrCreate((err, root) => {
+  const isFeed = (feed) => feed.feedpurpose === 'aboutMe'
+  const details = { feedpurpose: 'aboutMe', feedformat: 'classic' }
 
+  sbot.metafeeds.findOrCreate(root, isFeed, details, (err, aboutMeFeed) => {
+    const content = {
+      type: 'about',
+      name: 'baba yaga'
+      description: 'lives in a hutt in the forest, swing by sometime!'
+    }
+    sbot.db.publishAs(aboutMeFeed.keys, content, (err, msg) => {
+      // ...
+    })
+  })
+})
+```
 
 ## API
 
@@ -144,19 +172,19 @@ with those that belong to other peers.
 
 Arguments:
 - `metafeed` - the metafeed you are finding/ creating under, can be:
-    - *FeedDetail* object (as returned by `findOrCreate()` or `getRoot()`)
+    - *FeedDetails* object (as returned by `findOrCreate()` or `getRoot()`)
     - *null* which is short-hand for the `rootFeed` (this will be created if doesn't exist)
-- `isFeed` - method you use to find an existing *FeedDetail*, can be:
-    - *function* of shape `(FeedDetail) => boolean`
+- `isFeed` - method you use to find an existing *FeedDetails*, can be:
+    - *function* of shape `(FeedDetails) => boolean`
     - *null* - this method will then return an arbitrary subfeed under provided `metafeed`
-- `details` - used to create a new subfeed if a match for an existing one is not found, can be 
-    - *Object*: 
+- `details` - used to create a new subfeed if a match for an existing one is not found, can be
+    - *Object*:
         - `details.feedpurpose` *String* any string to characterize the purpose of this new subfeed
         - `details.feedformat` *String* either `'classic'` or `'bendybutt-v1'`
         - `details.metadata` *Object* (optional) - for containing other data
             - if `details.metadata.recps` is used, the subfeed announcement will be encrypted
-    - *null* - only allowed if `metafeed` is null (i.e. the details of the `root` FeedDetail)
-- `cb` *function* delivers the response, has signature `(err, FeedDetail)`, where FeedDetail is
+    - *null* - only allowed if `metafeed` is null (i.e. the details of the `root` FeedDetails)
+- `cb` *function* delivers the response, has signature `(err, FeedDetails)`, where FeedDetails is
     ```js
     {
       metafeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
@@ -276,9 +304,9 @@ _Looks for the first subfeed of `metafeed` that satisfies the condition in
 This is strictly concerned with meta feeds and sub feeds that **you own**, not
 with those that belong to other peers.
 
-Arguments: 
-- `metafeed` *FeedDetail* object (as returned by e.g. `findOrCreate()`, `getRoot()`).
-- `isFeed` *function* of the shape `(FeedDetail) => Boolean`.
+Arguments:
+- `metafeed` *FeedDetails* object (as returned by e.g. `findOrCreate()`, `getRoot()`).
+- `isFeed` *function* of the shape `(FeedDetails) => Boolean`.
 - `reason` *String* - describes why the found feed is being tombstoned.
 
 The callback is called with `true` on the 2nd argument if tombstoning suceeded,
