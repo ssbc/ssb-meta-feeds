@@ -368,5 +368,5 @@ object with a `message` describing the error.
 LGPL-3.0
 
 [ssb-keys]: https://github.com/ssb-js/ssb-keys
-[ssb meta feed spec]: https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec
+[ssb metafeed spec]: https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec
 [pull-stream]: https://github.com/pull-stream/pull-stream/
