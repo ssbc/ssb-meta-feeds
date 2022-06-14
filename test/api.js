@@ -72,7 +72,7 @@ test('findOrCreate is idempotent', (t) => {
 
 tape('findOrCreate() a sub feed', (t) => {
   sbot.metafeeds.getRoot((err, mf) => {
-    t.error(err, 'no err')
+    t.error(err, 'gets rootFeed')
 
     // lets create a new chess feed
     sbot.metafeeds.findOrCreate(
@@ -84,10 +84,47 @@ tape('findOrCreate() a sub feed', (t) => {
         metadata: { score: 0 },
       },
       (err, feed) => {
-        t.error(err, 'no err')
         t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
         t.equals(feed.metadata.score, 0, 'it has metadata')
         t.end()
+      }
+    )
+  })
+})
+
+tape('all FeedDetails have same format', (t) => {
+  sbot.metafeeds.getRoot((err, mf) => {
+    if (err) throw err
+    sbot.metafeeds.findOrCreate(
+      null,
+      () => true,
+      {},
+      (err, _mf) => {
+        if (err) throw err
+
+        t.deepEquals(
+          mf,
+          _mf,
+          'getRoot and findOrCreate return the same root FeedDetails'
+        )
+
+        sbot.metafeeds.findOrCreate(
+          mf,
+          (f) => f.feedpurpose === 'chess',
+          {
+            feedpurpose: 'chess',
+            feedformat: 'classic',
+            metadata: { score: 0 },
+          },
+          (err, feed) => {
+            t.deepEquals(
+              Object.keys(mf).sort(),
+              Object.keys(feed).sort(),
+              'root & chess FeedDetails have same data structure'
+            )
+            t.end()
+          }
+        )
       }
     )
   })
