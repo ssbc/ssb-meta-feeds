@@ -82,7 +82,7 @@ exports.init = function (sbot, config) {
   }
 
   function detectFeedFormat(feedId) {
-    if (feedId.startsWith('@')) {
+    if (feedId.startsWith('@') || SSBURI.isClassicFeedSSBURI(feedId)) {
       return 'classic'
     } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
       return 'bendybutt-v1'
