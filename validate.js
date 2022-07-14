@@ -132,7 +132,7 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
   // if the subfeedKey is a supported uri, convert it to sigil for verification
   if (!ref.isFeed(subfeedKey)) {
     if (
-      !SSBURI.isFeedSSBURI(subfeedKey) &&
+      !SSBURI.isClassicFeedSSBURI(subfeedKey) &&
       !SSBURI.isBendyButtV1FeedSSBURI(subfeedKey) &&
       !SSBURI.isGabbyGroveV1FeedSSBURI(subfeedKey)
     ) {
