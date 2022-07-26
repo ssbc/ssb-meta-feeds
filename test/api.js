@@ -19,6 +19,7 @@ rimraf.sync(dir)
 
 let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
+  .use(require('ssb-bendy-butt'))
   .use(require('../'))
   .call(null, {
     keys: mainKey,
@@ -216,6 +217,7 @@ test('restart sbot', (t) => {
   sbot.close(true, () => {
     sbot = SecretStack({ appKey: caps.shs })
       .use(require('ssb-db2'))
+      .use(require('ssb-bendy-butt'))
       .use(require('../'))
       .call(null, {
         keys: mainKey,
@@ -365,7 +367,7 @@ tape('findOrCreate() recps', (t) => {
 
   let sbotBox2 = SecretStack({ appKey: caps.shs })
     .use(require('ssb-db2'))
-    .use(require('ssb-db2-box2'))
+    .use(require('ssb-bendy-butt'))
     .use(require('../'))
     .call(null, {
       keys: boxKey,
@@ -377,8 +379,7 @@ tape('findOrCreate() recps', (t) => {
     'hex'
   )
 
-  sbotBox2.box2.addOwnDMKey(testkey)
-  sbotBox2.box2.setReady()
+  sbotBox2.box2.setOwnDMKey(testkey)
 
   sbotBox2.metafeeds.findOrCreate((err, mf) => {
     sbotBox2.metafeeds.findOrCreate(

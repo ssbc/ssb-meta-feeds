@@ -56,7 +56,8 @@ classic `main` feed, this library will auto-link that main feed in as a "subfeed
 **Prerequisites:**
 
 - Requires **Node.js 10** or higher
-- Requires `ssb-db2`
+- Requires `ssb-db2` version 5.0 or higher
+- Requires `ssb-bendy-butt` version 1.0 or higher
 
 ```
 npm install --save ssb-meta-feeds
