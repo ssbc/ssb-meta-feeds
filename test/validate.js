@@ -6,7 +6,7 @@ const tape = require('tape')
 const fs = require('fs')
 const mf = require('../validate')
 const bfe = require('ssb-bfe')
-const bb = require('ssb-bendy-butt')
+const bb = require('ssb-bendy-butt/format')
 
 const vec = JSON.parse(
   fs.readFileSync('test/testvector-metafeed-managment.json', 'utf8')
@@ -28,7 +28,7 @@ function entryToContentSection(entry) {
 }
 
 function encodedDataToContentSection(data) {
-  const msg = bb.decode(data)
+  const msg = bb.fromNativeMsg(data)
   const contentSection = [msg.content, msg.contentSignature]
 
   return contentSection

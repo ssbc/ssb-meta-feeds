@@ -27,6 +27,7 @@ const mainKey = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
 let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
+  .use(require('ssb-bendy-butt'))
   .use(require('../'))
   .call(null, {
     keys: mainKey,
@@ -38,17 +39,11 @@ let messages = sbot.metafeeds.messages
 let indexMsg, indexKey
 
 test('metafeed with multiple feeds', (t) => {
-  const classicAddMsgVal = messages.getMsgValAddExisting(
-    metafeedKeys,
-    null,
-    'main',
-    mainKey
-  )
+  const classicOpts = messages.optsForAddExisting(metafeedKeys, 'main', mainKey)
 
-  db.add(classicAddMsgVal, (err, m) => {
-    const indexAddMsgVal = messages.getMsgValAddDerived(
+  db.create(classicOpts, (err, m) => {
+    const indexAddOpts = messages.optsForAddDerived(
       metafeedKeys,
-      m,
       'index',
       seed,
       'classic',
@@ -65,11 +60,11 @@ test('metafeed with multiple feeds', (t) => {
 
     indexKey = keys.deriveFeedKeyFromSeed(
       seed,
-      indexAddMsgVal.content.nonce.toString('base64'),
+      indexAddOpts.content.nonce.toString('base64'),
       'classic'
     )
 
-    db.add(indexAddMsgVal, (err, m) => {
+    db.create(indexAddOpts, (err, m) => {
       indexMsg = m
       sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
         t.equal(hydrated.feeds.length, 2, 'multiple feeds')
@@ -97,28 +92,22 @@ test('metafeed with multiple feeds', (t) => {
 test('metafeed with tombstones', (t) => {
   const reason = 'Feed no longer used'
 
-  messages.getMsgValTombstone(
-    metafeedKeys,
-    indexMsg,
-    indexKey,
-    reason,
-    (err, msgVal) => {
-      db.add(msgVal, (err) => {
-        sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
-          t.equal(hydrated.feeds.length, 1, 'single feed')
-          t.equal(hydrated.feeds[0].feedpurpose, 'main')
-          t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
-          t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
-          t.end()
-        })
+  messages.optsForTombstone(metafeedKeys, indexKey, reason, (err, opts) => {
+    db.create(opts, (err) => {
+      sbot.metafeeds.query.hydrate(metafeedKeys.id, seed, (err, hydrated) => {
+        t.equal(hydrated.feeds.length, 1, 'single feed')
+        t.equal(hydrated.feeds[0].feedpurpose, 'main')
+        t.equal(hydrated.tombstoned.length, 1, '1 tombstone')
+        t.equal(hydrated.tombstoned[0].subfeed, indexKey.id, 'tombstone id')
+        t.end()
       })
-    }
-  )
+    })
+  })
 })
 
 test('seed', (t) => {
-  const content = messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
-  db.publish(content, (err) => {
+  const opts = messages.optsForSeed(metafeedKeys.id, sbot.id, seed)
+  db.create(opts, (err) => {
     sbot.metafeeds.query.getSeed((err, storedSeed) => {
       t.deepEqual(storedSeed, seed, 'correct seed')
       t.end()
@@ -127,8 +116,8 @@ test('seed', (t) => {
 })
 
 test('announce', (t) => {
-  messages.getContentAnnounce(metafeedKeys, (err, content) => {
-    db.publish(content, (err, publishedAnnounce) => {
+  messages.optsForAnnounce(metafeedKeys, mainKey, (err, opts) => {
+    db.create(opts, (err, publishedAnnounce) => {
       t.error(err, 'no err')
       sbot.metafeeds.query.getAnnounces((err, announcements) => {
         t.error(err, 'no err')
