@@ -32,8 +32,8 @@ const keys = {
 
   /**
    * Derive a new feed key from a seed. Label must be either `metafeed` for the
-   * top level meta feed or a base64 encoded nonce. Feedformat can be either
-   * `bendybutt-v1` for a meta feed or `classic`.
+   * top level meta feed or a base64 encoded nonce. Feedformat can be
+   * `bendybutt-v1` for a meta feed or `classic` or `indexed-v1`.
    *
    * ```js
    * const seed = sbot.metafeeds.keys.generateSeed()
@@ -41,7 +41,8 @@ const keys = {
    * ```
    * @param {Buffer} seed
    * @param {string} label
-   * @param {'bendybutt-v1' | 'gabbygrove-v1' | 'classic'} format default is 'classic'
+   * @param {'bendybutt-v1' | 'indexed-v1' | 'gabbygrove-v1' | 'classic'} format
+   * default is 'classic'
    */
   deriveFeedKeyFromSeed(seed, label, format = 'classic') {
     if (!label) throw new Error('label was not supplied')

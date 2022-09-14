@@ -6,7 +6,6 @@ const { seekKey } = require('bipf')
 const pull = require('pull-stream')
 const cat = require('pull-cat')
 const Notify = require('pull-notify')
-const SSBURI = require('ssb-uri2')
 const DeferredPromise = require('p-defer')
 const {
   where,
@@ -23,6 +22,7 @@ const validate = require('./validate')
 const SUBFEED_PREFIX_OFFSET = Math.max(
   '@'.length,
   'ssb:feed/bendybutt-v1/'.length,
+  'ssb:feed/indexed-v1/'.length,
   'ssb:feed/gabbygrove-v1/'.length
 )
 
@@ -81,23 +81,10 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function detectFeedFormat(feedId) {
-    if (feedId.startsWith('@') || SSBURI.isClassicFeedSSBURI(feedId)) {
-      return 'classic'
-    } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
-      return 'bendybutt-v1'
-    } else if (SSBURI.isGabbyGroveV1FeedSSBURI(feedId)) {
-      return 'gabbygrove-v1'
-    } else {
-      console.warn('Unknown feed format: ' + feedId)
-      return null
-    }
-  }
-
   function msgToDetails(prevDetails, msg) {
     const content = msg.value.content
     const details = { ...prevDetails }
-    details.feedformat = detectFeedFormat(content.subfeed)
+    details.feedformat = validate.detectFeedFormat(content.subfeed)
     details.feedpurpose = content.feedpurpose || details.feedpurpose
     details.metafeed = content.metafeed || details.metafeed
     details.metadata = {} || details.metafeed
@@ -269,7 +256,7 @@ exports.init = function (sbot, config) {
     findById(feedId, cb) {
       try {
         assertFeedId(feedId)
-        detectFeedFormat(feedId)
+        if (!validate.detectFeedFormat(feedId)) throw Error('Invalid feedId')
       } catch (err) {
         return cb(err)
       }

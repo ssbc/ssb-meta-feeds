@@ -11,6 +11,21 @@ const isCanonicalBase64 = require('is-canonical-base64')
 
 const CONTENT_SIG_PREFIX = Buffer.from('bendybutt', 'utf8')
 
+function detectFeedFormat(feedId) {
+  if (feedId.startsWith('@') || SSBURI.isClassicFeedSSBURI(feedId)) {
+    return 'classic'
+  } else if (SSBURI.isBendyButtV1FeedSSBURI(feedId)) {
+    return 'bendybutt-v1'
+  } else if (SSBURI.isGabbyGroveV1FeedSSBURI(feedId)) {
+    return 'gabbygrove-v1'
+  } else if (SSBURI.isIndexedV1FeedSSBURI(feedId)) {
+    return 'indexed-v1'
+  } else {
+    console.warn('Unknown feed format: ' + feedId)
+    return null
+  }
+}
+
 /**
  * Validate a single meta feed message.
  *
@@ -134,6 +149,7 @@ function validateSignature(subfeedKey, content, contentSignature, hmacKey) {
     if (
       !SSBURI.isClassicFeedSSBURI(subfeedKey) &&
       !SSBURI.isBendyButtV1FeedSSBURI(subfeedKey) &&
+      !SSBURI.isIndexedV1FeedSSBURI(subfeedKey) &&
       !SSBURI.isGabbyGroveV1FeedSSBURI(subfeedKey)
     ) {
       return new Error(
@@ -227,6 +243,7 @@ function validateMetafeedAnnounce(msg) {
   }
 }
 
+exports.detectFeedFormat = detectFeedFormat
 exports.isValid = isValid
 exports.validateSingle = validateSingle
 exports.validateMetafeedAnnounce = validateMetafeedAnnounce
