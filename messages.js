@@ -49,16 +49,19 @@ exports.init = function init(sbot) {
     return crypto.randomBytes(32)
   }
 
+  const supportedFormats = ['bendybutt-v1', 'classic', 'indexed-v1']
+
   return {
     /**
      * Generate opts for "ssb.db.create" to create a message to be posted on
      * a metafeed linking to a new feed.
      * Similar to in `deriveFeedKeyFromSeed`, `feedformat` can be either
-     * `bendybutt-v1` for a metafeed or `classic`. `metadata` is an optional
-     * object to be included (object spread) in the message `content`.
+     * `bendybutt-v1` for a metafeed or then `classic` or `indexed-v1`.
+     * `metadata` is an optional object to be included (object spread) in the
+     * message `content`.
      */
     optsForAddDerived(mfKeys, feedpurpose, seed, feedFormat, metadata) {
-      if (feedFormat !== 'classic' && feedFormat !== 'bendybutt-v1') {
+      if (!supportedFormats.includes(feedFormat)) {
         throw new Error('Unknown feed format: ' + feedFormat)
       }
       const nonce = getNonce()

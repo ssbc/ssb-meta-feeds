@@ -46,7 +46,7 @@ test('metafeed with multiple feeds', (t) => {
       metafeedKeys,
       'index',
       seed,
-      'classic',
+      'indexed-v1',
       {
         query: JSON.stringify({
           op: 'and',
@@ -61,7 +61,7 @@ test('metafeed with multiple feeds', (t) => {
     indexKey = keys.deriveFeedKeyFromSeed(
       seed,
       indexAddOpts.content.nonce.toString('base64'),
-      'classic'
+      'indexed-v1'
     )
 
     db.create(indexAddOpts, (err, m) => {

@@ -84,9 +84,7 @@ exports.init = function (sbot, config) {
       const content = msg.value.content
       const { type, feedpurpose, subfeed, nonce } = content
       const metadata = self.collectMetadata(content)
-      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
-        ? 'bendybutt-v1'
-        : 'classic'
+      const feedformat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metafeed/add/existing'
       const keys = existing
         ? config.keys
@@ -112,9 +110,7 @@ exports.init = function (sbot, config) {
      */
     hydrateFromCreateOpts(opts, seed) {
       const { feedpurpose, subfeed, metafeed, nonce, type } = opts.content
-      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
-        ? 'bendybutt-v1'
-        : 'classic'
+      const feedformat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metadata/add/existing'
       const keys = existing
         ? config.keys
