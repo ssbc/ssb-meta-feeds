@@ -27,6 +27,7 @@ rimraf.sync(dir)
 
 let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
+  .use(require('ssb-bendy-butt'))
   .use(require('../'))
   .call(null, {
     keys: mainKey,
@@ -38,23 +39,15 @@ let messages = sbot.metafeeds.messages
 let addMsg
 
 test('add a feed to metafeed', (t) => {
-  const msgVal = messages.getMsgValAddExisting(
-    metafeedKeys,
-    null,
-    'main',
-    mainKey
-  )
+  const opts = messages.optsForAddExisting(metafeedKeys, 'main', mainKey)
 
-  t.true(
-    msgVal.contentSignature.endsWith('.sig.ed25519'),
-    'correct signature format'
-  )
-  t.equal(msgVal.content.subfeed, mainKey.id, 'correct subfeed id')
-  t.notOk(msgVal.content.nonce, 'should have no nonce')
-  t.equal(msgVal.content.metafeed, metafeedKeys.id, 'correct metafeed id')
+  t.equal(opts.content.subfeed, mainKey.id, 'correct subfeed id')
+  t.notOk(opts.content.nonce, 'should have no nonce')
+  t.equal(opts.content.metafeed, metafeedKeys.id, 'correct metafeed id')
 
-  db.add(msgVal, (err, kv) => {
-    addMsg = kv
+  db.create(opts, (err, kvt) => {
+    t.error(err, 'no error')
+    addMsg = kvt
     t.end()
   })
 })
@@ -64,109 +57,99 @@ let tombstoneMsg
 test('tombstone a feed in a metafeed', (t) => {
   const reason = 'Feed no longer used'
 
-  messages.getMsgValTombstone(
-    metafeedKeys,
-    addMsg,
-    mainKey,
-    reason,
-    (err, msgVal) => {
-      t.true(
-        msgVal.contentSignature.endsWith('.sig.ed25519'),
-        'correct signature format'
-      )
-      t.equal(msgVal.content.subfeed, mainKey.id, 'correct subfeed id')
-      t.equal(msgVal.content.tangles.metafeed.root, addMsg.key, 'correct root')
-      t.equal(
-        msgVal.content.tangles.metafeed.previous,
-        addMsg.key,
-        'correct previous'
-      )
-      t.equal(msgVal.content.reason, reason, 'correct reason')
+  messages.optsForTombstone(metafeedKeys, mainKey, reason, (err, opts) => {
+    t.error(err, 'no error')
+    t.equal(opts.content.subfeed, mainKey.id, 'correct subfeed id')
+    t.equal(opts.content.tangles.metafeed.root, addMsg.key, 'correct root')
+    t.equal(
+      opts.content.tangles.metafeed.previous,
+      addMsg.key,
+      'correct previous'
+    )
+    t.equal(opts.content.reason, reason, 'correct reason')
 
-      db.add(msgVal, (err, kv) => {
-        tombstoneMsg = kv
-        t.end()
-      })
-    }
-  )
+    db.create(opts, (err, kv) => {
+      t.error(err, 'no error')
+      tombstoneMsg = kv
+      t.end()
+    })
+  })
 })
 
 test('second tombstone', (t) => {
-  const msgVal = messages.getMsgValAddDerived(
-    metafeedKeys,
-    tombstoneMsg,
-    'main',
-    seed,
-    'classic'
-  )
+  const opts = messages.optsForAddDerived(metafeedKeys, 'main', seed, 'classic')
   const newMainKey = keys.deriveFeedKeyFromSeed(
     seed,
-    msgVal.content.nonce.toString('base64')
+    opts.content.nonce.toString('base64')
   )
-  db.add(msgVal, (err, secondAddMsg) => {
+  db.create(opts, (err, secondAddMsg) => {
+    t.error(err, 'no error')
     const reason = 'Also no good'
 
-    messages.getMsgValTombstone(
-      metafeedKeys,
-      secondAddMsg,
-      newMainKey,
-      reason,
-      (err, msg) => {
-        t.true(
-          msg.contentSignature.endsWith('.sig.ed25519'),
-          'correct signature format'
-        )
-        t.equal(msg.content.subfeed, newMainKey.id, 'correct subfeed id')
-        t.equal(
-          msg.content.tangles.metafeed.root,
-          secondAddMsg.key,
-          'correct root'
-        )
-        t.equal(
-          msg.content.tangles.metafeed.previous,
-          secondAddMsg.key,
-          'correct previous'
-        )
-        t.equal(msg.content.reason, reason, 'correct reason')
+    messages.optsForTombstone(metafeedKeys, newMainKey, reason, (err, opts) => {
+      t.error(err, 'no error')
+      t.equal(opts.content.subfeed, newMainKey.id, 'correct subfeed id')
+      t.equal(
+        opts.content.tangles.metafeed.root,
+        secondAddMsg.key,
+        'correct root'
+      )
+      t.equal(
+        opts.content.tangles.metafeed.previous,
+        secondAddMsg.key,
+        'correct previous'
+      )
+      t.equal(opts.content.reason, reason, 'correct reason')
 
-        t.end()
-      }
-    )
+      t.end()
+    })
   })
 })
 
 test('metafeed announce', (t) => {
-  messages.getContentAnnounce(metafeedKeys, (err, content) => {
-    t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
-    t.equal(content.tangles.metafeed.root, null, 'no root')
-    t.equal(content.tangles.metafeed.previous, null, 'no previous')
-    t.ok(content.signature, 'has a signature')
-    t.ok(ssbKeys.verifyObj(metafeedKeys, content), 'signature is correct')
+  messages.optsForAnnounce(metafeedKeys, mainKey, (err, opts) => {
+    t.error(err, 'no error')
+    t.equal(opts.content.metafeed, metafeedKeys.id, 'correct metafeed')
+    t.equal(opts.content.tangles.metafeed.root, null, 'no root')
+    t.equal(opts.content.tangles.metafeed.previous, null, 'no previous')
+    t.ok(opts.content.signature, 'has a signature')
+    t.ok(ssbKeys.verifyObj(metafeedKeys, opts.content), 'signature is correct')
 
-    db.publish(content, (err, announceMsg) => {
+    db.create(opts, (err, announceMsg) => {
+      t.error(err, 'no error')
       t.equal(validateMetafeedAnnounce(announceMsg), undefined, 'validated')
 
       // test that we fucked up somehow and need to create a new metafeed
       const newSeed = keys.generateSeed()
       const mf2Key = keys.deriveFeedKeyFromSeed(newSeed, 'metafeed')
-      messages.getContentAnnounce(mf2Key, (err, content) => {
-        t.equal(content.metafeed, mf2Key.id, 'correct metafeed')
-        t.equal(content.tangles.metafeed.root, announceMsg.key, 'correct root')
+      messages.optsForAnnounce(mf2Key, mainKey, (err, opts) => {
+        t.error(err, 'no error')
+        t.equal(opts.content.metafeed, mf2Key.id, 'correct metafeed')
         t.equal(
-          content.tangles.metafeed.previous,
+          opts.content.tangles.metafeed.root,
+          announceMsg.key,
+          'correct root'
+        )
+        t.equal(
+          opts.content.tangles.metafeed.previous,
           announceMsg.key,
           'correct previous'
         )
 
-        db.publish(content, (err, announceMsg2) => {
+        db.create(opts, (err, announceMsg2) => {
           // another test to make sure previous is correctly set
           const newSeed2 = keys.generateSeed()
           const mf3Key = keys.deriveFeedKeyFromSeed(newSeed2, 'metafeed')
-          messages.getContentAnnounce(mf3Key, (err, msg) => {
-            t.equal(msg.metafeed, mf3Key.id, 'correct metafeed')
-            t.equal(msg.tangles.metafeed.root, announceMsg.key, 'correct root')
+          messages.optsForAnnounce(mf3Key, mainKey, (err, opts) => {
+            t.error(err, 'no error')
+            t.equal(opts.content.metafeed, mf3Key.id, 'correct metafeed')
             t.equal(
-              msg.tangles.metafeed.previous,
+              opts.content.tangles.metafeed.root,
+              announceMsg.key,
+              'correct root'
+            )
+            t.equal(
+              opts.content.tangles.metafeed.previous,
               announceMsg2.key,
               'correct previous'
             )
@@ -180,14 +163,15 @@ test('metafeed announce', (t) => {
 })
 
 test('metafeed seed save', (t) => {
-  const content = messages.getContentSeed(metafeedKeys.id, sbot.id, seed)
+  const opts = messages.optsForSeed(metafeedKeys, sbot.id, seed)
 
-  t.equal(content.metafeed, metafeedKeys.id, 'correct metafeed')
-  t.equal(content.seed.length, 64, 'correct seed')
-  t.equal(content.recps.length, 1, 'recps for private')
-  t.equal(content.recps[0], sbot.id, 'correct recps')
+  t.equal(opts.content.metafeed, metafeedKeys.id, 'correct metafeed')
+  t.equal(opts.content.seed.length, 64, 'correct seed')
+  t.equal(opts.recps.length, 1, 'recps for private')
+  t.equal(opts.recps[0], sbot.id, 'correct recps')
 
-  db.publish(content, (err, msg) => {
+  db.create(opts, (err, msg) => {
+    t.error(err, 'no error')
     t.equal(typeof msg.value.content, 'string', 'encrypted')
     db.get(msg.key, (err, msgGotten) => {
       t.equal(msgGotten.content.seed, seed_hex, 'correct seed extracted')
@@ -199,7 +183,7 @@ test('metafeed seed save', (t) => {
 test('recps', (t) => {
   let sbotBox2 = SecretStack({ appKey: caps.shs })
     .use(require('ssb-db2'))
-    .use(require('ssb-db2-box2'))
+    .use(require('ssb-bendy-butt'))
     .use(require('../'))
     .call(null, {
       keys: mainKey,
@@ -211,23 +195,22 @@ test('recps', (t) => {
     'hex'
   )
 
-  sbotBox2.box2.addOwnDMKey(testkey)
-  sbotBox2.box2.setReady()
+  sbotBox2.box2.setOwnDMKey(testkey)
+  sbotBox2.box2.addKeypair(metafeedKeys)
 
-  const msgVal = sbotBox2.metafeeds.messages.getMsgValAddExisting(
+  const opts = sbotBox2.metafeeds.messages.optsForAddExisting(
     metafeedKeys,
-    null,
     'main',
     mainKey,
-    {
-      recps: [mainKey.id],
-    }
+    { recps: [mainKey.id] }
   )
 
-  sbotBox2.db.add(msgVal, (err, kv) => {
-    t.true(kv.value.content.endsWith('.box2'), 'box2 encoded')
-    sbotBox2.db.get(kv.key, (err, msg) => {
-      t.equal(msg.content.feedpurpose, 'main')
+  sbotBox2.db.create(opts, (err, encryptedKVT) => {
+    t.error(err, 'no error')
+    t.true(encryptedKVT.value.content.endsWith('.box2'), 'box2 encoded')
+    sbotBox2.db.get(encryptedKVT.key, (err, decryptedMsgVal) => {
+      t.error(err, 'no error')
+      t.equal(decryptedMsgVal.content.feedpurpose, 'main')
       sbotBox2.close(t.end)
     })
   })

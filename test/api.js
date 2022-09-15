@@ -19,6 +19,7 @@ rimraf.sync(dir)
 
 let sbot = SecretStack({ appKey: caps.shs })
   .use(require('ssb-db2'))
+  .use(require('ssb-bendy-butt'))
   .use(require('../'))
   .call(null, {
     keys: mainKey,
@@ -167,7 +168,7 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
           (f) => f.feedpurpose === 'index',
           {
             feedpurpose: 'index',
-            feedformat: 'classic',
+            feedformat: 'indexed-v1',
             metadata: { query: 'foo' },
           },
           (err, f) => {
@@ -175,7 +176,10 @@ tape('findOrCreate() a subfeed under a sub meta feed', (t) => {
             t.error(err, 'no err')
             t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
-            t.true(f.subfeed.endsWith('.ed25519'), 'is a classic feed')
+            t.true(
+              f.subfeed.startsWith('ssb:feed/indexed-v1/'),
+              'feed format is indexed-v1'
+            )
 
             t.end()
           }
@@ -200,7 +204,7 @@ test('findById and findByIdSync', (t) => {
       ])
       t.equals(details.feedpurpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'classic')
+      t.equals(details.feedformat, 'indexed-v1')
 
       t.throws(
         () => {
@@ -253,6 +257,7 @@ test('restart sbot', (t) => {
   sbot.close(true, () => {
     sbot = SecretStack({ appKey: caps.shs })
       .use(require('ssb-db2'))
+      .use(require('ssb-bendy-butt'))
       .use(require('../'))
       .call(null, {
         keys: mainKey,
@@ -263,7 +268,7 @@ test('restart sbot', (t) => {
       const details = sbot.metafeeds.findByIdSync(testIndexFeed)
       t.equals(details.feedpurpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
-      t.equals(details.feedformat, 'classic')
+      t.equals(details.feedformat, 'indexed-v1')
 
       sbot.metafeeds.getRoot((err, mf) => {
         t.error(err, 'no err')
@@ -402,7 +407,7 @@ tape('findOrCreate() recps', (t) => {
 
   let sbotBox2 = SecretStack({ appKey: caps.shs })
     .use(require('ssb-db2'))
-    .use(require('ssb-db2-box2'))
+    .use(require('ssb-bendy-butt'))
     .use(require('../'))
     .call(null, {
       keys: boxKey,
@@ -414,8 +419,7 @@ tape('findOrCreate() recps', (t) => {
     'hex'
   )
 
-  sbotBox2.box2.addOwnDMKey(testkey)
-  sbotBox2.box2.setReady()
+  sbotBox2.box2.setOwnDMKey(testkey)
 
   sbotBox2.metafeeds.findOrCreate((err, mf) => {
     sbotBox2.metafeeds.findOrCreate(

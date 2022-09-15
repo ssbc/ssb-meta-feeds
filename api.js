@@ -4,7 +4,6 @@
 
 const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
-const validate = require('./validate')
 
 const alwaysTrue = () => true
 
@@ -76,43 +75,19 @@ exports.init = function (sbot, config) {
       const cb = maybeCB
       if (!details.feedpurpose) return cb(new Error('Missing feedpurpose'))
       if (!details.feedformat) return cb(new Error('Missing feedformat'))
-      sbot.metafeeds.query.getLatest(metafeed.keys.id, (err, latest) => {
+
+      const { keys, seed } = metafeed
+      const { feedpurpose, feedformat, metadata } = details
+      const opts = sbot.metafeeds.messages.optsForAddDerived(
+        keys,
+        feedpurpose,
+        seed,
+        feedformat,
+        metadata
+      )
+      sbot.db.create(opts, (err) => {
         if (err) return cb(err)
-        const msgVal = sbot.metafeeds.messages.getMsgValAddDerived(
-          metafeed.keys,
-          latest,
-          details.feedpurpose,
-          metafeed.seed,
-          details.feedformat,
-          details.metadata
-        )
-
-        const encrypted = typeof msgVal.content === 'string'
-
-        if (!encrypted) {
-          const contentSection = [msgVal.content, msgVal.contentSignature]
-          const validationResult = validate.validateSingle(contentSection)
-          if (validationResult instanceof Error) return cb(validationResult)
-        }
-
-        sbot.db.add(msgVal, (err, addedMsg) => {
-          if (err) return cb(err)
-
-          if (encrypted)
-            sbot.db.get(addedMsg.key, (err, msgVal) => {
-              const msg = {
-                key: addedMsg.key,
-                value: msgVal,
-              }
-              cb(null, sbot.metafeeds.query.hydrateFromMsg(msg, metafeed.seed))
-            })
-          else {
-            cb(
-              null,
-              sbot.metafeeds.query.hydrateFromMsg(addedMsg, metafeed.seed)
-            )
-          }
-        })
+        cb(null, sbot.metafeeds.query.hydrateFromCreateOpts(opts, seed))
       })
     }
   }
@@ -136,31 +111,18 @@ exports.init = function (sbot, config) {
   }
 
   function findAndTombstone(metafeed, visit, reason, cb) {
-    const { getLatest } = sbot.metafeeds.query
-    const { getMsgValTombstone } = sbot.metafeeds.messages
+    const { optsForTombstone } = sbot.metafeeds.messages
 
     find(metafeed, visit, (err, found) => {
       if (err) return cb(err)
       if (!found) return cb(new Error('Cannot find subfeed to tombstone'))
 
-      getLatest(metafeed.keys.id, (err, latest) => {
+      optsForTombstone(metafeed.keys, found.keys, reason, (err, opts) => {
         if (err) return cb(err)
-
-        getMsgValTombstone(
-          metafeed.keys,
-          latest,
-          found.keys,
-          reason,
-          (err, msgVal) => {
-            if (err) return cb(err)
-
-            sbot.db.add(msgVal, (err, msg) => {
-              if (err) return cb(err)
-
-              cb(null, true)
-            })
-          }
-        )
+        sbot.db.create(opts, (err, msg) => {
+          if (err) return cb(err)
+          cb(null, true)
+        })
       })
     })
   }
@@ -198,8 +160,8 @@ exports.init = function (sbot, config) {
 
     // Pluck relevant internal APIs
     const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
-    const { getSeed, getAnnounces, getLatest } = sbot.metafeeds.query
-    const { getContentSeed, getContentAnnounce, getMsgValAddExisting } =
+    const { getSeed, getAnnounces } = sbot.metafeeds.query
+    const { optsForSeed, optsForAnnounce, optsForAddExisting } =
       sbot.metafeeds.messages
 
     // Ensure seed exists
@@ -208,9 +170,10 @@ exports.init = function (sbot, config) {
     if (err1 || !loadedSeed) {
       if (err1) debug('generating a seed because %o', err1)
       else debug('generating a seed')
-      mf = buildRootFeedDetails(sbot.metafeeds.keys.generateSeed())
-      const content = getContentSeed(mf.keys.id, sbot.id, mf.seed)
-      const [err2] = await run(sbot.db.publish)(content)
+      const seed = sbot.metafeeds.keys.generateSeed()
+      const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
+      const opts = optsForSeed(mfKeys, sbot.id, seed)
+      const [err2] = await run(sbot.db.create)(opts)
       if (err2) return cb(err2)
     } else {
       debug('loaded seed')
@@ -222,9 +185,9 @@ exports.init = function (sbot, config) {
     if (err2 || !announcements || announcements.length === 0) {
       if (err2) debug('announcing meta feed on main feed because %o', err2)
       else debug('announcing meta feed on main feed')
-      const [err3, content] = await run(getContentAnnounce)(mf.keys)
+      const [err3, opts] = await run(optsForAnnounce)(mf.keys, config.keys)
       if (err3) return cb(err3)
-      const [err4] = await run(sbot.db.publish)(content)
+      const [err4] = await run(sbot.db.create)(opts)
       if (err4) return cb(err4)
     } else {
       debug('announce post exists on main feed')
@@ -234,11 +197,9 @@ exports.init = function (sbot, config) {
     const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
     if (err3) return cb(err3)
     if (!added) {
-      const [err4, latest] = await run(getLatest)(mf.keys.id)
-      if (err4) return cb(err4)
       debug('adding main feed to root meta feed')
-      const msgVal = getMsgValAddExisting(mf.keys, latest, 'main', config.keys)
-      const [err5] = await run(sbot.db.add)(msgVal)
+      const opts = optsForAddExisting(mf.keys, 'main', config.keys)
+      const [err5] = await run(sbot.db.create)(opts)
       if (err5) return cb(err5)
     } else {
       debug('main feed already added to root meta feed')

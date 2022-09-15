@@ -1,7 +1,7 @@
 {
   "name": "ssb-meta-feeds",
   "description": "Manage meta feeds and its sub feeds, as a secret-stack plugin",
-  "version": "0.28.2",
+  "version": "0.30.0",
   "homepage": "https://github.com/ssb-ngi-pointer/ssb-meta-feeds",
   "repository": {
     "type": "git",
@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "bencode": "^2.0.2",
-    "bipf": "^1.5.1",
+    "bipf": "^1.9.0",
     "debug": "^4.3.0",
     "futoin-hkdf": "^1.4.2",
     "is-canonical-base64": "^1.1.1",
@@ -23,28 +23,30 @@
     "pull-cat": "^1.1.11",
     "pull-notify": "^0.1.1",
     "pull-stream": "^3.6.14",
-    "ssb-bendy-butt": "~0.12.3",
-    "ssb-bfe": "^3.1.1",
-    "ssb-db2": ">=3.0.0 <=4",
-    "ssb-keys": "^8.2.0",
+    "ssb-bfe": "^3.6.0",
+    "ssb-db2": ">=3.0.0 <=6",
+    "ssb-keys": "^8.5.0",
     "ssb-ref": "^2.16.0",
-    "ssb-uri2": "^1.5.2"
+    "ssb-uri2": "^2.1.0"
   },
   "devDependencies": {
+    "c8": "^7.11.0",
     "husky": "^4.3.0",
     "prettier": "^2.1.2",
     "pretty-quick": "^3.1.0",
     "rimraf": "^3.0.2",
     "secret-stack": "^6.4.0",
+    "ssb-bendy-butt": "^1.0.1",
+    "ssb-db2": "^6.1.1",
     "ssb-caps": "^1.1.0",
-    "ssb-db2-box2": "^0.4.0",
-    "tap-arc": "^0.3.4",
-    "tape": "^5.3.0"
+    "tap-arc": "^0.3.5",
+    "tape": "^5.5.3"
   },
   "scripts": {
     "test": "tape test/*.js | tap-arc --bail",
     "format-code": "prettier --write \"*.js\" \"test/*.js\"",
-    "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"test/*.js\""
+    "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"test/*.js\"",
+    "coverage": "c8 --reporter=lcov npm run test"
   },
   "husky": {
     "hooks": {

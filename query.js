@@ -59,26 +59,7 @@ exports.init = function (sbot, config) {
       )
     },
 
-    /**
-     * Gets the latest message on the given feed, typically a meta feed, but
-     * other feed types work too.
-     */
-    getLatest(feedId, cb) {
-      sbot.db.query(
-        where(author(feedId)),
-        paginate(1),
-        descending(),
-        toCallback((err, answer) => {
-          if (err) return cb(err)
-          const msgs = answer.results
-          if (msgs.length !== 1) return cb(null, null)
-          const msg = msgs[0]
-          cb(null, msg)
-        })
-      )
-    },
-
-    collectMetadata(msg) {
+    collectMetadata(content) {
       const metadata = {}
       const ignored = [
         'feedpurpose',
@@ -88,23 +69,22 @@ exports.init = function (sbot, config) {
         'tangles',
         'type',
       ]
-      for (const key of Object.keys(msg.value.content)) {
+      for (const key of Object.keys(content)) {
         if (ignored.includes(key)) continue
-        metadata[key] = msg.value.content[key]
+        metadata[key] = content[key]
       }
       return metadata
     },
 
     /**
-     * Gets the current state of a subfeed based on the meta feed message that
+     * Gets the current state of a subfeed based on the metafeed message that
      * "added" the subfeed
      */
     hydrateFromMsg(msg, seed) {
-      const { type, feedpurpose, subfeed, nonce } = msg.value.content
-      const metadata = self.collectMetadata(msg)
-      const feedformat = SSBURI.isBendyButtV1FeedSSBURI(subfeed)
-        ? 'bendybutt-v1'
-        : 'classic'
+      const content = msg.value.content
+      const { type, feedpurpose, subfeed, nonce } = content
+      const metadata = self.collectMetadata(content)
+      const feedformat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metafeed/add/existing'
       const keys = existing
         ? config.keys
@@ -115,6 +95,33 @@ exports.init = function (sbot, config) {
           )
       return {
         metafeed: msg.value.author,
+        feedformat,
+        feedpurpose,
+        subfeed,
+        keys,
+        metadata,
+        seed: !existing ? seed : undefined,
+      }
+    },
+
+    /**
+     * Gets the current state of a subfeed based on an "opts" argument for
+     * "ssb.db.create".
+     */
+    hydrateFromCreateOpts(opts, seed) {
+      const { feedpurpose, subfeed, metafeed, nonce, type } = opts.content
+      const feedformat = validate.detectFeedFormat(subfeed)
+      const existing = type === 'metadata/add/existing'
+      const keys = existing
+        ? config.keys
+        : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+            seed,
+            nonce.toString('base64'),
+            feedformat
+          )
+      const metadata = self.collectMetadata(opts.content)
+      return {
+        metafeed,
         feedformat,
         feedpurpose,
         subfeed,
@@ -149,8 +156,9 @@ exports.init = function (sbot, config) {
           const tombstoned = validatedMsgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
-              const { feedpurpose, subfeed } = msg.value.content
-              const metadata = self.collectMetadata(msg)
+              const content = msg.value.content
+              const { feedpurpose, subfeed } = content
+              const metadata = self.collectMetadata(content)
               return { feedpurpose, subfeed, metadata }
             })
 
