@@ -175,6 +175,7 @@ exports.init = function (sbot, config) {
       const opts = optsForSeed(mfKeys, sbot.id, seed)
       const [err2] = await run(sbot.db.create)(opts)
       if (err2) return cb(err2)
+      mf = buildRootFeedDetails(seed)
     } else {
       debug('loaded seed')
       mf = buildRootFeedDetails(loadedSeed)
