@@ -48,18 +48,6 @@ exports.init = function (sbot, config) {
     sbot.metafeeds.lookup.findById(feedId, cb)
   }
 
-  function loadState(cb) {
-    sbot.metafeeds.lookup.loadState(cb)
-  }
-
-  function ensureLoaded(feedId, cb) {
-    sbot.metafeeds.lookup.ensureLoaded(feedId, cb)
-  }
-
-  function findByIdSync(feedId) {
-    return sbot.metafeeds.lookup.findByIdSync(feedId)
-  }
-
   function branchStream(opts) {
     return sbot.metafeeds.lookup.branchStream(opts)
   }
@@ -219,9 +207,6 @@ exports.init = function (sbot, config) {
     findOrCreate,
     findAndTombstone,
     findById,
-    findByIdSync,
-    loadState,
-    ensureLoaded,
     branchStream,
   }
 }

@@ -169,21 +169,7 @@ test('findById and findByIdSync', (t) => {
       t.equals(details.metafeed, testIndexesMF.keys.id)
       t.equals(details.feedformat, 'indexed-v1')
 
-      t.throws(
-        () => {
-          sbot.metafeeds.findByIdSync(testIndexFeed)
-        },
-        /Please call loadState/,
-        'findByIdSync throws'
-      )
-
-      sbot.metafeeds.loadState((err) => {
-        t.error(err, 'no err')
-        const details2 = sbot.metafeeds.findByIdSync(testIndexFeed)
-        t.deepEquals(details2, details, 'findByIdSync same as findById')
-
-        t.end()
-      })
+      t.end()
     })
   })
 })
@@ -227,8 +213,8 @@ test('restart sbot', (t) => {
         path: dir,
       })
 
-    sbot.metafeeds.ensureLoaded(testIndexFeed, () => {
-      const details = sbot.metafeeds.findByIdSync(testIndexFeed)
+    sbot.metafeeds.findById(testIndexFeed, (err, details) => {
+      t.error(err, 'no err')
       t.equals(details.feedpurpose, 'index')
       t.equals(details.metafeed, testIndexesMF.keys.id)
       t.equals(details.feedformat, 'indexed-v1')

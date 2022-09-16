@@ -6,6 +6,7 @@ const { seekKey } = require('bipf')
 const pull = require('pull-stream')
 const cat = require('pull-cat')
 const Notify = require('pull-notify')
+const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
 const {
   where,
@@ -48,7 +49,6 @@ function subfeed(feedId) {
 }
 
 exports.init = function (sbot, config) {
-  let stateLoaded = false
   const stateLoadedP = DeferredPromise()
   let loadStateRequested = false
   let liveDrainer = null
@@ -151,7 +151,6 @@ exports.init = function (sbot, config) {
       pull.drain(updateLookup, (err) => {
         if (err) return console.error(err)
 
-        stateLoaded = true
         stateLoadedP.resolve()
 
         sbot.close.hook(function (fn, args) {
@@ -230,94 +229,83 @@ exports.init = function (sbot, config) {
     }
   }
 
-  return {
-    loadState(cb) {
-      if (!loadStateRequested) loadState()
-
-      if (cb) stateLoadedP.promise.then(cb)
-    },
-
-    ensureLoaded(feedId, cb) {
-      if (!loadStateRequested) loadState()
-
-      if (detailsLookup.has(feedId)) cb()
-      else ensureQueue.add(feedId, cb)
-    },
-
-    findByIdSync(feedId) {
-      if (!stateLoaded) {
-        throw new Error('Please call loadState() before using findByIdSync()')
-      }
+  function findById(feedId, cb) {
+    try {
       assertFeedId(feedId)
+      if (!validate.detectFeedFormat(feedId)) throw Error('Invalid feedId')
+    } catch (err) {
+      return cb(err)
+    }
 
-      return detailsLookup.get(feedId)
-    },
+    sbot.db.query(
+      where(subfeed(feedId)),
+      toCallback((err, msgs) => {
+        if (err) return cb(err)
 
-    findById(feedId, cb) {
-      try {
-        assertFeedId(feedId)
-        if (!validate.detectFeedFormat(feedId)) throw Error('Invalid feedId')
-      } catch (err) {
-        return cb(err)
-      }
-
-      sbot.db.query(
-        where(subfeed(feedId)),
-        toCallback((err, msgs) => {
-          if (err) return cb(err)
-
-          msgs = msgs.filter((msg) => validate.isValid(msg))
-          if (msgs.find((m) => m.value.content.type === 'metafeed/tombstone')) {
-            return cb(null, null)
-          }
-          msgs = msgs.filter((m) =>
-            m.value.content.type.startsWith('metafeed/add/')
-          )
-          if (msgs.length === 0) {
-            return cb(null, null)
-          }
-
-          const details = msgToDetails(undefined, msgs[0])
-          cb(null, details)
-        })
-      )
-    },
-
-    branchStream(opts) {
-      if (!loadStateRequested) loadState()
-      const {
-        live = true,
-        old = false,
-        root = null,
-        tombstoned = null,
-      } = opts || {}
-
-      const filterTombstoneOrNot = (branch) => {
-        const [, leafDetails] = branch[branch.length - 1]
-        if (tombstoned === null) {
-          // Anything goes
-          return true
-        } else if (tombstoned === false) {
-          // All nodes in the branch must be non-tombstoned
-          return branch.every(([, details]) => !details || !details.tombstoned)
-        } else if (tombstoned === true) {
-          // The leaf must be tombstoned for this branch to be interesting to us
-          return leafDetails && !!leafDetails.tombstoned
+        msgs = msgs.filter((msg) => validate.isValid(msg))
+        if (msgs.find((m) => m.value.content.type === 'metafeed/tombstone')) {
+          return cb(null, null)
         }
-      }
-
-      if (old && live) {
-        return pull(
-          cat([branchStreamOld(root), branchStreamLive(root)]),
-          pull.filter(filterTombstoneOrNot)
+        msgs = msgs.filter((m) =>
+          m.value.content.type.startsWith('metafeed/add/')
         )
-      } else if (old) {
-        return pull(branchStreamOld(root), pull.filter(filterTombstoneOrNot))
-      } else if (live) {
-        return pull(branchStreamLive(root), pull.filter(filterTombstoneOrNot))
-      } else {
-        return pull.empty()
+        if (msgs.length === 0) {
+          return cb(null, null)
+        }
+
+        const details = msgToDetails(undefined, msgs[0])
+        cb(null, details)
+      })
+    )
+  }
+
+  function branchStream(opts) {
+    if (!loadStateRequested) {
+      loadState()
+      const deferred = Defer.source()
+      stateLoadedP.promise.then(() => {
+        deferred.resolve(branchStream(opts))
+      })
+      return deferred
+    }
+
+    const {
+      live = true,
+      old = false,
+      root = null,
+      tombstoned = null,
+    } = opts || {}
+
+    const filterTombstoneOrNot = (branch) => {
+      const [, leafDetails] = branch[branch.length - 1]
+      if (tombstoned === null) {
+        // Anything goes
+        return true
+      } else if (tombstoned === false) {
+        // All nodes in the branch must be non-tombstoned
+        return branch.every(([, details]) => !details || !details.tombstoned)
+      } else if (tombstoned === true) {
+        // The leaf must be tombstoned for this branch to be interesting to us
+        return leafDetails && !!leafDetails.tombstoned
       }
-    },
+    }
+
+    if (old && live) {
+      return pull(
+        cat([branchStreamOld(root), branchStreamLive(root)]),
+        pull.filter(filterTombstoneOrNot)
+      )
+    } else if (old) {
+      return pull(branchStreamOld(root), pull.filter(filterTombstoneOrNot))
+    } else if (live) {
+      return pull(branchStreamLive(root), pull.filter(filterTombstoneOrNot))
+    } else {
+      return pull.empty()
+    }
+  }
+
+  return {
+    findById,
+    branchStream,
   }
 }
