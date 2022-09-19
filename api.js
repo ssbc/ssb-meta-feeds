@@ -139,11 +139,7 @@ exports.init = function (sbot, config) {
     sbot.metafeeds.query.getSeed((err, seed) => {
       if (err) return cb(err)
       if (!seed) return cb(null, null)
-      const metafeed = {
-        seed,
-        keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
-      }
-      cb(null, metafeed)
+      cb(null, buildRootFeedDetails(seed))
     })
   }
 
@@ -167,11 +163,10 @@ exports.init = function (sbot, config) {
       const opts = optsForSeed(mfKeys, sbot.id, seed)
       const [err2] = await run(sbot.db.create)(opts)
       if (err2) return cb(err2)
-      mf = { seed, keys: mfKeys }
+      mf = buildRootFeedDetails(seed)
     } else {
       debug('loaded seed')
-      const mfKeys = deriveRootMetaFeedKeyFromSeed(loadedSeed)
-      mf = { seed: loadedSeed, keys: mfKeys }
+      mf = buildRootFeedDetails(loadedSeed)
     }
 
     // Ensure root meta feed announcement exists on the main feed
@@ -200,6 +195,19 @@ exports.init = function (sbot, config) {
     }
 
     rootMetaFeedLock.release(null, mf)
+  }
+
+  function buildRootFeedDetails(seed) {
+    const keys = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
+    return {
+      metafeed: null,
+      subfeed: keys.id,
+      feedpurpose: 'root',
+      feedformat: 'bendybutt-v1',
+      seed,
+      keys,
+      metadata: {},
+    }
   }
 
   return {
