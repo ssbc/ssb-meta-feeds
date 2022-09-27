@@ -60,19 +60,8 @@ exports.init = function (sbot, config) {
     },
 
     collectMetadata(content) {
-      const metadata = {}
-      const ignored = [
-        'feedpurpose',
-        'subfeed',
-        'nonce',
-        'metafeed',
-        'tangles',
-        'type',
-      ]
-      for (const key of Object.keys(content)) {
-        if (ignored.includes(key)) continue
-        metadata[key] = content[key]
-      }
+      const metadata = content.metadata || {}
+      if (content.recps) metadata.recps = content.recps
       return metadata
     },
 

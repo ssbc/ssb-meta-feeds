@@ -75,6 +75,7 @@ test('advanced.findOrCreate(cb)', (t) => {
 
 test('advanced.findOrCreate is idempotent', (t) => {
   const sbot = Testbot()
+
   sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
     t.error(err, 'no err for findOrCreate()')
     t.ok(mf, 'got a metafeed')
@@ -451,6 +452,37 @@ test('findOrCreate', (t) => {
         })
       )
     })
+  })
+})
+
+test('findOrCreate (metadata does not collide)', (t) => {
+  const sbot = Testbot()
+
+  const details = {
+    feedpurpose: 'chess',
+    // feedformat: 'classic', optional
+    metadata: {
+      type: 'dogs',
+    },
+  }
+
+  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+    if (err) throw err
+
+    pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        if (err) throw err
+
+        const latest = branches.pop()
+        const chessDetails = latest.pop()[1]
+
+        t.equal(chessDetails.feedpurpose, 'chess')
+        t.deepEqual(chessDetails.metadata, { type: 'dogs' })
+        sbot.close()
+        t.end()
+      })
+    )
   })
 })
 

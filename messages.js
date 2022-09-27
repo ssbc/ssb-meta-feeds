@@ -34,7 +34,14 @@ exports.init = function init(sbot) {
 
     if (nonce) content.nonce = nonce
 
-    if (metadata) Object.assign(content, metadata)
+    if (metadata) {
+      content.metadata = {}
+      Object.keys(metadata).forEach((key) => {
+        if (key === 'recps') content.recps = metadata.recps
+        else content.metadata[key] = metadata[key]
+      })
+      if (!Object.keys(content.metadata).length) delete content.metadata
+    }
 
     return {
       feedFormat: 'bendybutt-v1',

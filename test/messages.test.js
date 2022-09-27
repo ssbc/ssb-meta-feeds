@@ -187,7 +187,7 @@ test('recps', (t) => {
     .use(require('../'))
     .call(null, {
       keys: mainKey,
-      path: dir,
+      path: dir + Math.random(),
     })
 
   const testkey = Buffer.from(
@@ -202,7 +202,11 @@ test('recps', (t) => {
     metafeedKeys,
     'main',
     mainKey,
-    { recps: [mainKey.id] }
+    {
+      // metadata
+      recps: [mainKey.id],
+      color: 'blue',
+    }
   )
 
   sbotBox2.db.create(opts, (err, encryptedKVT) => {
@@ -210,7 +214,13 @@ test('recps', (t) => {
     t.true(encryptedKVT.value.content.endsWith('.box2'), 'box2 encoded')
     sbotBox2.db.get(encryptedKVT.key, (err, decryptedMsgVal) => {
       t.error(err, 'no error')
-      t.equal(decryptedMsgVal.content.feedpurpose, 'main')
+      t.equal(decryptedMsgVal.content.feedpurpose, 'main', 'purpose')
+      t.deepEqual(
+        decryptedMsgVal.content.metadata,
+        { color: 'blue' },
+        'metadata'
+      )
+      t.deepEqual(decryptedMsgVal.content.recps, [mainKey.id], 'recps')
       sbotBox2.close(t.end)
     })
   })

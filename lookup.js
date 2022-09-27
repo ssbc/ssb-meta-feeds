@@ -87,20 +87,7 @@ exports.init = function (sbot, config) {
     details.feedformat = validate.detectFeedFormat(content.subfeed)
     details.feedpurpose = content.feedpurpose || details.feedpurpose
     details.metafeed = content.metafeed || details.metafeed
-    details.metadata = {} || details.metafeed
-    const NOT_METADATA = [
-      'metafeed',
-      'feedpurpose',
-      'type',
-      'tangles',
-      'reason',
-      'subfeed',
-      'nonce',
-    ]
-    const keys = Object.keys(content).filter((k) => !NOT_METADATA.includes(k))
-    for (const key of keys) {
-      details.metadata[key] = content[key]
-    }
+    details.metadata = content.metadata || details.metadata || {}
     if (content.type === 'metafeed/tombstone') {
       details.tombstoned = true
       details.reason = content.reason
@@ -195,6 +182,7 @@ exports.init = function (sbot, config) {
   }
 
   function branchStreamOld(rootMetafeedId) {
+    // WARNING this method needs loadState to be called?
     const branches = []
     if (rootMetafeedId) {
       traverseBranchesUnder(rootMetafeedId, [], (branch) => {
