@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 const run = require('promisify-tuple')
+const deepEqual = require('fast-deep-equal')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
 
@@ -11,9 +12,13 @@ const BB1 = 'bendybutt-v1'
 const v1Details = { feedpurpose: 'v1', feedformat: BB1 }
 const v1Visit = detailsToVisit(v1Details)
 function detailsToVisit(details) {
-  return (feed) =>
-    feed.feedpurpose === details.feedpurpose &&
-    feed.feedformat === details.feedformat
+  return (feed) => {
+    return (
+      feed.feedpurpose === details.feedpurpose &&
+      feed.feedformat === details.feedformat &&
+      deepEqual(feed.metadata, details.metadata || {})
+    )
+  }
 }
 
 exports.init = function (sbot, config) {
