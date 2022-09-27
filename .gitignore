@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Unlicense
 
 node_modules
+package-lock.json
 pnpm-lock.yaml
 coverage
 .nyc_output

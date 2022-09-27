@@ -30,16 +30,16 @@ function testReadAndPersisted(t, sbot, testRead) {
 
 /* Tests */
 
-test('getRoot() when there is nothing', (t) => {
+test('advanced.getRoot() when there is nothing', (t) => {
   const sbot = Testbot()
-  sbot.metafeeds.getRoot((err, found) => {
+  sbot.metafeeds.advanced.getRoot((err, found) => {
     t.error(err, 'no err for find()')
     t.notOk(found, 'nothing found')
     sbot.close(true, t.end)
   })
 })
 
-test('findOrCreate(null, null, null, cb)', (t) => {
+test('advanced.findOrCreate(null, null, null, cb)', (t) => {
   const sbot = Testbot()
   sbot.db.query(
     where(author(sbot.id)),
@@ -47,7 +47,7 @@ test('findOrCreate(null, null, null, cb)', (t) => {
       if (err) throw err
       t.equals(msgs.length, 0, 'empty db')
 
-      sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
+      sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
         t.error(err, 'no err for findOrCreate()')
         // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
         // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
@@ -59,10 +59,10 @@ test('findOrCreate(null, null, null, cb)', (t) => {
   )
 })
 
-test('findOrCreate(cb)', (t) => {
+test('advanced.findOrCreate(cb)', (t) => {
   const sbot = Testbot()
 
-  sbot.metafeeds.findOrCreate((err, mf) => {
+  sbot.metafeeds.advanced.findOrCreate((err, mf) => {
     t.error(err, 'no err for findOrCreate()')
     // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
     // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
@@ -72,19 +72,19 @@ test('findOrCreate(cb)', (t) => {
   })
 })
 
-test('findOrCreate is idempotent', (t) => {
+test('advanced.findOrCreate is idempotent', (t) => {
   const sbot = Testbot()
-  sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
+  sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
     t.error(err, 'no err for findOrCreate()')
     t.ok(mf, 'got a metafeed')
-    sbot.metafeeds.getRoot((err, mf) => {
+    sbot.metafeeds.advanced.getRoot((err, mf) => {
       t.error(err, 'no err for getRoot()')
       t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
       t.equals(typeof mf.keys.id, 'string', 'key seems okay')
       const originalSeed = mf.seed.toString('hex')
       const originalID = mf.keys.id
 
-      sbot.metafeeds.findOrCreate((err, mf) => {
+      sbot.metafeeds.advanced.findOrCreate((err, mf) => {
         t.error(err, 'no err for findOrCreate(null, ...)')
         t.equals(mf.seed.toString('hex'), originalSeed, 'same seed')
         t.equals(mf.keys.id, originalID, 'same ID')
@@ -95,14 +95,14 @@ test('findOrCreate is idempotent', (t) => {
   })
 })
 
-test('findOrCreate() a sub feed', (t) => {
+test('advanced.findOrCreate() a sub feed', (t) => {
   const sbot = Testbot()
-  sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
-    sbot.metafeeds.getRoot((err, mf) => {
+  sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
+    sbot.metafeeds.advanced.getRoot((err, mf) => {
       t.error(err, 'gets rootFeed')
 
       // lets create a new chess feed
-      sbot.metafeeds.findOrCreate(
+      sbot.metafeeds.advanced.findOrCreate(
         mf,
         (f) => f.feedpurpose === 'chess',
         {
@@ -122,11 +122,11 @@ test('findOrCreate() a sub feed', (t) => {
 
 test('all FeedDetails have same format', (t) => {
   const sbot = Testbot()
-  sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
-    t.error(err, 'no err')
-    sbot.metafeeds.getRoot((err, mf) => {
+  sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
+    if (err) throw err
+    sbot.metafeeds.advanced.getRoot((err, mf) => {
       if (err) throw err
-      sbot.metafeeds.findOrCreate(
+      sbot.metafeeds.advanced.findOrCreate(
         null,
         () => true,
         {},
@@ -139,7 +139,7 @@ test('all FeedDetails have same format', (t) => {
             'getRoot and findOrCreate return the same root FeedDetails'
           )
 
-          sbot.metafeeds.findOrCreate(
+          sbot.metafeeds.advanced.findOrCreate(
             mf,
             (f) => f.feedpurpose === 'chess',
             {
@@ -162,10 +162,10 @@ test('all FeedDetails have same format', (t) => {
   })
 })
 
-test('findOrCreate() a subfeed under a sub meta feed', (t) => {
+test('advanced.findOrCreate() a subfeed under a sub meta feed', (t) => {
   const sbot = Testbot()
-  sbot.metafeeds.findOrCreate(null, null, null, (err, rootMF) => {
-    sbot.metafeeds.findOrCreate(
+  sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, rootMF) => {
+    sbot.metafeeds.advanced.findOrCreate(
       rootMF,
       (f) => f.feedpurpose === 'indexes',
       { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
@@ -177,7 +177,7 @@ test('findOrCreate() a subfeed under a sub meta feed', (t) => {
           'has a bendy butt SSB URI'
         )
 
-        sbot.metafeeds.findOrCreate(
+        sbot.metafeeds.advanced.findOrCreate(
           indexesMF,
           (f) => f.feedpurpose === 'index',
           {
@@ -208,8 +208,8 @@ test('findOrCreate() a subfeed under a sub meta feed', (t) => {
 //     - indexes
 //        - about
 async function setupTree(sbot) {
-  const rootMF = await p(sbot.metafeeds.findOrCreate)()
-  const chessF = await p(sbot.metafeeds.findOrCreate)(
+  const rootMF = await p(sbot.metafeeds.advanced.findOrCreate)()
+  const chessF = await p(sbot.metafeeds.advanced.findOrCreate)(
     rootMF,
     (f) => f.feedpurpose === 'chess',
     {
@@ -218,12 +218,12 @@ async function setupTree(sbot) {
       metadata: { score: 0 },
     }
   )
-  const indexesMF = await p(sbot.metafeeds.findOrCreate)(
+  const indexesMF = await p(sbot.metafeeds.advanced.findOrCreate)(
     rootMF,
     (f) => f.feedpurpose === 'indexes',
     { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' }
   )
-  const indexF = await p(sbot.metafeeds.findOrCreate)(
+  const indexF = await p(sbot.metafeeds.advanced.findOrCreate)(
     indexesMF,
     (f) => f.feedpurpose === 'index',
     {
@@ -236,16 +236,16 @@ async function setupTree(sbot) {
   return { rootMF, chessF, indexesMF, indexF }
 }
 
-test('findById', (t) => {
+test('advanced.findById', (t) => {
   const sbot = Testbot()
 
   setupTree(sbot).then(({ indexF, indexesMF }) => {
-    sbot.metafeeds.findById(null, (err, details) => {
+    sbot.metafeeds.advanced.findById(null, (err, details) => {
       t.match(err.message, /feedId should be provided/, 'error about feedId')
       t.notOk(details)
 
       testReadAndPersisted(t, sbot, (t, sbot, cb) => {
-        sbot.metafeeds.findById(indexF.keys.id, (err, details) => {
+        sbot.metafeeds.advanced.findById(indexF.keys.id, (err, details) => {
           if (err) return cb(err)
 
           t.deepEquals(Object.keys(details), [
@@ -302,7 +302,7 @@ test('branchStream', (t) => {
   })
 })
 
-test('findAndTombstone and tombstoning branchStream', (t) => {
+test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
   const sbot = Testbot()
 
   setupTree(sbot).then(({ rootMF }) => {
@@ -367,7 +367,7 @@ test('findAndTombstone and tombstoning branchStream', (t) => {
       })
     )
 
-    sbot.metafeeds.findAndTombstone(
+    sbot.metafeeds.advanced.findAndTombstone(
       rootMF,
       (f) => f.feedpurpose === 'chess',
       'This game is too good',
@@ -378,19 +378,19 @@ test('findAndTombstone and tombstoning branchStream', (t) => {
   })
 })
 
-test('findOrCreate() recps', (t) => {
+test('advanced.findOrCreate (metadata.recps)', (t) => {
   const sbot = Testbot()
 
-  const testkey = Buffer.from(
+  const ownKey = Buffer.from(
     '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
     'hex'
   )
-  sbot.box2.setOwnDMKey(testkey)
+  sbot.box2.setOwnDMKey(ownKey)
 
   testReadAndPersisted(t, sbot, (t, sbot, cb) => {
-    sbot.metafeeds.findOrCreate((err, mf) => {
+    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
       if (err) return cb(err)
-      sbot.metafeeds.findOrCreate(
+      sbot.metafeeds.advanced.findOrCreate(
         mf,
         (f) => f.feedpurpose === 'private',
         {
@@ -408,5 +408,69 @@ test('findOrCreate() recps', (t) => {
         }
       )
     })
+  })
+})
+
+// sugary top level API
+
+test('findOrCreate', (t) => {
+  const sbot = Testbot()
+
+  const details = {
+    feedpurpose: 'chess',
+    // feedformat: 'classic', optional
+  }
+
+  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+    if (err) throw err
+    t.equal(chessF.feedpurpose, details.feedpurpose, 'creates feed')
+
+    sbot.metafeeds.findOrCreate(details, (err, chessF2) => {
+      if (err) throw err
+      t.deepEqual(chessF, chessF2, 'finds feed')
+
+      pull(
+        sbot.metafeeds.branchStream({ root: null, old: true, live: false }),
+        pull.collect((err, branches) => {
+          if (err) throw err
+
+          t.equal(branches.length, 5, 'correct number of feeds created')
+          // root, v1, shard, chess (AND MAIN)
+
+          const purposePath = branches
+            .pop()
+            .map((f) => f[1] && f[1].feedpurpose)
+          t.deepEqual(purposePath, [null, 'v1', purposePath[2], 'chess'])
+          // TODO it would be nice for testing that we could deterministically know the shard
+          // but I don't know how to fix the "seed" that the root feed is derived from
+
+          sbot.close(true, t.end)
+        })
+      )
+    })
+  })
+})
+
+test('findOrCreate (metadata.recps)', (t) => {
+  const sbot = Testbot()
+
+  const ownKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.setOwnDMKey(ownKey)
+
+  const details = {
+    feedpurpose: 'chess',
+    metadata: {
+      recps: [sbot.id],
+    },
+  }
+
+  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+    if (err) throw err
+
+    t.deepEqual(chessF.metadata.recps, [sbot.id], 'creates encrypted subfee')
+    sbot.close(true, t.end)
   })
 })
