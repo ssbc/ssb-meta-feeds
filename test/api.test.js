@@ -16,7 +16,7 @@ function testReadAndPersisted(t, sbot, testRead) {
   testRead(t, sbot, (err) => {
     t.error(err, 'no error')
 
-    console.log('> persistance')
+    console.log('> persistence')
 
     sbot.close(() => {
       sbot = Testbot({ path, rimraf: false })
