@@ -236,10 +236,10 @@ The `opts` argument can have the following properties:
 
 ### `sbot.metafeeds.findAndTombstone(details, reason, cb)`
 
-_Looks for the first subfeed that satisfies matches `details` and, if found,
+Looks for the first subfeed that matches `details` and, if found,
 tombstones it with the string `reason`.
 
-This is strictly concerned with meta feeds and sub feeds that **you own**, not
+This is strictly concerned with metafeeds and sub feeds that **you own**, not
 with those that belong to other peers.
 
 Arguments:

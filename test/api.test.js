@@ -483,10 +483,10 @@ test('findAndTombstone', (t) => {
   }
 
   sbot.metafeeds.findOrCreate(details, (err, chessF) => {
-    if (err) throw err
+    t.error(err, 'no error')
 
     sbot.metafeeds.findAndTombstone(details, 'stupid game', (err, success) => {
-      if (err) throw err
+      t.error(err, 'no error')
       t.true(success, 'tombstone success')
 
       pull(
@@ -499,7 +499,7 @@ test('findAndTombstone', (t) => {
           branch.map((el) => (el[1] ? el[1].feedpurpose : null))
         ),
         pull.collect((err, branches) => {
-          if (err) throw err
+          t.error(err, 'no error')
 
           t.true(
             branches.every((branch) => !branch.includes('chess')),
