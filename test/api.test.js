@@ -8,6 +8,29 @@ const { author, where, toCallback } = require('ssb-db2/operators')
 const { promisify: p } = require('util')
 const Testbot = require('./testbot.js')
 
+/* Helpers */
+
+function testReadAndPersisted(t, sbot, testRead) {
+  const { path } = sbot.config
+
+  testRead(t, sbot, (err) => {
+    t.error(err, 'no error')
+
+    console.log('> persistance')
+
+    sbot.close(() => {
+      sbot = Testbot({ path, rimraf: false })
+      testRead(t, sbot, (err) => {
+        t.error(err, 'no error')
+        sbot.close()
+        t.end()
+      })
+    })
+  })
+}
+
+/* Tests */
+
 test('getRoot() when there is nothing', (t) => {
   const sbot = Testbot()
   sbot.metafeeds.getRoot((err, found) => {
@@ -17,11 +40,12 @@ test('getRoot() when there is nothing', (t) => {
   })
 })
 
-test('findOrCreate(null, ...) can create the root metafeed', (t) => {
+test('findOrCreate(null, null, null, cb)', (t) => {
   const sbot = Testbot()
   sbot.db.query(
     where(author(sbot.id)),
     toCallback((err, msgs) => {
+      if (err) throw err
       t.equals(msgs.length, 0, 'empty db')
 
       sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
@@ -34,6 +58,19 @@ test('findOrCreate(null, ...) can create the root metafeed', (t) => {
       })
     })
   )
+})
+
+test('findOrCreate(cb)', (t) => {
+  const sbot = Testbot()
+
+  sbot.metafeeds.findOrCreate((err, mf) => {
+    t.error(err, 'no err for findOrCreate()')
+    // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
+    // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
+    t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
+    t.equals(typeof mf.keys.id, 'string', 'key seems okay')
+    sbot.close(true, t.end)
+  })
 })
 
 test('findOrCreate is idempotent', (t) => {
@@ -87,6 +124,7 @@ test('findOrCreate() a sub feed', (t) => {
 test('all FeedDetails have same format', (t) => {
   const sbot = Testbot()
   sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
+    if (err) throw err
     sbot.metafeeds.getRoot((err, mf) => {
       if (err) throw err
       sbot.metafeeds.findOrCreate(
@@ -149,7 +187,6 @@ test('findOrCreate() a subfeed under a sub meta feed', (t) => {
             metadata: { query: 'foo' },
           },
           (err, f) => {
-            testIndexFeed = f.subfeed
             t.error(err, 'no err')
             t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
@@ -202,38 +239,42 @@ async function setupTree(sbot) {
 
 test('findById', (t) => {
   const sbot = Testbot()
+
   setupTree(sbot).then(({ indexF, indexesMF }) => {
     sbot.metafeeds.findById(null, (err, details) => {
       t.match(err.message, /feedId should be provided/, 'error about feedId')
       t.notOk(details)
 
-      sbot.metafeeds.findById(indexF.keys.id, (err, details) => {
-        t.error(err, 'no err')
-        t.deepEquals(Object.keys(details), [
-          'feedformat',
-          'feedpurpose',
-          'metafeed',
-          'metadata',
-        ])
-        t.equals(details.feedpurpose, 'index')
-        t.equals(details.metafeed, indexesMF.keys.id)
-        t.equals(details.feedformat, 'indexed-v1')
+      testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+        sbot.metafeeds.findById(indexF.keys.id, (err, details) => {
+          if (err) return cb(err)
 
-        sbot.close(true, t.end)
+          t.deepEquals(Object.keys(details), [
+            'feedformat',
+            'feedpurpose',
+            'metafeed',
+            'metadata',
+          ])
+          t.equals(details.feedpurpose, 'index')
+          t.equals(details.metafeed, indexesMF.keys.id)
+          t.equals(details.feedformat, 'indexed-v1')
+
+          cb(null)
+        })
       })
     })
   })
 })
 
-test('branchStream and restart', (t) => {
-  let sbot = Testbot()
-  const { path } = sbot.config
+test('branchStream', (t) => {
+  const sbot = Testbot()
 
-  function testBranchStream(cb) {
+  function testRead(t, sbot, cb) {
     pull(
       sbot.metafeeds.branchStream({ old: true, live: false }),
       pull.collect((err, branches) => {
-        t.error(err, 'no err')
+        if (err) return cb(err)
+
         t.equal(branches.length, 5, '5 branches')
 
         t.equal(branches[0].length, 1, 'root mf alone')
@@ -252,26 +293,18 @@ test('branchStream and restart', (t) => {
         t.equal(branches[4].length, 3, 'index branch')
         t.equal(branches[4][2][1].feedpurpose, 'index', 'indexes branch')
 
-        cb()
+        cb(null)
       })
     )
   }
 
   setupTree(sbot).then(() => {
-    testBranchStream(() => {
-      sbot.close(true, () => {
-        t.pass('restart sbot')
-        sbot = Testbot({ path, rimraf: false })
-        testBranchStream(() => {
-          sbot.close(true, t.end)
-        })
-      })
-    })
+    testReadAndPersisted(t, sbot, testRead)
   })
 })
 
 test('findAndTombstone and tombstoning branchStream', (t) => {
-  let sbot = Testbot()
+  const sbot = Testbot()
 
   setupTree(sbot).then(({ rootMF }) => {
     pull(
@@ -286,48 +319,52 @@ test('findAndTombstone and tombstoning branchStream', (t) => {
         t.equals(branch[1][1].feedpurpose, 'chess', 'live')
         t.equals(branch[1][1].reason, 'This game is too good', 'live')
 
-        pull(
-          sbot.metafeeds.branchStream({
-            tombstoned: true,
-            old: true,
-            live: false,
-          }),
-          pull.drain((branch) => {
-            t.equals(branch.length, 2)
-            t.equals(branch[0][0], rootMF.keys.id, 'tombstoned: true')
-            t.equals(branch[1][1].feedpurpose, 'chess', 'tombstoned: true')
-            t.equals(
-              branch[1][1].reason,
-              'This game is too good',
-              'tombstoned: true'
-            )
+        function testRead(t, sbot, cb) {
+          pull(
+            sbot.metafeeds.branchStream({
+              tombstoned: true,
+              old: true,
+              live: false,
+            }),
+            pull.drain((branch) => {
+              t.equals(branch.length, 2)
+              t.equals(branch[0][0], rootMF.keys.id, 'tombstoned: true')
+              t.equals(branch[1][1].feedpurpose, 'chess', 'tombstoned: true')
+              t.equals(
+                branch[1][1].reason,
+                'This game is too good',
+                'tombstoned: true'
+              )
 
-            pull(
-              sbot.metafeeds.branchStream({
-                tombstoned: false,
-                old: true,
-                live: false,
-              }),
-              pull.collect((err, branches) => {
-                if (err) throw err
-                t.equal(branches.length, 4, 'tombstoned: false')
+              pull(
+                sbot.metafeeds.branchStream({
+                  tombstoned: false,
+                  old: true,
+                  live: false,
+                }),
+                pull.collect((err, branches) => {
+                  if (err) return cb(err)
+                  t.equal(branches.length, 4, 'tombstoned: false')
 
-                pull(
-                  sbot.metafeeds.branchStream({
-                    tombstoned: null,
-                    old: true,
-                    live: false,
-                  }),
-                  pull.collect((err, branches) => {
-                    if (err) throw err
-                    t.equal(branches.length, 5, 'tombstoned: null')
-                    sbot.close(true, t.end)
-                  })
-                )
-              })
-            )
-          })
-        )
+                  pull(
+                    sbot.metafeeds.branchStream({
+                      tombstoned: null,
+                      old: true,
+                      live: false,
+                    }),
+                    pull.collect((err, branches) => {
+                      if (err) return cb(err)
+                      t.equal(branches.length, 5, 'tombstoned: null')
+                      cb(null)
+                    })
+                  )
+                })
+              )
+            })
+          )
+        }
+
+        testReadAndPersisted(t, sbot, testRead)
       })
     )
 
@@ -349,26 +386,28 @@ test('findOrCreate() recps', (t) => {
     '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
     'hex'
   )
-
   sbot.box2.setOwnDMKey(testkey)
 
-  sbot.metafeeds.findOrCreate((err, mf) => {
-    sbot.metafeeds.findOrCreate(
-      mf,
-      (f) => f.feedpurpose === 'private',
-      {
-        feedpurpose: 'private',
-        feedformat: 'classic',
-        metadata: {
-          recps: [sbot.id],
+  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+    sbot.metafeeds.findOrCreate((err, mf) => {
+      if (err) return cb(err)
+      sbot.metafeeds.findOrCreate(
+        mf,
+        (f) => f.feedpurpose === 'private',
+        {
+          feedpurpose: 'private',
+          feedformat: 'classic',
+          metadata: {
+            recps: [sbot.id],
+          },
         },
-      },
-      (err, f) => {
-        t.error(err, 'no err')
-        t.equal(f.feedpurpose, 'private')
-        t.equal(f.metadata.recps[0], sbot.id)
-        sbot.close(true, t.end)
-      }
-    )
+        (err, f) => {
+          if (err) return cb(err)
+          t.equal(f.feedpurpose, 'private')
+          t.equal(f.metadata.recps[0], sbot.id)
+          cb(null)
+        }
+      )
+    })
   })
 })
