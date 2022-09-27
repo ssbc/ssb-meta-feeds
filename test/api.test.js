@@ -279,7 +279,16 @@ test('branchStream', (t) => {
 
         t.equal(branches[0].length, 1, 'root mf alone')
         t.equal(typeof branches[0][0][0], 'string', 'root mf alone')
-        t.equal(branches[0][0][1], null, 'root mf alone')
+        t.deepEqual(
+          branches[0][0][1],
+          {
+            feedformat: 'bendybutt-v1',
+            feedpurpose: 'root',
+            metafeed: null,
+            metadata: {},
+          },
+          'root mf alone'
+        )
 
         t.equal(branches[1].length, 2, 'main branch')
         t.equal(branches[1][1][1].feedpurpose, 'main', 'main branch')
@@ -439,10 +448,8 @@ test('findOrCreate', (t) => {
           t.equal(branches.length, 5, 'correct number of feeds created')
           // root, v1, shard, chess (AND MAIN)
 
-          const purposePath = branches
-            .pop()
-            .map((f) => f[1] && f[1].feedpurpose)
-          t.deepEqual(purposePath, [null, 'v1', purposePath[2], 'chess'])
+          const purposePath = branches.pop().map((f) => f[1].feedpurpose)
+          t.deepEqual(purposePath, ['root', 'v1', purposePath[2], 'chess'])
           // TODO it would be nice for testing that we could deterministically know the shard
           // but I don't know how to fix the "seed" that the root feed is derived from
 

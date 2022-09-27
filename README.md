@@ -183,13 +183,13 @@ branch looks like this:
 
 ```js
 [
-  [rootMetafeedId, null],
+  [rootMetafeedId, rootDetails],
   [childMetafeedId, childDetails],
   [grandchildMetafeedId, grandchildDetails],
 ]
 ```
 
-Or in general, an `Array<[FeedId, Details | null]>`. The *Details* object has
+Or in general, an `Array<[FeedId, Details]>`. The *Details* object has
 the shape `{ feedpurpose, feedformat, metafeed, metadata }` like in `findById`.
 
 `branchStream` will emit all possible branches, which means sub-branches are

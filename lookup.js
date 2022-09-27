@@ -184,7 +184,15 @@ exports.init = function (sbot, config) {
   }
 
   function traverseBranchesUnder(feedId, previousBranch, visit) {
-    const details = detailsLookup.get(feedId) || null
+    const details =
+      previousBranch.length === 0
+        ? {
+            feedformat: 'bendybutt-v1',
+            feedpurpose: 'root',
+            metafeed: null,
+            metadata: {},
+          }
+        : detailsLookup.get(feedId) || null
     const branch = [...previousBranch, [feedId, details]]
     visit(branch)
     if (childrenLookup.has(feedId)) {
