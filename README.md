@@ -234,6 +234,22 @@ The `opts` argument can have the following properties:
   in the results; if `true`, only tombstoned branches are included; if `null`,
   all branches are included regardless of tombstoning. (Default: `null`)
 
+### `sbot.metafeeds.findAndTombstone(details, reason, cb)`
+
+Looks for the first subfeed that matches `details` and, if found,
+tombstones it with the string `reason`.
+
+This is strictly concerned with metafeeds and sub feeds that **you own**, not
+with those that belong to other peers.
+
+Arguments:
+- `details` *Object* - see `#findOrCreate`
+- `reason` *String* - describes why the found feed is being tombstoned.
+
+The callback is called with `true` on the 2nd argument if tombstoning suceeded,
+or called with an error object on the 1st argument if it failed.
+
+
 ### Advanced API
 
 For lower level API docs, [see here](./README_ADVANCED.md).

@@ -249,9 +249,33 @@ exports.init = function (sbot, config) {
     })
   }
 
+  function commonFindAndTombstone(details, reason, cb) {
+    if (!details.feedformat) details.feedformat = 'classic'
+
+    findOrCreate((err, rootFeed) => {
+      if (err) return cb(err)
+
+      find(rootFeed, v1Visit, (err, v1Feed) => {
+        if (err) return cb(err)
+
+        const shardDetails = {
+          feedpurpose: pickShard(rootFeed.keys.id, details.feedpurpose),
+          feedformat: BB1,
+        }
+        find(v1Feed, detailsToVisit(shardDetails), (err, shardFeed) => {
+          if (err) return cb(err)
+          if (!shardFeed) return cb(null, false)
+
+          findAndTombstone(shardFeed, detailsToVisit(details), reason, cb)
+        })
+      })
+    })
+  }
+
   return {
     branchStream,
     findOrCreate: commonFindOrCreate,
+    findAndTombstone: commonFindAndTombstone,
 
     advanced: {
       getRoot,
