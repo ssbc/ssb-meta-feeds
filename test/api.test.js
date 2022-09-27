@@ -22,7 +22,7 @@ function testReadAndPersisted(t, sbot, testRead) {
       sbot = Testbot({ path, rimraf: false })
       testRead(t, sbot, (err) => {
         t.error(err, 'no error')
-        sbot.close()
+        sbot.close(true, t.end)
         t.end()
       })
     })
