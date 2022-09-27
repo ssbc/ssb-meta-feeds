@@ -412,7 +412,7 @@ test('advanced.findOrCreate (metadata.recps)', (t) => {
   })
 })
 
-// sugary top level API
+// SUGARY top level APIs
 
 test('findOrCreate', (t) => {
   const sbot = Testbot()
@@ -477,5 +477,44 @@ test('findOrCreate (metadata.recps)', (t) => {
     t.deepEqual(chessF.metadata.recps, [sbot.id], 'creates encrypted subfee')
     sbot.close()
     t.end()
+  })
+})
+
+test('findAndTombstone', (t) => {
+  const sbot = Testbot()
+
+  const details = {
+    feedpurpose: 'chess',
+  }
+
+  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+    if (err) throw err
+
+    sbot.metafeeds.findAndTombstone(details, 'stupid game', (err, success) => {
+      if (err) throw err
+      t.true(success, 'tombstone success')
+
+      pull(
+        sbot.metafeeds.branchStream({
+          old: true,
+          live: false,
+          tombstoned: false,
+        }),
+        pull.map((branch) =>
+          branch.map((el) => (el[1] ? el[1].feedpurpose : null))
+        ),
+        pull.collect((err, branches) => {
+          if (err) throw err
+
+          t.true(
+            branches.every((branch) => !branch.includes('chess')),
+            'gone from branchStream'
+          )
+
+          sbot.close()
+          t.end()
+        })
+      )
+    })
   })
 })
