@@ -11,6 +11,7 @@ const alwaysTrue = () => true
 const BB1 = 'bendybutt-v1'
 const v1Details = { feedpurpose: 'v1', feedformat: BB1 }
 const v1Visit = detailsToVisit(v1Details)
+
 function detailsToVisit(details) {
   return (feed) => {
     return (
