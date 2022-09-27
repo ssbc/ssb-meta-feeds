@@ -433,7 +433,6 @@ test('findOrCreate', (t) => {
         sbot.metafeeds.branchStream({ root: null, old: true, live: false }),
         pull.collect((err, branches) => {
           if (err) throw err
-          // console.log(branches.map(branch => branch.map(f => f[1] && f[1].feedpurpose)))
 
           t.equal(branches.length, 5, 'correct number of feeds created')
           // root, v1, shard, chess (AND MAIN)
