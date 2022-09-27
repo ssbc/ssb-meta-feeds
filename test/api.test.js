@@ -449,7 +449,7 @@ test('findOrCreate', (t) => {
           const purposePath = branches
             .pop()
             .map((f) => f[1] && f[1].feedpurpose)
-          t.deepEqual(purposePath, [null, 'v1', purposePath[2], 'chess'])
+          t.deepEqual(purposePath, ['root', 'v1', purposePath[2], 'chess'])
           // TODO it would be nice for testing that we could deterministically know the shard
           // but I don't know how to fix the "seed" that the root feed is derived from
 
