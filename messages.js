@@ -39,7 +39,7 @@ exports.init = function init(sbot) {
     return {
       feedFormat: 'bendybutt-v1',
       keys: mfKeys,
-      contentKeys: feedKeys,
+      contentKeys: feedKeys, // see ssb-bendy-butt/format.js
       content,
       encryptionFormat: 'box2', // in case metadata.recps is set
     }

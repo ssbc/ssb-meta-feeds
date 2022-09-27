@@ -4,8 +4,17 @@
 
 const run = require('promisify-tuple')
 const debug = require('debug')('ssb:meta-feeds')
+const pickShard = require('./pick-shard')
 
 const alwaysTrue = () => true
+const BB1 = 'bendybutt-v1'
+const v1Details = { feedpurpose: 'v1', feedformat: BB1 }
+const v1Visit = detailsToVisit(v1Details)
+function detailsToVisit(details) {
+  return (feed) =>
+    feed.feedpurpose === details.feedpurpose &&
+    feed.feedformat === details.feedformat
+}
 
 exports.init = function (sbot, config) {
   function filter(metafeed, visit, maybeCB) {
@@ -210,11 +219,39 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function commonFindOrCreate(details, cb) {
+    if (!details.feedformat) details.feedformat = 'classic'
+
+    findOrCreate((err, rootFeed) => {
+      if (err) return cb(err)
+
+      findOrCreate(rootFeed, v1Visit, v1Details, (err, v1Feed) => {
+        if (err) return cb(err)
+
+        const shardDetails = {
+          feedpurpose: pickShard(rootFeed.keys.id, details.feedpurpose),
+          feedformat: BB1,
+        }
+        const shardVisit = detailsToVisit(shardDetails)
+
+        findOrCreate(v1Feed, shardVisit, shardDetails, (err, shardFeed) => {
+          if (err) return cb(err)
+
+          findOrCreate(shardFeed, detailsToVisit(details), details, cb)
+        })
+      })
+    })
+  }
+
   return {
-    getRoot,
-    findOrCreate,
-    findAndTombstone,
-    findById,
     branchStream,
+    findOrCreate: commonFindOrCreate,
+
+    advanced: {
+      getRoot,
+      findOrCreate,
+      findAndTombstone,
+      findById,
+    },
   }
 }
