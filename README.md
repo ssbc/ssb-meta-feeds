@@ -234,7 +234,6 @@ The `opts` argument can have the following properties:
   in the results; if `true`, only tombstoned branches are included; if `null`,
   all branches are included regardless of tombstoning. (Default: `null`)
 
-
 ### `sbot.metafeeds.findAndTombstone(details, reason, cb)`
 
 _Looks for the first subfeed that satisfies matches `details` and, if found,
