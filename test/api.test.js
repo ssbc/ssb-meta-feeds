@@ -123,7 +123,7 @@ test('findOrCreate() a sub feed', (t) => {
 test('all FeedDetails have same format', (t) => {
   const sbot = Testbot()
   sbot.metafeeds.findOrCreate(null, null, null, (err, mf) => {
-    if (err) throw err
+    t.error(err, 'no err')
     sbot.metafeeds.getRoot((err, mf) => {
       if (err) throw err
       sbot.metafeeds.findOrCreate(
