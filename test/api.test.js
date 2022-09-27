@@ -16,14 +16,13 @@ function testReadAndPersisted(t, sbot, testRead) {
   testRead(t, sbot, (err) => {
     t.error(err, 'no error')
 
-    console.log('> persistance')
+    console.log('> persistence')
 
     sbot.close(() => {
       sbot = Testbot({ path, rimraf: false })
       testRead(t, sbot, (err) => {
         t.error(err, 'no error')
-        sbot.close()
-        t.end()
+        sbot.close(true, t.end)
       })
     })
   })
@@ -421,7 +420,7 @@ test('advanced.findOrCreate (metadata.recps)', (t) => {
   })
 })
 
-// sugary top level API
+// SUGARY top level APIs
 
 test('findOrCreate', (t) => {
   const sbot = Testbot()
@@ -443,18 +442,18 @@ test('findOrCreate', (t) => {
         sbot.metafeeds.branchStream({ root: null, old: true, live: false }),
         pull.collect((err, branches) => {
           if (err) throw err
-          // console.log(branches.map(branch => branch.map(f => f[1] && f[1].feedpurpose)))
 
           t.equal(branches.length, 5, 'correct number of feeds created')
           // root, v1, shard, chess (AND MAIN)
 
-          const purposePath = branches.pop().map((f) => f[1].feedpurpose)
-          t.deepEqual(purposePath, ['root', 'v1', purposePath[2], 'chess'])
+          const purposePath = branches
+            .pop()
+            .map((f) => f[1] && f[1].feedpurpose)
+          t.deepEqual(purposePath, [null, 'v1', purposePath[2], 'chess'])
           // TODO it would be nice for testing that we could deterministically know the shard
           // but I don't know how to fix the "seed" that the root feed is derived from
 
-          sbot.close()
-          t.end()
+          sbot.close(true, t.end)
         })
       )
     })
@@ -472,7 +471,6 @@ test('findOrCreate (metadata.recps)', (t) => {
 
   const details = {
     feedpurpose: 'chess',
-    // feedformat: 'classic', optional
     metadata: {
       recps: [sbot.id],
     },
@@ -482,7 +480,44 @@ test('findOrCreate (metadata.recps)', (t) => {
     if (err) throw err
 
     t.deepEqual(chessF.metadata.recps, [sbot.id], 'creates encrypted subfee')
-    sbot.close()
-    t.end()
+    sbot.close(true, t.end)
+  })
+})
+
+test('findAndTombstone', (t) => {
+  const sbot = Testbot()
+
+  const details = {
+    feedpurpose: 'chess',
+  }
+
+  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+    t.error(err, 'no error')
+
+    sbot.metafeeds.findAndTombstone(details, 'stupid game', (err, success) => {
+      t.error(err, 'no error')
+      t.true(success, 'tombstone success')
+
+      pull(
+        sbot.metafeeds.branchStream({
+          old: true,
+          live: false,
+          tombstoned: false,
+        }),
+        pull.map((branch) =>
+          branch.map((el) => (el[1] ? el[1].feedpurpose : null))
+        ),
+        pull.collect((err, branches) => {
+          t.error(err, 'no error')
+
+          t.true(
+            branches.every((branch) => !branch.includes('chess')),
+            'gone from branchStream'
+          )
+
+          sbot.close(true, t.end)
+        })
+      )
+    })
   })
 })
