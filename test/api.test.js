@@ -444,8 +444,7 @@ test('findOrCreate', (t) => {
           // TODO it would be nice for testing that we could deterministically know the shard
           // but I don't know how to fix the "seed" that the root feed is derived from
 
-          sbot.close()
-          t.end()
+          sbot.close(true, t.end)
         })
       )
     })
@@ -463,7 +462,6 @@ test('findOrCreate (metadata.recps)', (t) => {
 
   const details = {
     feedpurpose: 'chess',
-    // feedformat: 'classic', optional
     metadata: {
       recps: [sbot.id],
     },
@@ -473,7 +471,6 @@ test('findOrCreate (metadata.recps)', (t) => {
     if (err) throw err
 
     t.deepEqual(chessF.metadata.recps, [sbot.id], 'creates encrypted subfee')
-    sbot.close()
-    t.end()
+    sbot.close(true, t.end)
   })
 })
