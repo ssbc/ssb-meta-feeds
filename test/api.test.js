@@ -23,7 +23,6 @@ function testReadAndPersisted(t, sbot, testRead) {
       testRead(t, sbot, (err) => {
         t.error(err, 'no error')
         sbot.close(true, t.end)
-        t.end()
       })
     })
   })
