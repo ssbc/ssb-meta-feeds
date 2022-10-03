@@ -43,27 +43,3 @@ test('findOrCreate', (t) => {
     })
   })
 })
-
-test('findOrCreate (metadata.recps)', (t) => {
-  const sbot = Testbot()
-
-  const ownKey = Buffer.from(
-    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
-    'hex'
-  )
-  sbot.box2.setOwnDMKey(ownKey)
-
-  const details = {
-    feedpurpose: 'chess',
-    metadata: {
-      recps: [sbot.id]
-    }
-  }
-
-  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
-    if (err) throw err
-
-    t.deepEqual(chessF.metadata.recps, [sbot.id], 'creates encrypted subfee')
-    sbot.close(true, t.end)
-  })
-})
