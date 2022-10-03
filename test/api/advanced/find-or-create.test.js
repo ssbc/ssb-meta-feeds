@@ -128,35 +128,26 @@ test('advanced.findOrCreate() a subfeed under a sub meta feed', (t) => {
   })
 })
 
-test('advanced.findOrCreate (metadata.recps)', (t) => {
+test('advanced.findOrCreate (protected metadata fields)', (t) => {
   const sbot = Testbot()
 
-  const ownKey = Buffer.from(
-    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
-    'hex'
-  )
-  sbot.box2.setOwnDMKey(ownKey)
+  sbot.metafeeds.advanced.findOrCreate((err, mf) => {
+    if (err) t.error(err, 'no error')
 
-  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
-    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
-      if (err) return cb(err)
-      sbot.metafeeds.advanced.findOrCreate(
-        mf,
-        (f) => f.feedpurpose === 'private',
-        {
-          feedpurpose: 'private',
-          feedformat: 'classic',
-          metadata: {
-            recps: [sbot.id],
-          },
-        },
-        (err, f) => {
-          if (err) return cb(err)
-          t.equal(f.feedpurpose, 'private')
-          t.equal(f.metadata.recps[0], sbot.id)
-          cb(null)
+    sbot.metafeeds.advanced.findOrCreate(
+      mf,
+      (f) => f.feedpurpose === 'private',
+      {
+        feedpurpose: 'private',
+        feedformat: 'classic',
+        metadata: {
+          recps: [sbot.id],
         }
-      )
-    })
+      },
+      (err, f) => {
+        t.match(err.message, /metadata.recps not allowed/, 'not allowed to use metadata.recps')
+        sbot.close(true, t.end)
+      }
+    )
   })
 })

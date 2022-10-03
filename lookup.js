@@ -19,6 +19,7 @@ const {
   toCallback,
 } = require('ssb-db2/operators')
 const validate = require('./validate')
+const { NOT_METADATA } = require('./constants')
 
 const SUBFEED_PREFIX_OFFSET = Math.max(
   '@'.length,
@@ -88,16 +89,7 @@ exports.init = function (sbot, config) {
     details.feedpurpose = content.feedpurpose || details.feedpurpose
     details.metafeed = content.metafeed || details.metafeed
     details.metadata = {} || details.metafeed
-    const NOT_METADATA = [
-      'metafeed',
-      'feedpurpose',
-      'type',
-      'tangles',
-      'reason',
-      'subfeed',
-      'nonce',
-    ]
-    const keys = Object.keys(content).filter((k) => !NOT_METADATA.includes(k))
+    const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
     for (const key of keys) {
       details.metadata[key] = content[key]
     }

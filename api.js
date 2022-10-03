@@ -6,10 +6,9 @@ const run = require('promisify-tuple')
 const deepEqual = require('fast-deep-equal')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
+const { BB1, v1Details, NOT_METADATA } = require('./constants')
 
 const alwaysTrue = () => true
-const BB1 = 'bendybutt-v1'
-const v1Details = { feedpurpose: 'v1', feedformat: BB1 }
 const v1Visit = detailsToVisit(v1Details)
 
 function detailsToVisit(details) {
@@ -76,8 +75,8 @@ exports.init = function (sbot, config) {
       getOrCreateRootMetafeed(cb)
     } else {
       const cb = maybeCB
-      if (!details.feedpurpose) return cb(new Error('Missing feedpurpose'))
-      if (!details.feedformat) return cb(new Error('Missing feedformat'))
+      const detailsErr = findDetailsError(details)
+      if (detailsErr) return cb(detailsErr)
 
       const { keys, seed } = metafeed
       const { feedpurpose, feedformat, metadata } = details
@@ -283,5 +282,15 @@ exports.init = function (sbot, config) {
       findAndTombstone,
       findById,
     },
+  }
+}
+
+function findDetailsError({ feedpurpose, feedformat, metadata = {} }) {
+  if (!feedpurpose) return new Error('Missing feedpurpose')
+  if (!feedformat) return new Error('Missing feedformat')
+
+  for (const field in metadata) {
+    if (NOT_METADATA.has(field))
+      return new Error(`metadata.${field} not allowed (reserved field)`)
   }
 }
