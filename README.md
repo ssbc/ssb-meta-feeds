@@ -126,12 +126,12 @@ Arguments:
     - `details.feedformat` *String* (optional)
         - either `'classic'` or `'bendybutt-v1'`
         - default: `'classic'`
-    - `details.encrption` *Object*
     - `details.recps` *Array* (optional)
        - A collection of "recipients" (GroupId, FeedId, ...) to encrypt the announcement messages to 
-    - `details.encrptionFormat` *String* (optional)
+    - `details.encryptionFormat` *String* (optional)
        - specifies which encrption format to use (you will need an encrption plugin installed e.g. `ssb-box2` installed)
        - default: `'box2'`
+    - `details.metadata` *Object* (optional) - for containing other data
 
 - `cb` *function* delivers the response, has signature `(err, FeedDetails)`, where FeedDetails is
     ```js
@@ -161,6 +161,7 @@ Meaning:
 - `feedformat` - the feed format ("classic" or "bendybutt-v1" are current options)
 - `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `keys` - cryptographic keys used for signing messages published by this feed (see [ssb-keys])
+- `recps` - an Array of recipients who the meta-feed announcement was encrpted to
 - `metadata` - object containing additional data
 
 NOTES:
