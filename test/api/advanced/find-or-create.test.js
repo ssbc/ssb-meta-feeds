@@ -151,3 +151,34 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
     )
   })
 })
+
+test('advanced.findOrCreate (encryption)', (t) => {
+  const sbot = Testbot()
+
+  const ownKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.setOwnDMKey(ownKey)
+
+  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
+      if (err) return cb(err)
+      sbot.metafeeds.advanced.findOrCreate(
+        mf,
+        (f) => f.feedpurpose === 'private',
+        {
+          feedpurpose: 'private',
+          feedformat: 'classic',
+          // ???
+        },
+        (err, f) => {
+          if (err) return cb(err)
+          t.equal(f.feedpurpose, 'private')
+          t.equal(f.metadata.recps[0], sbot.id)
+          cb(null)
+        }
+      )
+    })
+  })
+})
