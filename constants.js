@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022 Mix Irving
+//
+// SPDX-License-Identifier: LGPL-3.0-only
+
 const BB1 = 'bendybutt-v1'
 const v1Details = { feedpurpose: 'v1', feedformat: BB1 }
 const NOT_METADATA = new Set([
