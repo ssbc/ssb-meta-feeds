@@ -22,7 +22,8 @@ test('advanced.findById', (t) => {
             'feedformat',
             'feedpurpose',
             'metafeed',
-            'metadata'
+            'metadata',
+            'recps'
           ])
           t.equals(details.feedpurpose, 'index')
           t.equals(details.metafeed, indexesMF.keys.id)

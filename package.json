@@ -25,8 +25,7 @@
     "pull-defer": "^0.2.3",
     "pull-notify": "^0.1.1",
     "pull-stream": "^3.6.14",
-    "ssb-bfe": "^3.6.0",
-    "ssb-db2": ">=3.0.0 <=6",
+    "ssb-bfe": "ssbc/ssb-bfe#cloaked",
     "ssb-keys": "^8.5.0",
     "ssb-ref": "^2.16.0",
     "ssb-uri2": "^2.1.0"
@@ -37,12 +36,13 @@
     "prettier": "^2.1.2",
     "pretty-quick": "^3.1.0",
     "rimraf": "^3.0.2",
+    "run-waterfall": "^1.1.7",
     "secret-stack": "^6.4.0",
     "ssb-bendy-butt": "^1.0.1",
     "ssb-caps": "^1.1.0",
-    "ssb-db2": "^6.1.1",
+    "ssb-db2": "^6.2.1",
     "tap-arc": "^0.3.5",
-    "tape": "^5.6.0"
+    "tape": "^5.6.1"
   },
   "scripts": {
     "test": "npm run test:js && npm run test:only",

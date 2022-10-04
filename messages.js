@@ -20,10 +20,17 @@ const { deriveFeedKeyFromSeed } = require('./keys')
  * Low level API for generating messages
  */
 exports.init = function init(sbot) {
-  function optsForAdd(mfKeys, feedKeys, nonce, feedpurpose, metadata) {
-    const type = nonce ? 'metafeed/add/derived' : 'metafeed/add/existing'
+  function optsForAdd(
+    mfKeys,
+    feedKeys,
+    nonce,
+    feedpurpose,
+    metadata,
+    recps,
+    encryptionFormat
+  ) {
     const content = {
-      type,
+      type: nonce ? 'metafeed/add/derived' : 'metafeed/add/existing',
       feedpurpose,
       subfeed: feedKeys.id,
       metafeed: mfKeys.id,
@@ -33,6 +40,7 @@ exports.init = function init(sbot) {
     }
 
     if (nonce) content.nonce = nonce
+    if (recps) content.recps = recps
 
     if (metadata) Object.assign(content, metadata)
 
@@ -41,7 +49,8 @@ exports.init = function init(sbot) {
       keys: mfKeys,
       contentKeys: feedKeys, // see ssb-bendy-butt/format.js
       content,
-      encryptionFormat: 'box2', // in case metadata.recps is set
+      recps,
+      encryptionFormat: encryptionFormat || 'box2',
     }
   }
 
@@ -60,7 +69,15 @@ exports.init = function init(sbot) {
      * `metadata` is an optional object to be included (object spread) in the
      * message `content`.
      */
-    optsForAddDerived(mfKeys, feedpurpose, seed, feedFormat, metadata) {
+    optsForAddDerived(
+      mfKeys,
+      feedpurpose,
+      seed,
+      feedFormat,
+      metadata,
+      recps,
+      encryptionFormat
+    ) {
       if (!supportedFormats.includes(feedFormat)) {
         throw new Error('Unknown feed format: ' + feedFormat)
       }
@@ -71,7 +88,15 @@ exports.init = function init(sbot) {
         feedFormat
       )
 
-      return optsForAdd(mfKeys, feedKeys, nonce, feedpurpose, metadata)
+      return optsForAdd(
+        mfKeys,
+        feedKeys,
+        nonce,
+        feedpurpose,
+        metadata,
+        recps,
+        encryptionFormat
+      )
     },
 
     /**

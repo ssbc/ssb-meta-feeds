@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 const validate = require('./validate')
+const { NOT_METADATA } = require('./constants')
 const {
   and,
   author,
@@ -61,16 +62,8 @@ exports.init = function (sbot, config) {
 
     collectMetadata(content) {
       const metadata = {}
-      const ignored = [
-        'feedpurpose',
-        'subfeed',
-        'nonce',
-        'metafeed',
-        'tangles',
-        'type',
-      ]
-      for (const key of Object.keys(content)) {
-        if (ignored.includes(key)) continue
+      for (const key in content) {
+        if (NOT_METADATA.has(key)) continue
         metadata[key] = content[key]
       }
       return metadata
@@ -82,7 +75,7 @@ exports.init = function (sbot, config) {
      */
     hydrateFromMsg(msg, seed) {
       const content = msg.value.content
-      const { type, feedpurpose, subfeed, nonce } = content
+      const { type, feedpurpose, subfeed, nonce, recps } = content
       const metadata = self.collectMetadata(content)
       const feedformat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metafeed/add/existing'
@@ -101,6 +94,7 @@ exports.init = function (sbot, config) {
         keys,
         metadata,
         seed: !existing ? seed : undefined,
+        recps: recps || null,
       }
     },
 
@@ -109,7 +103,8 @@ exports.init = function (sbot, config) {
      * "ssb.db.create".
      */
     hydrateFromCreateOpts(opts, seed) {
-      const { feedpurpose, subfeed, metafeed, nonce, type } = opts.content
+      const { feedpurpose, subfeed, metafeed, nonce, type, recps } =
+        opts.content
       const feedformat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metadata/add/existing'
       const keys = existing
@@ -128,6 +123,7 @@ exports.init = function (sbot, config) {
         keys,
         metadata,
         seed: !existing ? seed : undefined,
+        recps: recps || null,
       }
     },
 

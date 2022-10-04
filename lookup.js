@@ -97,6 +97,7 @@ exports.init = function (sbot, config) {
       details.tombstoned = true
       details.reason = content.reason
     }
+    details.recps = content.recps
     return details
   }
 

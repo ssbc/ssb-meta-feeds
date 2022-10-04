@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Unlicense
 
 const test = require('tape')
-const { author, where, toCallback } = require('ssb-db2/operators')
+const { author, where, type, toCallback } = require('ssb-db2/operators')
 const Testbot = require('../../testbot')
-const { testReadAndPersisted } = require('../../testtools')
+const { testReadAndPersisted, waterfall } = require('../../testtools')
 
 test('advanced.findOrCreate(null, null, null, cb)', (t) => {
   const sbot = Testbot()
@@ -141,7 +141,7 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
         feedpurpose: 'private',
         feedformat: 'classic',
         metadata: {
-          recps: [sbot.id],
+          recps: [sbot.id], // naughty! (this is a protected field)
         }
       },
       (err, f) => {
@@ -152,7 +152,53 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
   })
 })
 
-test('advanced.findOrCreate (encryption)', (t) => {
+test('advanced.findOrCreate (encryption - GroupId)', (t) => {
+  const sbot = Testbot()
+
+  const groupId = '%EPdhGFkWxLn2k7kzthIddA8yqdX8VwjmhmTes0gMMqE=.cloaked'
+  const groupKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.addGroupKey(groupId, groupKey)
+
+  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+    const series = [
+      (cb) => sbot.metafeeds.advanced.findOrCreate(cb),
+      (mf, cb) => {
+        sbot.metafeeds.advanced.findOrCreate(
+          mf,
+          (f) => f.feedpurpose === 'private',
+          {
+            feedpurpose: 'private',
+            feedformat: 'classic',
+            recps: [groupId],
+            encryptionFormat: 'box2'
+          },
+          cb
+        )
+      },
+      (f, cb) => {
+        t.deepEqual(f.recps, [groupId], 'FeedDetails contains recps')
+
+        sbot.db.query(where(type('metafeed/add/derived')), toCallback((err, msgs) => {
+          if (err) return cb(err)
+
+          if (msgs.length !== 1) t.equal(msgs.length, 1, 'only one metafeed/add/derived')
+
+          t.deepEqual(msgs[0].value.content.recps, [groupId], 'metafeed/add/derived has recps')
+          // t.deepEqual(typeof msgs[0].value?.meta?.originalContent, 'string', 'metafeed/add/derived is encrypted')
+
+          cb(null)
+        }))
+      }
+    ]
+
+    waterfall(series, cb)
+  })
+})
+
+test('advanced.findOrCreate (encryption - FeedId)', (t) => {
   const sbot = Testbot()
 
   const ownKey = Buffer.from(
@@ -161,24 +207,25 @@ test('advanced.findOrCreate (encryption)', (t) => {
   )
   sbot.box2.setOwnDMKey(ownKey)
 
-  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
-    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
-      if (err) return cb(err)
+  const series = [
+    (cb) => sbot.metafeeds.advanced.findOrCreate(cb),
+    (mf, cb) => {
       sbot.metafeeds.advanced.findOrCreate(
         mf,
         (f) => f.feedpurpose === 'private',
         {
           feedpurpose: 'private',
           feedformat: 'classic',
-          // ???
+          recps: [sbot.id],
+          encryptionFormat: 'box2'
         },
-        (err, f) => {
-          if (err) return cb(err)
-          t.equal(f.feedpurpose, 'private')
-          t.equal(f.metadata.recps[0], sbot.id)
-          cb(null)
-        }
+        cb
       )
-    })
+    }
+  ]
+
+  waterfall(series, (err) => {
+    t.match(err?.message, /metafeed encryption currently only supports groupId/)
+    sbot.close(true, t.end)
   })
 })
