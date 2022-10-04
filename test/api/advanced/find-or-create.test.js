@@ -218,8 +218,6 @@ test('advanced.findOrCreate (encryption - FeedId)', (t) => {
         encryptionFormat: 'box2'
       },
       (err, f) => {
-        if (err) t.error(err, 'no err')
-
         t.match(err?.message, /metafeed encryption currently only supports groupId/)
         sbot.close(true, t.end)
       }
