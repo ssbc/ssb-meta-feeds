@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Unlicense
 
 const { promisify: p } = require('util')
-const waterfall = require('run-waterfall')
 const Testbot = require('./testbot.js')
 
 function testReadAndPersisted(t, sbot, testRead) {
@@ -61,5 +60,4 @@ async function setupTree(sbot) {
 module.exports = {
   testReadAndPersisted,
   setupTree,
-  waterfall,
 }
