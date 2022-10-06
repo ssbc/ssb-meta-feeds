@@ -126,8 +126,13 @@ Arguments:
     - `details.feedformat` *String* (optional)
         - either `'classic'` or `'bendybutt-v1'`
         - default: `'classic'`
+    - `details.recps` *Array* (optional)
+       - A collection of "recipients" (GroupId, FeedId, ...) to encrypt the announcement messages to 
+    - `details.encryptionFormat` *String* (optional)
+       - specifies which encryption format to use (you will need an encryption plugin installed e.g. `ssb-box2` installed)
+       - default: `'box2'`
     - `details.metadata` *Object* (optional) - for containing other data
-        - if `details.metadata.recps` is used, the subfeed announcement will be encrypted
+
 - `cb` *function* delivers the response, has signature `(err, FeedDetails)`, where FeedDetails is
     ```js
     {
@@ -142,9 +147,9 @@ Arguments:
         private: 'Mxa+LL16ws7HZhetR9FbsIOsAeud+ii+9KDUisXkq08jlMEfoG4K8yRIBYlcrBrYUR3zL99Rp+RDXPX0/JfNsQ==.ed25519',
         id: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519'
       },
-      metadata: { // example
+      recps: ['%I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.cloaked'], // a GroupId
+      metadata: {
         notes: 'private testing of chess dev',
-        recps: ['@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519']
       },
     }
     ```
@@ -156,6 +161,7 @@ Meaning:
 - `feedformat` - the feed format ("classic" or "bendybutt-v1" are current options)
 - `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `keys` - cryptographic keys used for signing messages published by this feed (see [ssb-keys])
+- `recps` - an Array of recipients who the metafeed announcement was encrypted to
 - `metadata` - object containing additional data
 
 NOTES:

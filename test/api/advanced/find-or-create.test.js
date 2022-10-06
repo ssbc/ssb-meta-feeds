@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Unlicense
 
 const test = require('tape')
-const { author, where, toCallback } = require('ssb-db2/operators')
+const { author, where, type, toCallback } = require('ssb-db2/operators')
 const Testbot = require('../../testbot')
 const { testReadAndPersisted } = require('../../testtools')
 
@@ -141,11 +141,83 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
         feedpurpose: 'private',
         feedformat: 'classic',
         metadata: {
-          recps: [sbot.id],
+          recps: [sbot.id], // naughty! (this is a protected field)
         }
       },
       (err, f) => {
         t.match(err.message, /metadata.recps not allowed/, 'not allowed to use metadata.recps')
+        sbot.close(true, t.end)
+      }
+    )
+  })
+})
+
+test('advanced.findOrCreate (encryption - GroupId)', (t) => {
+  const sbot = Testbot()
+
+  const groupId = '%EPdhGFkWxLn2k7kzthIddA8yqdX8VwjmhmTes0gMMqE=.cloaked'
+  const groupKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.addGroupKey(groupId, groupKey)
+
+  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
+      if (err) t.error(err, 'no error')
+
+      sbot.metafeeds.advanced.findOrCreate(
+        mf,
+        (f) => f.feedpurpose === 'private',
+        {
+          feedpurpose: 'private',
+          feedformat: 'classic',
+          recps: [groupId],
+          encryptionFormat: 'box2'
+        },
+        (err, f) => {
+          if (err) t.error(err, 'no error')
+
+          t.deepEqual(f.recps, [groupId], 'FeedDetails contains recps')
+
+          sbot.db.query(where(type('metafeed/add/derived')), toCallback((err, msgs) => {
+            if (err) return cb(err)
+
+            t.equal(msgs.length, 1, 'only one metafeed/add/derived')
+
+            t.deepEqual(msgs[0].value.content.recps, [groupId], 'metafeed/add/derived has recps')
+
+            cb(null)
+          }))
+        }
+      )
+    })
+  })
+})
+
+test('advanced.findOrCreate (encryption - FeedId)', (t) => {
+  const sbot = Testbot()
+
+  const ownKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.setOwnDMKey(ownKey)
+
+  sbot.metafeeds.advanced.findOrCreate((err, mf) => {
+    if (err) t.error(err, 'no err')
+
+    sbot.metafeeds.advanced.findOrCreate(
+      mf,
+      (f) => f.feedpurpose === 'private',
+      {
+        feedpurpose: 'private',
+        feedformat: 'classic',
+        recps: [sbot.id],
+        encryptionFormat: 'box2'
+      },
+      (err, f) => {
+        t.match(err.message, /metafeed encryption currently only supports groupId/)
         sbot.close(true, t.end)
       }
     )

@@ -4,6 +4,7 @@
 
 const run = require('promisify-tuple')
 const deepEqual = require('fast-deep-equal')
+const { isCloakedMsgId } = require('ssb-ref')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
 const { BB1, v1Details, NOT_METADATA } = require('./constants')
@@ -16,19 +17,20 @@ function detailsToVisit(details) {
     return (
       feed.feedpurpose === details.feedpurpose &&
       feed.feedformat === details.feedformat &&
-      deepEqual(feed.metadata, details.metadata || {})
+      (details.metadata ? deepEqual(feed.metadata, details.metadata) : true) &&
+      (details.recps ? deepEqual(feed.recps, details.recps) : true)
     )
   }
 }
 
 exports.init = function (sbot, config) {
   function filter(metafeed, visit, maybeCB) {
+    const cb = maybeCB
     if (!metafeed) {
       cb(new Error('expected metafeed argument'))
     } else if (typeof metafeed === 'function') {
       cb(new Error('expected metafeed argument and visit argument'))
     } else {
-      const cb = maybeCB
       sbot.metafeeds.query.hydrate(
         metafeed.keys.id,
         metafeed.seed,
@@ -43,12 +45,12 @@ exports.init = function (sbot, config) {
   }
 
   function find(metafeed, visit, maybeCB) {
+    const cb = maybeCB
     if (!metafeed) {
       cb(new Error('expected metafeed argument'))
     } else if (typeof metafeed === 'function') {
       cb(new Error('expected metafeed argument and visit argument'))
     } else {
-      const cb = maybeCB
       filter(metafeed, visit, (err, feeds) => {
         if (err) return cb(err)
         if (feeds.length === 0) return cb(null, null)
@@ -79,15 +81,24 @@ exports.init = function (sbot, config) {
       if (detailsErr) return cb(detailsErr)
 
       const { keys, seed } = metafeed
-      const { feedpurpose, feedformat, metadata } = details
+      const { feedpurpose, feedformat, metadata, recps, encryptionFormat } =
+        details
+      if (recps && (recps.length !== 1 || !isCloakedMsgId(recps[0]))) {
+        return cb(
+          new Error('metafeed encryption currently only supports groupId')
+        )
+      }
+
       const opts = sbot.metafeeds.messages.optsForAddDerived(
         keys,
         feedpurpose,
         seed,
         feedformat,
-        metadata
+        metadata,
+        recps,
+        encryptionFormat
       )
-      sbot.db.create(opts, (err) => {
+      sbot.db.create(opts, (err, msg) => {
         if (err) return cb(err)
         cb(null, sbot.metafeeds.query.hydrateFromCreateOpts(opts, seed))
       })
@@ -221,6 +232,7 @@ exports.init = function (sbot, config) {
       seed,
       keys,
       metadata: {},
+      recps: null,
     }
   }
 
