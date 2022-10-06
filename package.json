@@ -26,6 +26,7 @@
     "pull-notify": "^0.1.1",
     "pull-stream": "^3.6.14",
     "ssb-bfe": "^3.6.1",
+    "ssb-db2": ">=3.0.0 <=6",
     "ssb-keys": "^8.5.0",
     "ssb-ref": "^2.16.0",
     "ssb-uri2": "^2.1.0"

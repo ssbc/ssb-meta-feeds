@@ -183,10 +183,8 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
           sbot.db.query(where(type('metafeed/add/derived')), toCallback((err, msgs) => {
             if (err) return cb(err)
 
-            if (msgs.length !== 1) t.equal(msgs.length, 1, 'only one metafeed/add/derived')
-
+            t.equal(msgs.length, 1, 'only one metafeed/add/derived')
             t.deepEqual(msgs[0].value.content.recps, [groupId], 'metafeed/add/derived has recps')
-            // t.deepEqual(typeof msgs[0].value?.meta?.originalContent, 'string', 'metafeed/add/derived is encrypted')
 
             cb(null)
           }))
