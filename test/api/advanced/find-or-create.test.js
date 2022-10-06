@@ -184,7 +184,6 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
             if (err) return cb(err)
 
             t.equal(msgs.length, 1, 'only one metafeed/add/derived')
-
             t.deepEqual(msgs[0].value.content.recps, [groupId], 'metafeed/add/derived has recps')
 
             cb(null)

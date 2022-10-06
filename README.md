@@ -203,7 +203,7 @@ included. For instance, in the example above, `branchStream` would emit:
 
 ```js
 [
-  [rootMetafeedId, null]
+  [rootMetafeedId, rootDetails]
 ]
 ```
 
@@ -211,7 +211,7 @@ and
 
 ```js
 [
-  [rootMetafeedId, null],
+  [rootMetafeedId, rootDetails],
   [childMetafeedId, childDetails],
 ]
 ```
@@ -220,7 +220,7 @@ and
 
 ```js
 [
-  [rootMetafeedId, null],
+  [rootMetafeedId, rootDetails],
   [childMetafeedId, childDetails],
   [grandchildMetafeedId, grandchildDetails],
 ]

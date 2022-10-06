@@ -19,7 +19,7 @@ const {
   toCallback,
 } = require('ssb-db2/operators')
 const validate = require('./validate')
-const { NOT_METADATA } = require('./constants')
+const { NOT_METADATA, BB1 } = require('./constants')
 
 const SUBFEED_PREFIX_OFFSET = Math.max(
   '@'.length,
@@ -47,6 +47,15 @@ function subfeed(feedId) {
     prefixOffset: SUBFEED_PREFIX_OFFSET,
     indexType: 'value_content_subfeed',
   })
+}
+
+function rootFeedDetails() {
+  return {
+    feedformat: BB1,
+    feedpurpose: 'root',
+    metafeed: null,
+    metadata: {},
+  }
 }
 
 exports.init = function (sbot, config) {
@@ -106,7 +115,10 @@ exports.init = function (sbot, config) {
 
     // Update roots
     if (!detailsLookup.has(metafeed)) {
-      detailsLookup.set(metafeed, null)
+      // !detailsLookup.has(metafeed) !== "metafeed is a root)
+      // this assumes that we have replicated the metafeed tree in the order
+      // that it was created.
+      detailsLookup.set(metafeed, rootFeedDetails())
       roots.add(metafeed)
     }
 
@@ -168,9 +180,9 @@ exports.init = function (sbot, config) {
   function makeBranch(subfeed) {
     const details = detailsLookup.get(subfeed)
     const branch = [[subfeed, details]]
-    while (branch[0][1]) {
+    while (branch[0][1].metafeed) {
       const metafeedId = branch[0][1].metafeed
-      const details = detailsLookup.get(metafeedId) || null
+      const details = detailsLookup.get(metafeedId) || rootFeedDetails()
       branch.unshift([metafeedId, details])
     }
     return branch
@@ -179,12 +191,7 @@ exports.init = function (sbot, config) {
   function traverseBranchesUnder(feedId, previousBranch, visit) {
     const details =
       previousBranch.length === 0
-        ? {
-            feedformat: 'bendybutt-v1',
-            feedpurpose: 'root',
-            metafeed: null,
-            metadata: {},
-          }
+        ? rootFeedDetails()
         : detailsLookup.get(feedId) || null
     const branch = [...previousBranch, [feedId, details]]
     visit(branch)
