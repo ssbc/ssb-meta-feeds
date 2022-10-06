@@ -115,9 +115,6 @@ exports.init = function (sbot, config) {
 
     // Update roots
     if (!detailsLookup.has(metafeed)) {
-      // !detailsLookup.has(metafeed) !== "metafeed is a root)
-      // this assumes that we have replicated the metafeed tree in the order
-      // that it was created.
       detailsLookup.set(metafeed, rootFeedDetails())
       roots.add(metafeed)
     }
