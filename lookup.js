@@ -106,7 +106,7 @@ exports.init = function (sbot, config) {
       details.tombstoned = true
       details.reason = content.reason
     }
-    details.recps = content.recps
+    details.recps = content.recps || null
     return details
   }
 
@@ -115,9 +115,6 @@ exports.init = function (sbot, config) {
 
     // Update roots
     if (!detailsLookup.has(metafeed)) {
-      // !detailsLookup.has(metafeed) !== "metafeed is a root)
-      // this assumes that we have replicated the metafeed tree in the order
-      // that it was created.
       detailsLookup.set(metafeed, rootFeedDetails())
       roots.add(metafeed)
     }
@@ -148,10 +145,7 @@ exports.init = function (sbot, config) {
     notifyNewBranch = Notify()
 
     pull(
-      sbot.db.query(
-        where(and(authorIsBendyButtV1(), isPublic())),
-        toPullStream()
-      ),
+      sbot.db.query(where(authorIsBendyButtV1()), toPullStream()),
       pull.filter((msg) => validate.isValid(msg)),
       pull.drain(updateLookup, (err) => {
         if (err) return console.error(err)
@@ -165,11 +159,7 @@ exports.init = function (sbot, config) {
         })
 
         pull(
-          sbot.db.query(
-            where(and(authorIsBendyButtV1(), isPublic())),
-            live(),
-            toPullStream()
-          ),
+          sbot.db.query(where(authorIsBendyButtV1()), live(), toPullStream()),
           pull.filter((msg) => validate.isValid(msg)),
           (liveDrainer = pull.drain(updateLookup))
         )

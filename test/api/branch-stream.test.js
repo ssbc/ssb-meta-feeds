@@ -52,3 +52,65 @@ test('branchStream', (t) => {
     testReadAndPersisted(t, sbot, testRead)
   })
 })
+
+test('branchStream (encrypted announces)', (t) => {
+  const sbot = Testbot()
+
+  const groupId = '%EPdhGFkWxLn2k7kzthIddA8yqdX8VwjmhmTes0gMMqE=.cloaked'
+  const groupKey = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+  sbot.box2.addGroupKey(groupId, groupKey)
+
+  const details = {
+    feedpurpose: 'dental',
+    recps: [groupId]
+  }
+
+  let doneCount = 0
+  const donePlan = 2
+  const done = () => {
+    if (++doneCount === donePlan) {
+      sbot.close(true, t.end)
+    }
+  }
+
+  pull(
+    sbot.metafeeds.branchStream({ old: false, live: true }),
+    pull.drain((branch) => {
+      const dentalFeed = branch.find(feed => feed[1].feedpurpose === details.feedpurpose)
+      if (!dentalFeed) return
+
+      t.equal(dentalFeed[1].feedpurpose, 'dental', 'finds encrypted feed (live)')
+      t.deepEqual(dentalFeed[1].recps, [groupId], 'has recps details (live)')
+
+      done()
+    })
+  )
+
+  sbot.metafeeds.findOrCreate(details, (err, f) => {
+    if (err) t.error(err, 'no error')
+
+    const query = () => pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        if (err) t.error(err, 'no error')
+
+        t.equal(branches.length, 5, '5 feed branches') // root, main, v1, :shard, dental
+        const dentalPath = branches.pop()
+        const [_, dentalFeed] = dentalPath[dentalPath.length - 1]
+
+        t.equal(dentalFeed.feedpurpose, details.feedpurpose, 'finds encrypted feed')
+        t.deepEqual(dentalFeed.recps, details.recps, 'has recps details')
+
+        done()
+      })
+    )
+
+    setTimeout(query, 500)
+    // unfortunately if you run the query straight away, it fails
+    // this could be because it takes a moment for indexing of encrypted messages?
+    // you can see the delay by logging in lookup.js #updateLookup
+  })
+})
