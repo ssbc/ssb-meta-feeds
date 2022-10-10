@@ -8,6 +8,17 @@ const p = require('util').promisify
 const { where, type, toPromise } = require('ssb-db2/operators')
 const Testbot = require('../testbot')
 
+test('findOrCreate with no details gives us the root', (t) => {
+  const ssb = Testbot()
+  ssb.metafeeds.findOrCreate((err, feed) => {
+    t.error(err)
+    t.equal(feed.feedpurpose, 'root', 'feedpurpose is correct')
+    t.equal(feed.metafeed, null, 'metafeed is empty')
+    t.equal(feed.feedformat, 'bendybutt-v1', 'feedformat is correct')
+    ssb.close(true, t.end)
+  })
+})
+
 test('findOrCreate', (t) => {
   const sbot = Testbot()
 
