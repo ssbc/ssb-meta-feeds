@@ -4,13 +4,15 @@
 
 const test = require('tape')
 const pull = require('pull-stream')
+const p = require('util').promisify
+const { where, type, toPromise } = require('ssb-db2/operators')
 const Testbot = require('../testbot')
 
 test('findOrCreate', (t) => {
   const sbot = Testbot()
 
   const details = {
-    feedpurpose: 'chess'
+    feedpurpose: 'chess',
     // feedformat: 'classic', optional
   }
 
@@ -42,4 +44,38 @@ test('findOrCreate', (t) => {
       )
     })
   })
+})
+
+test('double findOrCreate should not create two v1 feeds', async (t) => {
+  const ssb = Testbot()
+
+  const [chessF1, chessF2] = await Promise.all([
+    p(ssb.metafeeds.findOrCreate)({ feedpurpose: 'chess' }),
+    p(ssb.metafeeds.findOrCreate)({ feedpurpose: 'chess' }),
+  ])
+  t.ok(chessF1, 'chess feed created')
+  t.ok(chessF2, 'second chess feed created')
+  t.deepEqual(chessF1, chessF2, 'same feed')
+
+  const msgs = await ssb.db.query(
+    where(type('metafeed/add/derived')),
+    toPromise()
+  )
+  const v1Announcements = msgs.filter(
+    (msg) => msg.value.content.feedpurpose === 'v1'
+  )
+  t.equals(v1Announcements.length, 1, 'only one v1 announcement')
+
+  const hexes = Array.from({ length: 16 }, (v, i) => i.toString(16))
+  const shardAnnouncements = msgs.filter((msg) =>
+    hexes.includes(msg.value.content.feedpurpose)
+  )
+  t.equals(shardAnnouncements.length, 1, 'only one shard announcement')
+
+  const chessAnnouncements = msgs.filter(
+    (msg) => msg.value.content.feedpurpose === 'chess'
+  )
+  t.equals(chessAnnouncements.length, 1, 'only one chess announcement')
+
+  await p(ssb.close)(true)
 })

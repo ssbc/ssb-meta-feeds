@@ -4,6 +4,8 @@
 
 const test = require('tape')
 const pull = require('pull-stream')
+const p = require('util').promisify
+const { where, type, count, toPromise } = require('ssb-db2/operators')
 const Testbot = require('../testbot')
 
 test('findAndTombstone', (t) => {
@@ -42,4 +44,33 @@ test('findAndTombstone', (t) => {
       )
     })
   })
+})
+
+test('double findAndTombstone should not create two messages', async (t) => {
+  const ssb = Testbot()
+
+  const details = { feedpurpose: 'chess' }
+
+  const chessF = await p(ssb.metafeeds.findOrCreate)(details)
+  t.ok(chessF, 'chess feed created')
+
+  try {
+    await Promise.all([
+      p(ssb.metafeeds.findAndTombstone)(details, 'bad game'),
+      p(ssb.metafeeds.findAndTombstone)(details, 'stupid game'),
+    ])
+    t.fail('one of the findAndTomstone calls should have failed')
+  } catch (err) {
+    t.equal(err.message, 'Cannot find subfeed to tombstone', 'one call failed')
+  }
+  t.ok(chessF, 'chess feed tombstoned')
+
+  const numTombstones = await ssb.db.query(
+    where(type('metafeed/tombstone')),
+    count(),
+    toPromise()
+  )
+  t.equal(numTombstones, 1, 'only one tombstone message')
+
+  await p(ssb.close)(true)
 })

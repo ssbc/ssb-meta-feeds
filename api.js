@@ -5,6 +5,7 @@
 const run = require('promisify-tuple')
 const deepEqual = require('fast-deep-equal')
 const { isCloakedMsgId } = require('ssb-ref')
+const mutexify = require('mutexify')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
 const { BB1, v1Details, NOT_METADATA } = require('./constants')
@@ -105,6 +106,8 @@ exports.init = function (sbot, config) {
     }
   }
 
+  const findOrCreateLock = mutexify()
+
   function findOrCreate(metafeed, maybeVisit, details, maybeCB) {
     if (!metafeed) {
       const cb = maybeCB
@@ -115,50 +118,39 @@ exports.init = function (sbot, config) {
     } else {
       const cb = maybeCB
       const visit = maybeVisit || alwaysTrue
-      find(metafeed, visit, (err, found) => {
-        if (err) return cb(err)
-        if (found) return cb(null, found)
-        create(metafeed, details, cb)
+      findOrCreateLock((release) => {
+        find(metafeed, visit, (err, found) => {
+          if (err) return release(cb, err)
+          if (found) return release(cb, null, found)
+          create(metafeed, details, release.bind(null, cb))
+        })
       })
     }
   }
 
+  const findAndTombstoneLock = mutexify()
+
   function findAndTombstone(metafeed, visit, reason, cb) {
     const { optsForTombstone } = sbot.metafeeds.messages
+    findAndTombstoneLock((release) => {
+      find(metafeed, visit, (err, found) => {
+        if (err) return release(cb, err)
+        if (!found)
+          return release(cb, new Error('Cannot find subfeed to tombstone'))
 
-    find(metafeed, visit, (err, found) => {
-      if (err) return cb(err)
-      if (!found) return cb(new Error('Cannot find subfeed to tombstone'))
-
-      optsForTombstone(metafeed.keys, found.keys, reason, (err, opts) => {
-        if (err) return cb(err)
-        sbot.db.create(opts, (err, msg) => {
-          if (err) return cb(err)
-          cb(null, true)
+        optsForTombstone(metafeed.keys, found.keys, reason, (err, opts) => {
+          if (err) return release(cb, err)
+          sbot.db.create(opts, (err, msg) => {
+            if (err) return release(cb, err)
+            release(cb, null, true)
+          })
         })
       })
     })
   }
 
-  // lock to solve concurrent getOrCreateRootMetafeed
-  const rootMetaFeedLock = {
-    _cbs: [],
-    _cachedMF: null,
-    acquire(cb) {
-      if (this._cachedMF) {
-        cb(null, this._cachedMF)
-        return false
-      }
-      this._cbs.push(cb)
-      return this._cbs.length === 1
-    },
-    release(err, mf) {
-      this._cachedMF = mf
-      const cbs = this._cbs
-      this._cbs = []
-      for (const cb of cbs) cb(err, mf)
-    },
-  }
+  const rootMetafeedLock = mutexify()
+  let cachedRootMetafeed = null
 
   function getRoot(cb) {
     sbot.metafeeds.query.getSeed((err, seed) => {
@@ -168,58 +160,60 @@ exports.init = function (sbot, config) {
     })
   }
 
-  async function getOrCreateRootMetafeed(cb) {
-    if (!rootMetaFeedLock.acquire(cb)) return
+  function getOrCreateRootMetafeed(cb) {
+    if (cachedRootMetafeed) return cb(null, cachedRootMetafeed)
+    rootMetafeedLock(async (release) => {
+      // Pluck relevant internal APIs
+      const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
+      const { getSeed, getAnnounces } = sbot.metafeeds.query
+      const { optsForSeed, optsForAnnounce, optsForAddExisting } =
+        sbot.metafeeds.messages
 
-    // Pluck relevant internal APIs
-    const { deriveRootMetaFeedKeyFromSeed } = sbot.metafeeds.keys
-    const { getSeed, getAnnounces } = sbot.metafeeds.query
-    const { optsForSeed, optsForAnnounce, optsForAddExisting } =
-      sbot.metafeeds.messages
+      // Ensure seed exists
+      let mf
+      const [err1, loadedSeed] = await run(getSeed)()
+      if (err1 || !loadedSeed) {
+        if (err1) debug('generating a seed because %o', err1)
+        else debug('generating a seed')
+        const seed = sbot.metafeeds.keys.generateSeed()
+        const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
+        const opts = optsForSeed(mfKeys, sbot.id, seed)
+        const [err2] = await run(sbot.db.create)(opts)
+        if (err2) return release(cb, err2)
+        mf = buildRootFeedDetails(seed)
+      } else {
+        debug('loaded seed')
+        mf = buildRootFeedDetails(loadedSeed)
+      }
 
-    // Ensure seed exists
-    let mf
-    const [err1, loadedSeed] = await run(getSeed)()
-    if (err1 || !loadedSeed) {
-      if (err1) debug('generating a seed because %o', err1)
-      else debug('generating a seed')
-      const seed = sbot.metafeeds.keys.generateSeed()
-      const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
-      const opts = optsForSeed(mfKeys, sbot.id, seed)
-      const [err2] = await run(sbot.db.create)(opts)
-      if (err2) return cb(err2)
-      mf = buildRootFeedDetails(seed)
-    } else {
-      debug('loaded seed')
-      mf = buildRootFeedDetails(loadedSeed)
-    }
+      // Ensure root meta feed announcement exists on the main feed
+      const [err2, announcements] = await run(getAnnounces)()
+      if (err2 || !announcements || announcements.length === 0) {
+        if (err2) debug('announcing meta feed on main feed because %o', err2)
+        else debug('announcing meta feed on main feed')
+        const [err3, opts] = await run(optsForAnnounce)(mf.keys, config.keys)
+        if (err3) return release(cb, err3)
+        const [err4] = await run(sbot.db.create)(opts)
+        if (err4) return release(cb, err4)
+      } else {
+        debug('announce post exists on main feed')
+      }
 
-    // Ensure root meta feed announcement exists on the main feed
-    const [err2, announcements] = await run(getAnnounces)()
-    if (err2 || !announcements || announcements.length === 0) {
-      if (err2) debug('announcing meta feed on main feed because %o', err2)
-      else debug('announcing meta feed on main feed')
-      const [err3, opts] = await run(optsForAnnounce)(mf.keys, config.keys)
-      if (err3) return cb(err3)
-      const [err4] = await run(sbot.db.create)(opts)
-      if (err4) return cb(err4)
-    } else {
-      debug('announce post exists on main feed')
-    }
+      // Ensure the main feed was "added" on the root meta feed
+      const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
+      if (err3) return release(cb, err3)
+      if (!added) {
+        debug('adding main feed to root meta feed')
+        const opts = optsForAddExisting(mf.keys, 'main', config.keys)
+        const [err5] = await run(sbot.db.create)(opts)
+        if (err5) return release(cb, err5)
+      } else {
+        debug('main feed already added to root meta feed')
+      }
 
-    // Ensure the main feed was "added" on the root meta feed
-    const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
-    if (err3) return cb(err3)
-    if (!added) {
-      debug('adding main feed to root meta feed')
-      const opts = optsForAddExisting(mf.keys, 'main', config.keys)
-      const [err5] = await run(sbot.db.create)(opts)
-      if (err5) return cb(err5)
-    } else {
-      debug('main feed already added to root meta feed')
-    }
-
-    rootMetaFeedLock.release(null, mf)
+      cachedRootMetafeed = mf
+      release(cb, null, mf)
+    })
   }
 
   function buildRootFeedDetails(seed) {
@@ -239,7 +233,7 @@ exports.init = function (sbot, config) {
   function commonFindOrCreate(details, cb) {
     if (!details.feedformat) details.feedformat = 'classic'
 
-    findOrCreate((err, rootFeed) => {
+    getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
       findOrCreate(rootFeed, v1Visit, v1Details, (err, v1Feed) => {
@@ -263,7 +257,7 @@ exports.init = function (sbot, config) {
   function commonFindAndTombstone(details, reason, cb) {
     if (!details.feedformat) details.feedformat = 'classic'
 
-    findOrCreate((err, rootFeed) => {
+    getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
       find(rootFeed, v1Visit, (err, v1Feed) => {
