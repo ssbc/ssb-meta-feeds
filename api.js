@@ -237,6 +237,12 @@ exports.init = function (sbot, config) {
   }
 
   function commonFindOrCreate(details, cb) {
+    if (typeof details === 'function') {
+      const cb = details
+      getOrCreateRootMetafeed(cb)
+      return
+    }
+
     if (!details.feedformat) details.feedformat = 'classic'
 
     findOrCreate((err, rootFeed) => {
