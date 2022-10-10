@@ -142,10 +142,14 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
         feedformat: 'classic',
         metadata: {
           recps: [sbot.id], // naughty! (this is a protected field)
-        }
+        },
       },
       (err, f) => {
-        t.match(err.message, /metadata.recps not allowed/, 'not allowed to use metadata.recps')
+        t.match(
+          err.message,
+          /metadata.recps not allowed/,
+          'not allowed to use metadata.recps'
+        )
         sbot.close(true, t.end)
       }
     )
@@ -173,21 +177,32 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
           feedpurpose: 'private',
           feedformat: 'classic',
           recps: [groupId],
-          encryptionFormat: 'box2'
+          encryptionFormat: 'box2',
         },
         (err, f) => {
           if (err) t.error(err, 'no error')
 
           t.deepEqual(f.recps, [groupId], 'FeedDetails contains recps')
 
-          sbot.db.query(where(type('metafeed/add/derived')), toCallback((err, msgs) => {
-            if (err) return cb(err)
+          sbot.db.query(
+            where(type('metafeed/add/derived')),
+            toCallback((err, anyMsgs) => {
+              if (err) return cb(err)
 
-            t.equal(msgs.length, 1, 'only one metafeed/add/derived')
-            t.deepEqual(msgs[0].value.content.recps, [groupId], 'metafeed/add/derived has recps')
+              const msgs = anyMsgs.filter(
+                (msg) => msg.value.content.feedpurpose === 'private'
+              )
 
-            cb(null)
-          }))
+              t.equal(msgs.length, 1, 'only one metafeed/add/derived')
+              t.deepEqual(
+                msgs[0].value.content.recps,
+                [groupId],
+                'metafeed/add/derived has recps'
+              )
+
+              cb(null)
+            })
+          )
         }
       )
     })
@@ -213,10 +228,13 @@ test('advanced.findOrCreate (encryption - FeedId)', (t) => {
         feedpurpose: 'private',
         feedformat: 'classic',
         recps: [sbot.id],
-        encryptionFormat: 'box2'
+        encryptionFormat: 'box2',
       },
       (err, f) => {
-        t.match(err.message, /metafeed encryption currently only supports groupId/)
+        t.match(
+          err.message,
+          /metafeed encryption currently only supports groupId/
+        )
         sbot.close(true, t.end)
       }
     )
