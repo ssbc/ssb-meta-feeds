@@ -10,8 +10,6 @@ const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
 const {
   where,
-  and,
-  isPublic,
   live,
   equal,
   authorIsBendyButtV1,
@@ -49,11 +47,12 @@ function subfeed(feedId) {
   })
 }
 
-function rootFeedDetails() {
+function rootFeedDetails(id) {
   return {
-    feedformat: BB1,
-    feedpurpose: 'root',
-    metafeed: null,
+    id,
+    parent: null,
+    purpose: 'root',
+    feedFormat: BB1,
     metadata: {},
   }
 }
@@ -94,9 +93,11 @@ exports.init = function (sbot, config) {
   function msgToDetails(prevDetails, msg) {
     const content = msg.value.content
     const details = { ...prevDetails }
-    details.feedformat = validate.detectFeedFormat(content.subfeed)
-    details.feedpurpose = content.feedpurpose || details.feedpurpose
-    details.metafeed = content.metafeed || details.metafeed
+    details.id = prevDetails ? prevDetails.id : content.subfeed
+    details.parent = content.metafeed || details.parent
+    details.purpose = content.feedpurpose || details.purpose
+    details.feedFormat = validate.detectFeedFormat(content.subfeed)
+    details.recps = content.recps || null
     details.metadata = {} || details.metafeed
     const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
     for (const key of keys) {
@@ -106,38 +107,39 @@ exports.init = function (sbot, config) {
       details.tombstoned = true
       details.reason = content.reason
     }
-    details.recps = content.recps || null
     return details
   }
 
   function updateLookup(msg) {
     const { type, subfeed, metafeed } = msg.value.content
+    const id = subfeed
+    const parent = metafeed
 
     // Update roots
-    if (!detailsLookup.has(metafeed)) {
-      detailsLookup.set(metafeed, rootFeedDetails())
-      roots.add(metafeed)
+    if (!detailsLookup.has(parent)) {
+      detailsLookup.set(parent, rootFeedDetails(parent))
+      roots.add(parent)
     }
 
     // Update children
     if (type.startsWith('metafeed/add/')) {
-      if (childrenLookup.has(metafeed)) {
-        const subfeeds = childrenLookup.get(metafeed)
-        subfeeds.add(subfeed)
+      if (childrenLookup.has(parent)) {
+        const children = childrenLookup.get(parent)
+        children.add(id)
       } else {
-        const subfeeds = new Set()
-        subfeeds.add(subfeed)
-        childrenLookup.set(metafeed, subfeeds)
+        const children = new Set()
+        children.add(id)
+        childrenLookup.set(parent, children)
       }
     }
 
     // Update details
-    const details = msgToDetails(detailsLookup.get(subfeed), msg)
-    detailsLookup.set(subfeed, details)
-    roots.delete(subfeed)
-    ensureQueue.flush(subfeed)
+    const details = msgToDetails(detailsLookup.get(id), msg)
+    detailsLookup.set(id, details)
+    roots.delete(id)
+    ensureQueue.flush(id)
 
-    if (notifyNewBranch) notifyNewBranch(makeBranch(subfeed))
+    if (notifyNewBranch) notifyNewBranch(makeBranch(id))
   }
 
   function loadState() {
@@ -167,13 +169,14 @@ exports.init = function (sbot, config) {
     )
   }
 
-  function makeBranch(subfeed) {
-    const details = detailsLookup.get(subfeed)
-    const branch = [[subfeed, details]]
-    while (branch[0][1].metafeed) {
-      const metafeedId = branch[0][1].metafeed
-      const details = detailsLookup.get(metafeedId) || rootFeedDetails()
-      branch.unshift([metafeedId, details])
+  function makeBranch(id) {
+    const details = detailsLookup.get(id)
+    const branch = [details]
+    while (branch[0].parent) {
+      const metafeedId = branch[0].parent
+      const parentDetails =
+        detailsLookup.get(metafeedId) || rootFeedDetails(metafeedId)
+      branch.unshift(parentDetails)
     }
     return branch
   }
@@ -181,9 +184,9 @@ exports.init = function (sbot, config) {
   function traverseBranchesUnder(feedId, previousBranch, visit) {
     const details =
       previousBranch.length === 0
-        ? rootFeedDetails()
+        ? rootFeedDetails(feedId)
         : detailsLookup.get(feedId) || null
-    const branch = [...previousBranch, [feedId, details]]
+    const branch = [...previousBranch, details]
     visit(branch)
     if (childrenLookup.has(feedId)) {
       for (const childFeedId of childrenLookup.get(feedId)) {
@@ -213,13 +216,13 @@ exports.init = function (sbot, config) {
       return pull(
         notifyNewBranch.listen(),
         pull.map(function cutBranch(branch) {
-          const idx = branch.findIndex(([feedId]) => feedId === rootMetafeedId)
+          const idx = branch.findIndex((feed) => feed.id === rootMetafeedId)
           if (idx < 0) return []
           else if (idx === 0) return branch
           else return branch.slice(idx)
         }),
         pull.filter(function hasRoot(branch) {
-          return branch.length > 0 && branch[0][0] === rootMetafeedId
+          return branch.length > 0 && branch[0].id === rootMetafeedId
         })
       )
     } else {
@@ -275,13 +278,13 @@ exports.init = function (sbot, config) {
     } = opts || {}
 
     const filterTombstoneOrNot = (branch) => {
-      const [, leafDetails] = branch[branch.length - 1]
+      const leafDetails = branch[branch.length - 1]
       if (tombstoned === null) {
         // Anything goes
         return true
       } else if (tombstoned === false) {
         // All nodes in the branch must be non-tombstoned
-        return branch.every(([, details]) => !details || !details.tombstoned)
+        return branch.every((feed) => !feed.tombstoned)
       } else if (tombstoned === true) {
         // The leaf must be tombstoned for this branch to be interesting to us
         return leafDetails && !!leafDetails.tombstoned

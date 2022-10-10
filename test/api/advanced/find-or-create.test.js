@@ -17,8 +17,6 @@ test('advanced.findOrCreate(null, null, null, cb)', (t) => {
 
       sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, mf) => {
         t.error(err, 'no err for findOrCreate()')
-        // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
-        // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
         t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
         t.equals(typeof mf.keys.id, 'string', 'key seems okay')
         sbot.close(true, t.end)
@@ -32,8 +30,6 @@ test('advanced.findOrCreate(cb)', (t) => {
 
   sbot.metafeeds.advanced.findOrCreate((err, mf) => {
     t.error(err, 'no err for findOrCreate()')
-    // t.equals(mf.feeds.length, 1, '1 sub feed in the root metafeed')
-    // t.equals(mf.feeds[0].feedpurpose, 'main', 'it is the main feed')
     t.equals(mf.seed.toString('hex').length, 64, 'seed length is okay')
     t.equals(typeof mf.keys.id, 'string', 'key seems okay')
     sbot.close(true, t.end)
@@ -72,14 +68,14 @@ test('advanced.findOrCreate() a sub feed', (t) => {
       // lets create a new chess feed
       sbot.metafeeds.advanced.findOrCreate(
         mf,
-        (f) => f.feedpurpose === 'chess',
+        (f) => f.purpose === 'chess',
         {
-          feedpurpose: 'chess',
-          feedformat: 'classic',
+          purpose: 'chess',
+          feedFormat: 'classic',
           metadata: { score: 0 },
         },
         (err, feed) => {
-          t.equals(feed.feedpurpose, 'chess', 'it is the chess feed')
+          t.equals(feed.purpose, 'chess', 'it is the chess feed')
           t.equals(feed.metadata.score, 0, 'it has metadata')
           sbot.close(true, t.end)
         }
@@ -93,30 +89,30 @@ test('advanced.findOrCreate() a subfeed under a sub meta feed', (t) => {
   sbot.metafeeds.advanced.findOrCreate(null, null, null, (err, rootMF) => {
     sbot.metafeeds.advanced.findOrCreate(
       rootMF,
-      (f) => f.feedpurpose === 'indexes',
-      { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' },
+      (f) => f.purpose === 'indexes',
+      { purpose: 'indexes', feedFormat: 'bendybutt-v1' },
       (err, indexesMF) => {
         t.error(err, 'no err')
-        t.equals(indexesMF.feedpurpose, 'indexes', 'got the indexes meta feed')
+        t.equals(indexesMF.purpose, 'indexes', 'got the indexes meta feed')
         t.true(
-          indexesMF.subfeed.startsWith('ssb:feed/bendybutt-v1/'),
+          indexesMF.id.startsWith('ssb:feed/bendybutt-v1/'),
           'has a bendy butt SSB URI'
         )
 
         sbot.metafeeds.advanced.findOrCreate(
           indexesMF,
-          (f) => f.feedpurpose === 'index',
+          (f) => f.purpose === 'index',
           {
-            feedpurpose: 'index',
-            feedformat: 'indexed-v1',
+            purpose: 'index',
+            feedFormat: 'indexed-v1',
             metadata: { query: 'foo' },
           },
           (err, f) => {
             t.error(err, 'no err')
-            t.equals(f.feedpurpose, 'index', 'it is the index subfeed')
+            t.equals(f.purpose, 'index', 'it is the index subfeed')
             t.equals(f.metadata.query, 'foo', 'query is okay')
             t.true(
-              f.subfeed.startsWith('ssb:feed/indexed-v1/'),
+              f.id.startsWith('ssb:feed/indexed-v1/'),
               'feed format is indexed-v1'
             )
 
@@ -136,10 +132,10 @@ test('advanced.findOrCreate (protected metadata fields)', (t) => {
 
     sbot.metafeeds.advanced.findOrCreate(
       mf,
-      (f) => f.feedpurpose === 'private',
+      (f) => f.purpose === 'private',
       {
-        feedpurpose: 'private',
-        feedformat: 'classic',
+        purpose: 'private',
+        feedFormat: 'classic',
         metadata: {
           recps: [sbot.id], // naughty! (this is a protected field)
         },
@@ -172,10 +168,10 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
 
       sbot.metafeeds.advanced.findOrCreate(
         mf,
-        (f) => f.feedpurpose === 'private',
+        (f) => f.purpose === 'private',
         {
-          feedpurpose: 'private',
-          feedformat: 'classic',
+          purpose: 'private',
+          feedFormat: 'classic',
           recps: [groupId],
           encryptionFormat: 'box2',
         },
@@ -223,10 +219,10 @@ test('advanced.findOrCreate (encryption - FeedId)', (t) => {
 
     sbot.metafeeds.advanced.findOrCreate(
       mf,
-      (f) => f.feedpurpose === 'private',
+      (f) => f.purpose === 'private',
       {
-        feedpurpose: 'private',
-        feedformat: 'classic',
+        purpose: 'private',
+        feedFormat: 'classic',
         recps: [sbot.id],
         encryptionFormat: 'box2',
       },

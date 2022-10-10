@@ -37,10 +37,10 @@ test('advanced.getRoot (all FeedDetails have same format)', (t) => {
 
           sbot.metafeeds.advanced.findOrCreate(
             mf,
-            (f) => f.feedpurpose === 'chess',
+            (f) => f.purpose === 'chess',
             {
-              feedpurpose: 'chess',
-              feedformat: 'classic',
+              purpose: 'chess',
+              feedFormat: 'classic',
               metadata: { score: 0 },
             },
             (err, feed) => {

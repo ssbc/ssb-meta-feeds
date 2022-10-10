@@ -19,9 +19,9 @@ test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
       }),
       pull.drain((branch) => {
         t.equals(branch.length, 2, 'live')
-        t.equals(branch[0][0], rootMF.keys.id, 'live')
-        t.equals(branch[1][1].feedpurpose, 'chess', 'live')
-        t.equals(branch[1][1].reason, 'This game is too good', 'live')
+        t.equals(branch[0].id, rootMF.keys.id, 'live')
+        t.equals(branch[1].purpose, 'chess', 'live')
+        t.equals(branch[1].reason, 'This game is too good', 'live')
 
         function testRead(t, sbot, cb) {
           pull(
@@ -32,10 +32,10 @@ test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
             }),
             pull.drain((branch) => {
               t.equals(branch.length, 2)
-              t.equals(branch[0][0], rootMF.keys.id, 'tombstoned: true')
-              t.equals(branch[1][1].feedpurpose, 'chess', 'tombstoned: true')
+              t.equals(branch[0].id, rootMF.keys.id, 'tombstoned: true')
+              t.equals(branch[1].purpose, 'chess', 'tombstoned: true')
               t.equals(
-                branch[1][1].reason,
+                branch[1].reason,
                 'This game is too good',
                 'tombstoned: true'
               )
@@ -88,7 +88,7 @@ test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
 
     sbot.metafeeds.advanced.findAndTombstone(
       rootMF,
-      (f) => f.feedpurpose === 'chess',
+      (f) => f.purpose === 'chess',
       'This game is too good',
       (err) => {
         t.error(err, 'no err')

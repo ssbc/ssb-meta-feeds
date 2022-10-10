@@ -80,7 +80,7 @@ We create a subfeed for `about` messages under our `root` feed using
 subfeed that matches the criteria.
 
 ```js
-const details = { feedpurpose: 'aboutMe' }
+const details = { purpose: 'aboutMe' }
 sbot.metafeeds.findOrCreate(details, (err, aboutMeFeed) => {
   console.log(aboutMeFeed)
 
@@ -97,7 +97,7 @@ Once you have a *FeedDetails* object, like `aboutMeFeed`, you can publish on
 the new subfeed:
 
 ```js
-const details = { feedpurpose: 'aboutMe' }
+const details = { purpose: 'aboutMe' }
 sbot.metafeeds.findOrCreate(details, (err, aboutMeFeed) => {
   console.log(aboutMeFeed)
 
@@ -121,13 +121,13 @@ one which matches these. This creates feeds following the
 [v1 tree structure](https://github.com/ssbc/ssb-meta-feeds-spec#v1).
 
 Arguments:
-- `details` *Object* where 
-    - `details.feedpurpose` *String* any string to characterize the purpose of this new subfeed
-    - `details.feedformat` *String* (optional)
+- `details` *Object* where
+    - `details.purpose` *String* any string to characterize the purpose of this new subfeed
+    - `details.feedFormat` *String* (optional)
         - either `'classic'` or `'bendybutt-v1'`
         - default: `'classic'`
     - `details.recps` *Array* (optional)
-       - A collection of "recipients" (GroupId, FeedId, ...) to encrypt the announcement messages to 
+       - A collection of "recipients" (GroupId, FeedId, ...) to encrypt the announcement messages to
     - `details.encryptionFormat` *String* (optional)
        - specifies which encryption format to use (you will need an encryption plugin installed e.g. `ssb-box2` installed)
        - default: `'box2'`
@@ -136,10 +136,10 @@ Arguments:
 - `cb` *function* delivers the response, has signature `(err, FeedDetails)`, where FeedDetails is
     ```js
     {
-      metafeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
-      subfeed: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
-      feedpurpose: 'chess',
-      feedformat: 'classic',
+      id: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
+      parent: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
+      purpose: 'chess',
+      feedFormat: 'classic',
       seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>
       keys: {
         curve: 'ed25519',
@@ -155,12 +155,12 @@ Arguments:
     ```
 
 Meaning:
-- `metafeed` - the id of the feed this is underneath
-- `subfeed` - the id of this feed, same as `keys.id`
-- `feedpurpose` - a human readable ideally unique handle for this feed
-- `feedformat` - the feed format ("classic" or "bendybutt-v1" are current options)
-- `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `keys` - cryptographic keys used for signing messages published by this feed (see [ssb-keys])
+- `id` - the id of this feed, same as `keys.id`
+- `parent` - the id of the parent metafeed under which this feed was announced
+- `purpose` - a human readable ideally unique handle for this feed
+- `feedFormat` - the feed format ("classic", "bendybutt-v1", "indexed-v1", etc)
+- `seed` - the data from which is use to derive the `keys` and `id` of this feed.
 - `recps` - an Array of recipients who the metafeed announcement was encrypted to
 - `metadata` - object containing additional data
 
@@ -176,7 +176,7 @@ it will just load the root metafeed.
 
 Callsback with your `root` FeedDetails object (see `findOrCreate(details, cb)`)
 
-NOTES: 
+NOTES:
 - `metafeed = null` - the root metafeed is the topmost metafeed
 
 ### `sbot.metafeeds.branchStream(opts)`
@@ -189,40 +189,34 @@ branch looks like this:
 
 ```js
 [
-  [rootMetafeedId, rootDetails],
-  [childMetafeedId, childDetails],
-  [grandchildMetafeedId, grandchildDetails],
+  rootDetails,
+  childDetails,
+  grandchildDetails,
 ]
 ```
 
-Or in general, an `Array<[FeedId, Details]>`. The *Details* object has
-the shape `{ feedpurpose, feedformat, metafeed, metadata }` like in `findById`.
+Or in general, an `Array<Details>`. The *Details* object has
+the shape `{ id, purpose, feedFormat, metafeed, metadata }` like what
+`findOrCreate` returns.
 
 `branchStream` will emit all possible branches, which means sub-branches are
 included. For instance, in the example above, `branchStream` would emit:
 
 ```js
-[
-  [rootMetafeedId, rootDetails]
-]
+[ rootDetails ]
+```
+
+and
+
+```js
+[ rootDetails, childDetails ]
 ```
 
 and
 
 ```js
 [
-  [rootMetafeedId, rootDetails],
-  [childMetafeedId, childDetails],
-]
-```
-
-and
-
-```js
-[
-  [rootMetafeedId, rootDetails],
-  [childMetafeedId, childDetails],
-  [grandchildMetafeedId, grandchildDetails],
+  rootDetails, childDetails, grandchildDetails,
 ]
 ```
 

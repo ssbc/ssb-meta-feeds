@@ -13,7 +13,6 @@ const {
   paginate,
   descending,
 } = require('ssb-db2/operators')
-const SSBURI = require('ssb-uri2')
 
 exports.init = function (sbot, config) {
   const self = {
@@ -77,24 +76,24 @@ exports.init = function (sbot, config) {
       const content = msg.value.content
       const { type, feedpurpose, subfeed, nonce, recps } = content
       const metadata = self.collectMetadata(content)
-      const feedformat = validate.detectFeedFormat(subfeed)
+      const feedFormat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metafeed/add/existing'
       const keys = existing
         ? config.keys
         : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
             seed,
             nonce.toString('base64'),
-            feedformat
+            feedFormat
           )
       return {
-        metafeed: msg.value.author,
-        feedformat,
-        feedpurpose,
-        subfeed,
-        keys,
-        metadata,
+        id: subfeed,
+        parent: msg.value.author,
+        purpose: feedpurpose,
+        feedFormat,
         seed: !existing ? seed : undefined,
+        keys,
         recps: recps || null,
+        metadata,
       }
     },
 
@@ -105,25 +104,25 @@ exports.init = function (sbot, config) {
     hydrateFromCreateOpts(opts, seed) {
       const { feedpurpose, subfeed, metafeed, nonce, type, recps } =
         opts.content
-      const feedformat = validate.detectFeedFormat(subfeed)
+      const feedFormat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metadata/add/existing'
       const keys = existing
         ? config.keys
         : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
             seed,
             nonce.toString('base64'),
-            feedformat
+            feedFormat
           )
       const metadata = self.collectMetadata(opts.content)
       return {
-        metafeed,
-        feedformat,
-        feedpurpose,
-        subfeed,
-        keys,
-        metadata,
+        id: subfeed,
+        parent: metafeed,
+        purpose: feedpurpose,
+        feedFormat,
         seed: !existing ? seed : undefined,
+        keys,
         recps: recps || null,
+        metadata,
       }
     },
 
@@ -133,7 +132,7 @@ exports.init = function (sbot, config) {
      * ```js
      * sbot.metafeeds.query.hydrate(mfKey.id, (err, hydrated) => {
      *   console.log(hydrated.feeds) // the feeds
-     *   console.log(hydrated.feeds[0].feedpurpose) // 'main'
+     *   console.log(hydrated.feeds[0].purpose) // 'main'
      * })
      * ```
      */
@@ -153,14 +152,14 @@ exports.init = function (sbot, config) {
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
             .map((msg) => {
               const content = msg.value.content
-              const { feedpurpose, subfeed } = content
+              const { subfeed, feedpurpose } = content
               const metadata = self.collectMetadata(content)
-              return { feedpurpose, subfeed, metadata }
+              return { id: subfeed, purpose: feedpurpose, metadata }
             })
 
           const feeds = addedFeeds.filter(
             // allow only feeds that have not been tombstoned
-            (feed) => !tombstoned.find((t) => t.subfeed === feed.subfeed)
+            (feed) => !tombstoned.find((t) => t.id === feed.id)
           )
 
           cb(null, { feeds, tombstoned })

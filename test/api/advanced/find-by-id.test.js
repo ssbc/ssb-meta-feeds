@@ -19,15 +19,16 @@ test('advanced.findById', (t) => {
           if (err) return cb(err)
 
           t.deepEquals(Object.keys(details), [
-            'feedformat',
-            'feedpurpose',
-            'metafeed',
-            'metadata',
+            'id',
+            'parent',
+            'purpose',
+            'feedFormat',
             'recps',
+            'metadata',
           ])
-          t.equals(details.feedpurpose, 'index')
-          t.equals(details.metafeed, indexesMF.keys.id)
-          t.equals(details.feedformat, 'indexed-v1')
+          t.equals(details.purpose, 'index')
+          t.equals(details.parent, indexesMF.keys.id)
+          t.equals(details.feedFormat, 'indexed-v1')
 
           cb(null)
         })

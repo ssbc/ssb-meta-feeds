@@ -27,18 +27,18 @@ Arguments:
     - *null* - this method will then return an arbitrary subfeed under provided `metafeed`
 - `details` - used to create a new subfeed if a match for an existing one is not found, can be
     - *Object*:
-        - `details.feedpurpose` *String* any string to characterize the purpose of this new subfeed
-        - `details.feedformat` *String* either `'classic'` or `'bendybutt-v1'`
+        - `details.purpose` *String* any string to characterize the purpose of this new subfeed
+        - `details.feedFormat` *String* either `'classic'` or `'bendybutt-v1'`
         - `details.metadata` *Object* (optional) - for containing other data
             - if `details.metadata.recps` is used, the subfeed announcement will be encrypted
     - *null* - only allowed if `metafeed` is null (i.e. the details of the `root` FeedDetails)
 - `cb` *function* delivers the response, has signature `(err, FeedDetails)`, where FeedDetails is
     ```js
     {
-      metafeed: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
-      subfeed: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
-      feedpurpose: 'chess',
-      feedformat: 'classic',
+      id: '@I5TBH6BuCvMkSAWJXKwa2FEd8y/fUafkQ1z19PyXzbE=.ed25519',
+      parent: 'ssb:feed/bendybutt-v1/sxK3OnHxdo7yGZ-28HrgpVq8nRBFaOCEGjRE4nB7CO8=',
+      purpose: 'chess',
+      feedFormat: 'classic',
       seed: <Buffer 13 10 25 ab e3 37 20 57 19 0a 1d e4 64 13 e7 38 d2 23 11 48 7d 13 e6 3b 8f ef 72 92 7f db 96 64>
       keys: {
         curve: 'ed25519',
@@ -60,10 +60,10 @@ fetches the *Details* object describing that feed, which is of form:
 
 ```js
 {
-  metafeed,
-  feedpurpose,
-  feedformat,
   id,
+  parent,
+  purpose,
+  feedFormat,
   // seed
   // keys
   metadata

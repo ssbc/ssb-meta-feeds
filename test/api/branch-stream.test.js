@@ -29,50 +29,39 @@ test('branchStream', (t) => {
         ] = branches
 
         t.equal(root.length, 1, 'root alone')
-        t.equal(typeof root[0][0], 'string', 'root alone')
+        t.equal(typeof root[0].id, 'string', 'root alone')
         t.deepEqual(
-          root[0][1],
+          root[0],
           {
-            feedformat: 'bendybutt-v1',
-            feedpurpose: 'root',
-            metafeed: null,
+            id: root[0].id,
+            parent: null,
+            purpose: 'root',
+            feedFormat: 'bendybutt-v1',
             metadata: {},
           },
           'root alone'
         )
 
         t.equal(rootV1.length, 2, 'root/v1')
-        t.equal(rootV1[1][1].feedpurpose, 'v1', 'root/v1 feedpurpose')
+        t.equal(rootV1[1].purpose, 'v1', 'root/v1 purpose')
 
         t.equal(rootV1Shard.length, 3, 'root/v1/:shard')
-        t.equal(rootV1Shard[1][1].feedpurpose, 'v1', 'root/v1/:shard v1')
-        t.equal(
-          rootV1Shard[2][1].feedpurpose.length,
-          1,
-          'root/v1/:shard feedpurpose'
-        )
+        t.equal(rootV1Shard[1].purpose, 'v1', 'root/v1/:shard v1')
+        t.equal(rootV1Shard[2].purpose.length, 1, 'root/v1/:shard purpose')
 
         t.equal(rootV1ShardMain.length, 4, 'root/v1/:shard/main')
-        t.equal(rootV1ShardMain[1][1].feedpurpose, 'v1', 'root/v1/:shard v1')
-        t.equal(
-          rootV1ShardMain[2][1].feedpurpose.length,
-          1,
-          'root/v1/:shard shard'
-        )
-        t.equal(
-          rootV1ShardMain[3][1].feedpurpose,
-          'main',
-          'root/v1/:shard feedpurpose'
-        )
+        t.equal(rootV1ShardMain[1].purpose, 'v1', 'root/v1/:shard v1')
+        t.equal(rootV1ShardMain[2].purpose.length, 1, 'root/v1/:shard shard')
+        t.equal(rootV1ShardMain[3].purpose, 'main', 'root/v1/:shard purpose')
 
         t.equal(rootChess.length, 2, 'chess branch')
-        t.equal(rootChess[1][1].feedpurpose, 'chess', 'chess branch')
+        t.equal(rootChess[1].purpose, 'chess', 'chess branch')
 
         t.equal(rootIndexes.length, 2, 'indexes branch')
-        t.equal(rootIndexes[1][1].feedpurpose, 'indexes', 'indexes branch')
+        t.equal(rootIndexes[1].purpose, 'indexes', 'indexes branch')
 
         t.equal(rootIndexesIndex.length, 3, 'index branch')
-        t.equal(rootIndexesIndex[2][1].feedpurpose, 'index', 'indexes branch')
+        t.equal(rootIndexesIndex[2].purpose, 'index', 'indexes branch')
 
         cb(null)
       })
@@ -95,7 +84,7 @@ test('branchStream (encrypted announces)', (t) => {
   sbot.box2.addGroupKey(groupId, groupKey)
 
   const details = {
-    feedpurpose: 'dental',
+    purpose: 'dental',
     recps: [groupId],
   }
 
@@ -110,17 +99,11 @@ test('branchStream (encrypted announces)', (t) => {
   pull(
     sbot.metafeeds.branchStream({ old: false, live: true }),
     pull.drain((branch) => {
-      const dentalFeed = branch.find(
-        (feed) => feed[1].feedpurpose === details.feedpurpose
-      )
+      const dentalFeed = branch.find((feed) => feed.purpose === 'dental')
       if (!dentalFeed) return
 
-      t.equal(
-        dentalFeed[1].feedpurpose,
-        'dental',
-        'finds encrypted feed (live)'
-      )
-      t.deepEqual(dentalFeed[1].recps, [groupId], 'has recps details (live)')
+      t.equal(dentalFeed.purpose, 'dental', 'finds encrypted feed (live)')
+      t.deepEqual(dentalFeed.recps, [groupId], 'has recps details (live)')
 
       done()
     })
@@ -142,14 +125,10 @@ test('branchStream (encrypted announces)', (t) => {
           // root/v1/:shardA/main
           // root/v1/:shardB
           // root/v1/:shardB/dental
-          const dentalPath = branches.pop()
-          const [_, dentalFeed] = dentalPath[dentalPath.length - 1]
+          const dentalBranch = branches.pop()
+          const dentalFeed = dentalBranch[dentalBranch.length - 1]
 
-          t.equal(
-            dentalFeed.feedpurpose,
-            details.feedpurpose,
-            'finds encrypted feed'
-          )
+          t.equal(dentalFeed.purpose, 'dental', 'finds encrypted feed')
           t.deepEqual(dentalFeed.recps, details.recps, 'has recps details')
 
           done()
