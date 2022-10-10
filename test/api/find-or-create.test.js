@@ -121,7 +121,12 @@ test('double findOrCreate should not create two v1 feeds', async (t) => {
   const shardAnnouncements = msgs.filter((msg) =>
     hexes.includes(msg.value.content.feedpurpose)
   )
-  t.equals(shardAnnouncements.length, 2, 'two shard announcements')
+  // sometimes :shardA and :shardB are the same, among
+  // root/v1/:shardA/main and root/v1/:shardB/chess
+  t.true(
+    shardAnnouncements.length === 1 || shardAnnouncements.length === 2,
+    'shard announcement'
+  )
 
   const chessAnnouncements = msgs.filter(
     (msg) => msg.value.content.feedpurpose === 'chess'

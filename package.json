@@ -49,7 +49,7 @@
     "test": "npm run test:js && npm run test:only",
     "test:js": "tape \"test/**/*.test.js\" | tap-arc --bail",
     "test:only": "if grep -r --exclude-dir=node_modules --exclude-dir=coverage --exclude-dir=.git --color 'test\\.only' .; then exit 1; fi",
-    "format-code": "prettier --write \"*.js\" \"test/*.js\"",
+    "format-code": "prettier --write \"*.js\" \"test/**/*.js\"",
     "format-code-staged": "pretty-quick --staged --pattern \"*.js\" --pattern \"test/*.js\"",
     "coverage": "c8 --reporter=lcov npm run test"
   },
