@@ -111,9 +111,7 @@ exports.init = function (sbot, config) {
   }
 
   function updateLookup(msg) {
-    const { type, subfeed, metafeed } = msg.value.content
-    const id = subfeed
-    const parent = metafeed
+    const { type, subfeed: id, metafeed: parent } = msg.value.content
 
     // Update roots
     if (!detailsLookup.has(parent)) {
