@@ -132,7 +132,7 @@ exports.init = function (sbot, config) {
     findOrCreate(root, v1Visit, v1Details, cb)
   }
 
-  function findShard(v1Feed, root, details, cb) {
+  function findShard(root, v1Feed, details, cb) {
     const shardDetails = {
       feedpurpose: pickShard(root.keys.id, details.feedpurpose),
       feedformat: BB1,
@@ -141,7 +141,7 @@ exports.init = function (sbot, config) {
     find(v1Feed, shardVisit, cb)
   }
 
-  function findOrCreateShard(v1Feed, root, details, cb) {
+  function findOrCreateShard(root, v1Feed, details, cb) {
     const shardDetails = {
       feedpurpose: pickShard(root.keys.id, details.feedpurpose),
       feedformat: BB1,
@@ -225,7 +225,7 @@ exports.init = function (sbot, config) {
       const [err3, v1Feed] = await run(findOrCreateV1)(mf)
       if (err3) return release(cb, err3)
       const d = { feedpurpose: 'main' }
-      const [err4, shardFeed] = await run(findOrCreateShard)(v1Feed, mf, d)
+      const [err4, shardFeed] = await run(findOrCreateShard)(mf, v1Feed, d)
       if (err4) return release(cb, err4)
       const visit = (f) => f.feedpurpose === 'main'
       const [err5, added] = await run(find)(shardFeed, visit)
@@ -273,7 +273,7 @@ exports.init = function (sbot, config) {
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        findOrCreateShard(v1Feed, rootFeed, details, (err, shardFeed) => {
+        findOrCreateShard(rootFeed, v1Feed, details, (err, shardFeed) => {
           if (err) return cb(err)
 
           findOrCreate(shardFeed, detailsToVisit(details), details, cb)
@@ -291,7 +291,7 @@ exports.init = function (sbot, config) {
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        findShard(v1Feed, rootFeed, details, (err, shardFeed) => {
+        findShard(rootFeed, v1Feed, details, (err, shardFeed) => {
           if (err) return cb(err)
           if (!shardFeed) return cb(null, false)
 

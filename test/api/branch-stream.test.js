@@ -22,6 +22,7 @@ test('branchStream', (t) => {
           rootV1,
           rootV1Shard,
           rootV1ShardMain,
+          // These are not under shards because they used the advanced API:
           rootChess,
           rootIndexes,
           rootIndexesIndex,
