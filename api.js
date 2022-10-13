@@ -128,6 +128,28 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function findOrCreateV1(root, cb) {
+    findOrCreate(root, v1Visit, v1Details, cb)
+  }
+
+  function findShard(root, v1Feed, details, cb) {
+    const shardDetails = {
+      feedpurpose: pickShard(root.keys.id, details.feedpurpose),
+      feedformat: BB1,
+    }
+    const shardVisit = detailsToVisit(shardDetails)
+    find(v1Feed, shardVisit, cb)
+  }
+
+  function findOrCreateShard(root, v1Feed, details, cb) {
+    const shardDetails = {
+      feedpurpose: pickShard(root.keys.id, details.feedpurpose),
+      feedformat: BB1,
+    }
+    const shardVisit = detailsToVisit(shardDetails)
+    findOrCreate(v1Feed, shardVisit, shardDetails, cb)
+  }
+
   const findAndTombstoneLock = mutexify()
 
   function findAndTombstone(metafeed, visit, reason, cb) {
@@ -199,16 +221,22 @@ exports.init = function (sbot, config) {
         debug('announce post exists on main feed')
       }
 
-      // Ensure the main feed was "added" on the root meta feed
-      const [err3, added] = await run(find)(mf, (f) => f.feedpurpose === 'main')
+      // Ensure the main feed was "added" on the path root/v1/:shard/main
+      const [err3, v1Feed] = await run(findOrCreateV1)(mf)
       if (err3) return release(cb, err3)
+      const d = { feedpurpose: 'main' }
+      const [err4, shardFeed] = await run(findOrCreateShard)(mf, v1Feed, d)
+      if (err4) return release(cb, err4)
+      const visit = (f) => f.feedpurpose === 'main'
+      const [err5, added] = await run(find)(shardFeed, visit)
+      if (err5) return release(cb, err5)
       if (!added) {
-        debug('adding main feed to root meta feed')
-        const opts = optsForAddExisting(mf.keys, 'main', config.keys)
+        debug('adding main feed to a shard metafeed')
+        const opts = optsForAddExisting(shardFeed.keys, 'main', config.keys)
         const [err5] = await run(sbot.db.create)(opts)
         if (err5) return release(cb, err5)
       } else {
-        debug('main feed already added to root meta feed')
+        debug('main feed already added to a shard metafeed')
       }
 
       cachedRootMetafeed = mf
@@ -242,16 +270,10 @@ exports.init = function (sbot, config) {
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
-      findOrCreate(rootFeed, v1Visit, v1Details, (err, v1Feed) => {
+      findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        const shardDetails = {
-          feedpurpose: pickShard(rootFeed.keys.id, details.feedpurpose),
-          feedformat: BB1,
-        }
-        const shardVisit = detailsToVisit(shardDetails)
-
-        findOrCreate(v1Feed, shardVisit, shardDetails, (err, shardFeed) => {
+        findOrCreateShard(rootFeed, v1Feed, details, (err, shardFeed) => {
           if (err) return cb(err)
 
           findOrCreate(shardFeed, detailsToVisit(details), details, cb)
@@ -266,14 +288,10 @@ exports.init = function (sbot, config) {
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
-      find(rootFeed, v1Visit, (err, v1Feed) => {
+      findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        const shardDetails = {
-          feedpurpose: pickShard(rootFeed.keys.id, details.feedpurpose),
-          feedformat: BB1,
-        }
-        find(v1Feed, detailsToVisit(shardDetails), (err, shardFeed) => {
+        findShard(rootFeed, v1Feed, details, (err, shardFeed) => {
           if (err) return cb(err)
           if (!shardFeed) return cb(null, false)
 

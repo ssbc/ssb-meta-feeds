@@ -48,7 +48,13 @@ test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
                 }),
                 pull.collect((err, branches) => {
                   if (err) return cb(err)
-                  t.equal(branches.length, 4, 'tombstoned: false')
+                  t.equal(branches.length, 6, 'tombstoned: false')
+                  // root
+                  // root/v1
+                  // root/v1/:shard
+                  // root/v1/:shard/main
+                  // root/indexes
+                  // root/indexes/index
 
                   pull(
                     sbot.metafeeds.branchStream({
@@ -58,8 +64,16 @@ test('advanced.findAndTombstone and tombstoning branchStream', (t) => {
                     }),
                     pull.collect((err, branches) => {
                       if (err) return cb(err)
-                      t.equal(branches.length, 5, 'tombstoned: null')
-                      cb(null)
+                      t.equal(branches.length, 7, 'tombstoned: null')
+                      // root
+                      // root/v1
+                      // root/v1/:shard
+                      // root/v1/:shard/main
+                      // root/chess
+                      // root/indexes
+                      // root/indexes/index
+
+                      cb()
                     })
                   )
                 })
