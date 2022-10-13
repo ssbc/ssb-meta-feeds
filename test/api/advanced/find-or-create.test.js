@@ -160,7 +160,7 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
     '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
     'hex'
   )
-  sbot.box2.addGroupKey(groupId, groupKey)
+  sbot.box2.addGroupInfo(groupId, { key: groupKey })
 
   testReadAndPersisted(t, sbot, (t, sbot, cb) => {
     sbot.metafeeds.advanced.findOrCreate((err, mf) => {

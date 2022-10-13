@@ -39,8 +39,10 @@
     "rimraf": "^3.0.2",
     "secret-stack": "^6.4.0",
     "ssb-bendy-butt": "^1.0.1",
+    "ssb-box2": "^3.0.0",
     "ssb-caps": "^1.1.0",
-    "ssb-db2": "^6.2.1",
+    "ssb-classic": "^1.1.0",
+    "ssb-db2": "ssbc/ssb-db2#encryptionFormat_grrr",
     "tap-arc": "^0.3.5",
     "tape": "^5.6.1"
   },

@@ -22,8 +22,10 @@ module.exports = function createSbot(opts = {}) {
   const keys = opts.keys || ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
   const stack = SecretStack({ appKey: caps.shs })
-    .use(require('ssb-db2'))
+    .use(require('ssb-db2/core'))
     .use(require('ssb-bendy-butt'))
+    .use(require('ssb-classic'))
+    .use(require('ssb-box2'))
     .use(require('../'))
 
   return stack({
