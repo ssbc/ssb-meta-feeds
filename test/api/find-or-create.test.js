@@ -12,34 +12,34 @@ test('findOrCreate with no details gives us the root', (t) => {
   const ssb = Testbot()
   ssb.metafeeds.findOrCreate((err, feed) => {
     t.error(err)
-    t.equal(feed.feedpurpose, 'root', 'feedpurpose is correct')
-    t.equal(feed.metafeed, null, 'metafeed is empty')
-    t.equal(feed.feedformat, 'bendybutt-v1', 'feedformat is correct')
+    t.equal(feed.purpose, 'root', 'feedpurpose is correct')
+    t.equal(feed.parent, null, 'metafeed is empty')
+    t.equal(feed.feedFormat, 'bendybutt-v1', 'feedformat is correct')
     ssb.close(true, t.end)
   })
 })
 
 test('metafeed tree from findOrCreate has root/v1/:shard/main', (t) => {
   const ssb = Testbot()
-  ssb.metafeeds.findOrCreate((err, feed) => {
+  ssb.metafeeds.findOrCreate((err, rootMF) => {
     pull(
       ssb.metafeeds.branchStream({
-        root: feed.subfeed,
+        root: rootMF.id,
         old: true,
         live: false,
       }),
       pull.filter((branch) =>
-        branch.find(([id, details]) => details.feedpurpose === 'main')
+        branch.find((feed) => feed.purpose === 'main')
       ),
       pull.collect((err, branches) => {
         t.error(err, 'no error')
         t.equal(branches.length, 1, 'only one branch for the main feed')
         const branch = branches[0]
         t.equal(branch.length, 4, 'branch has 4 nodes')
-        t.equal(branch[0][1].feedpurpose, 'root', 'root is 1st')
-        t.equal(branch[1][1].feedpurpose, 'v1', 'v1 is 2nd')
-        t.equal(branch[2][1].feedpurpose.length, 1, 'shard is 3rd')
-        t.equal(branch[3][1].feedpurpose, 'main', 'main is 4th')
+        t.equal(branch[0].purpose, 'root', 'root is 1st')
+        t.equal(branch[1].purpose, 'v1', 'v1 is 2nd')
+        t.equal(branch[2].purpose.length, 1, 'shard is 3rd')
+        t.equal(branch[3].purpose, 'main', 'main is 4th')
         ssb.close(true, t.end)
       })
     )
@@ -50,13 +50,13 @@ test('findOrCreate', (t) => {
   const sbot = Testbot()
 
   const details = {
-    feedpurpose: 'chess',
-    // feedformat: 'classic', optional
+    purpose: 'chess',
+    // feedFormat: 'classic', optional
   }
 
   sbot.metafeeds.findOrCreate(details, (err, chessF) => {
     if (err) throw err
-    t.equal(chessF.feedpurpose, details.feedpurpose, 'creates feed')
+    t.equal(chessF.purpose, details.purpose, 'creates feed')
 
     sbot.metafeeds.findOrCreate(details, (err, chessF2) => {
       if (err) throw err
@@ -81,7 +81,7 @@ test('findOrCreate', (t) => {
 
           const purposePath = branches
             .pop()
-            .map((f) => f[1] && f[1].feedpurpose)
+            .map((f) => f.purpose)
           t.deepEqual(
             purposePath,
             ['root', 'v1', purposePath[2], 'chess'],
@@ -101,8 +101,8 @@ test('double findOrCreate should not create two v1 feeds', async (t) => {
   const ssb = Testbot()
 
   const [chessF1, chessF2] = await Promise.all([
-    p(ssb.metafeeds.findOrCreate)({ feedpurpose: 'chess' }),
-    p(ssb.metafeeds.findOrCreate)({ feedpurpose: 'chess' }),
+    p(ssb.metafeeds.findOrCreate)({ purpose: 'chess' }),
+    p(ssb.metafeeds.findOrCreate)({ purpose: 'chess' }),
   ])
   t.ok(chessF1, 'chess feed created')
   t.ok(chessF2, 'second chess feed created')

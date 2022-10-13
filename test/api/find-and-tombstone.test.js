@@ -12,7 +12,7 @@ test('findAndTombstone', (t) => {
   const sbot = Testbot()
 
   const details = {
-    feedpurpose: 'chess',
+    purpose: 'chess',
   }
 
   sbot.metafeeds.findOrCreate(details, (err, chessF) => {
@@ -29,7 +29,7 @@ test('findAndTombstone', (t) => {
           tombstoned: false,
         }),
         pull.map((branch) =>
-          branch.map((el) => (el[1] ? el[1].feedpurpose : null))
+          branch.map((el) => (el[1] ? el[1].purpose : null))
         ),
         pull.collect((err, branches) => {
           t.error(err, 'no error')
@@ -49,7 +49,7 @@ test('findAndTombstone', (t) => {
 test('double findAndTombstone should not create two messages', async (t) => {
   const ssb = Testbot()
 
-  const details = { feedpurpose: 'chess' }
+  const details = { purpose: 'chess' }
 
   const chessF = await p(ssb.metafeeds.findOrCreate)(details)
   t.ok(chessF, 'chess feed created')

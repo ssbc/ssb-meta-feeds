@@ -16,8 +16,8 @@ const v1Visit = detailsToVisit(v1Details)
 function detailsToVisit(details) {
   return (feed) => {
     return (
-      feed.feedpurpose === details.feedpurpose &&
-      feed.feedformat === details.feedformat &&
+      feed.purpose === details.purpose &&
+      feed.feedFormat === details.feedFormat &&
       (details.metadata ? deepEqual(feed.metadata, details.metadata) : true) &&
       (details.recps ? deepEqual(feed.recps, details.recps) : true)
     )
@@ -82,8 +82,7 @@ exports.init = function (sbot, config) {
       if (detailsErr) return cb(detailsErr)
 
       const { keys, seed } = metafeed
-      const { feedpurpose, feedformat, metadata, recps, encryptionFormat } =
-        details
+      const { purpose, feedFormat, metadata, recps, encryptionFormat } = details
       if (recps && (recps.length !== 1 || !isCloakedMsgId(recps[0]))) {
         return cb(
           new Error('metafeed encryption currently only supports groupId')
@@ -92,9 +91,9 @@ exports.init = function (sbot, config) {
 
       const opts = sbot.metafeeds.messages.optsForAddDerived(
         keys,
-        feedpurpose,
+        purpose,
         seed,
-        feedformat,
+        feedFormat,
         metadata,
         recps,
         encryptionFormat
@@ -134,8 +133,8 @@ exports.init = function (sbot, config) {
 
   function findShard(root, v1Feed, details, cb) {
     const shardDetails = {
-      feedpurpose: pickShard(root.keys.id, details.feedpurpose),
-      feedformat: BB1,
+      purpose: pickShard(root.keys.id, details.purpose),
+      feedFormat: BB1,
     }
     const shardVisit = detailsToVisit(shardDetails)
     find(v1Feed, shardVisit, cb)
@@ -143,8 +142,8 @@ exports.init = function (sbot, config) {
 
   function findOrCreateShard(root, v1Feed, details, cb) {
     const shardDetails = {
-      feedpurpose: pickShard(root.keys.id, details.feedpurpose),
-      feedformat: BB1,
+      purpose: pickShard(root.keys.id, details.purpose),
+      feedFormat: BB1,
     }
     const shardVisit = detailsToVisit(shardDetails)
     findOrCreate(v1Feed, shardVisit, shardDetails, cb)
@@ -224,10 +223,10 @@ exports.init = function (sbot, config) {
       // Ensure the main feed was "added" on the path root/v1/:shard/main
       const [err3, v1Feed] = await run(findOrCreateV1)(mf)
       if (err3) return release(cb, err3)
-      const d = { feedpurpose: 'main' }
+      const d = { purpose: 'main' }
       const [err4, shardFeed] = await run(findOrCreateShard)(mf, v1Feed, d)
       if (err4) return release(cb, err4)
-      const visit = (f) => f.feedpurpose === 'main'
+      const visit = (f) => f.purpose === 'main'
       const [err5, added] = await run(find)(shardFeed, visit)
       if (err5) return release(cb, err5)
       if (!added) {
@@ -247,14 +246,14 @@ exports.init = function (sbot, config) {
   function buildRootFeedDetails(seed) {
     const keys = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
     return {
-      metafeed: null,
-      subfeed: keys.id,
-      feedpurpose: 'root',
-      feedformat: 'bendybutt-v1',
+      id: keys.id,
+      parent: null,
+      purpose: 'root',
+      feedFormat: 'bendybutt-v1',
       seed,
       keys,
-      metadata: {},
       recps: null,
+      metadata: {},
     }
   }
 
@@ -265,7 +264,7 @@ exports.init = function (sbot, config) {
       return
     }
 
-    if (!details.feedformat) details.feedformat = 'classic'
+    if (!details.feedFormat) details.feedFormat = 'classic'
 
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
@@ -315,9 +314,14 @@ exports.init = function (sbot, config) {
   }
 }
 
-function findDetailsError({ feedpurpose, feedformat, metadata = {} }) {
-  if (!feedpurpose) return new Error('Missing feedpurpose')
-  if (!feedformat) return new Error('Missing feedformat')
+function findDetailsError(details) {
+  const { purpose, feedFormat, metadata = {} } = details
+  if (!purpose) {
+    return new Error('Missing opts.purpose: ' + JSON.stringify(details))
+  }
+  if (!feedFormat) {
+    return new Error('Missing opts.feedFormat: ' + JSON.stringify(details))
+  }
 
   for (const field in metadata) {
     if (NOT_METADATA.has(field))

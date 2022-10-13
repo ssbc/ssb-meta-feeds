@@ -32,24 +32,24 @@ async function setupTree(sbot) {
   const rootMF = await p(sbot.metafeeds.advanced.findOrCreate)()
   const chessF = await p(sbot.metafeeds.advanced.findOrCreate)(
     rootMF,
-    (f) => f.feedpurpose === 'chess',
+    (f) => f.purpose === 'chess',
     {
-      feedpurpose: 'chess',
-      feedformat: 'classic',
+      purpose: 'chess',
+      feedFormat: 'classic',
       metadata: { score: 0 },
     }
   )
   const indexesMF = await p(sbot.metafeeds.advanced.findOrCreate)(
     rootMF,
-    (f) => f.feedpurpose === 'indexes',
-    { feedpurpose: 'indexes', feedformat: 'bendybutt-v1' }
+    (f) => f.purpose === 'indexes',
+    { purpose: 'indexes', feedFormat: 'bendybutt-v1' }
   )
   const indexF = await p(sbot.metafeeds.advanced.findOrCreate)(
     indexesMF,
-    (f) => f.feedpurpose === 'index',
+    (f) => f.purpose === 'index',
     {
-      feedpurpose: 'index',
-      feedformat: 'indexed-v1',
+      purpose: 'index',
+      feedFormat: 'indexed-v1',
       metadata: { query: 'foo' },
     }
   )
