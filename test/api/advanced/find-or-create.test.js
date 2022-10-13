@@ -205,6 +205,60 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
   })
 })
 
+test('advanced.findOrCreate (encryption - { key, scheme })', (t) => {
+  const sbot = Testbot()
+
+  const keyScheme = {
+    key: Buffer.from('30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76', 'hex'),
+    scheme: 'envelope-large-symmetric-group'
+  }
+
+  let addedKey = false
+
+  testReadAndPersisted(t, sbot, (t, sbot, cb) => {
+    sbot.metafeeds.advanced.findOrCreate((err, mf) => {
+      if (err) t.error(err, 'no error')
+
+      sbot.metafeeds.advanced.findOrCreate(
+        mf,
+        (f) => f.purpose === 'private',
+        {
+          purpose: 'private',
+          feedFormat: 'classic',
+          recps: [keyScheme],
+          encryptionFormat: 'box2',
+        },
+        (err, f) => {
+          if (err) t.error(err, 'no error')
+
+          if (!addedKey) {
+            const groupId = '%EPdhGFkWxLn2k7kzthIddA8yqdX8VwjmhmTes0gMMqE=.cloaked'
+            sbot.box2.addGroupKey(groupId, keyScheme.key)
+            addedKey = true
+          }
+
+          sbot.db.query(
+            where(type('metafeed/add/derived')),
+            toCallback((err, anyMsgs) => {
+              if (err) return cb(err)
+
+              const msgs = anyMsgs.filter(
+                (msg) => msg.value.content.feedpurpose === 'private'
+              )
+
+              t.equal(msgs.length, 1, 'only one metafeed/add/derived')
+              t.true(msgs[0].meta.private, 'was encrypted')
+              t.true(typeof msgs[0].value.content, 'object', 'can be read')
+
+              cb(null)
+            })
+          )
+        }
+      )
+    })
+  })
+})
+
 test('advanced.findOrCreate (encryption - FeedId)', (t) => {
   const sbot = Testbot()
 

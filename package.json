@@ -21,6 +21,7 @@
     "is-canonical-base64": "^1.1.1",
     "mutexify": "^1.4.0",
     "p-defer": "^3.0.0",
+    "private-group-spec": "^1.1.3",
     "promisify-tuple": "^1.2.0",
     "pull-cat": "^1.1.11",
     "pull-defer": "^0.2.3",

@@ -6,9 +6,12 @@ const run = require('promisify-tuple')
 const deepEqual = require('fast-deep-equal')
 const { isCloakedMsgId } = require('ssb-ref')
 const mutexify = require('mutexify')
-const debug = require('debug')('ssb:meta-feeds')
+const { keySchemes } = require('private-group-spec')
+
 const pickShard = require('./pick-shard')
 const { BB1, v1Details, NOT_METADATA } = require('./constants')
+
+const debug = require('debug')('ssb:meta-feeds')
 
 const alwaysTrue = () => true
 const v1Visit = detailsToVisit(v1Details)
@@ -83,7 +86,7 @@ exports.init = function (sbot, config) {
 
       const { keys, seed } = metafeed
       const { purpose, feedFormat, metadata, recps, encryptionFormat } = details
-      if (recps && (recps.length !== 1 || !isCloakedMsgId(recps[0]))) {
+      if (recps && (recps.length !== 1 || !isGroupId(recps[0]))) {
         return cb(
           new Error('metafeed encryption currently only supports groupId')
         )
@@ -327,4 +330,16 @@ function findDetailsError(details) {
     if (NOT_METADATA.has(field))
       return new Error(`metadata.${field} not allowed (reserved field)`)
   }
+}
+
+function isGroupId(id) {
+  if (typeof id === 'string') return isCloakedMsgId(id)
+  if (typeof id === 'object') {
+    return (
+      Buffer.isBuffer(id.key) &&
+      id.key.length === 32 &&
+      id.scheme === keySchemes.private_group
+    )
+  }
+  return false
 }
