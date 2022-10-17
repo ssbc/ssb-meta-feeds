@@ -86,6 +86,10 @@ exports.init = function (sbot, config) {
 
       const { keys, seed } = metafeed
       const { purpose, feedFormat, metadata, recps, encryptionFormat } = details
+      // NOTE - we check the sorts of encryption we're allowing because we don't
+      // currently have a clear spec for:
+      //   - what "self encryption" means in meta-feeds
+      //   - when you encrypt to someone else, *which feedId* do you use?
       if (recps && (recps.length !== 1 || !isGroupId(recps[0]))) {
         return cb(
           new Error('metafeed encryption currently only supports groupId')
