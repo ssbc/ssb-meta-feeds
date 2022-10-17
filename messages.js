@@ -193,13 +193,13 @@ exports.init = function init(sbot) {
      */
     optsForSeed(mfKeys, mainfeedId, seed) {
       return {
-        recps: [mainfeedId],
-        encryptionFormat: 'box',
         content: {
           type: 'metafeed/seed',
           metafeed: mfKeys.id,
           seed: seed.toString('hex'),
         },
+        recps: [mainfeedId],
+        encryptionFormat: 'box2',
       }
     },
   }

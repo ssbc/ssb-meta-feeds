@@ -81,7 +81,7 @@ test('branchStream (encrypted announces)', (t) => {
     '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
     'hex'
   )
-  sbot.box2.addGroupKey(groupId, groupKey)
+  sbot.box2.addGroupInfo(groupId, { key: groupKey })
 
   const details = {
     purpose: 'dental',
