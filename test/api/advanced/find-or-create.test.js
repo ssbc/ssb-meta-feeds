@@ -233,7 +233,7 @@ test('advanced.findOrCreate (encryption - { key, scheme })', (t) => {
 
           if (!addedKey) {
             const groupId = '%EPdhGFkWxLn2k7kzthIddA8yqdX8VwjmhmTes0gMMqE=.cloaked'
-            sbot.box2.addGroupKey(groupId, keyScheme.key)
+            sbot.box2.addGroupInfo(groupId, keyScheme)
             addedKey = true
           }
 
