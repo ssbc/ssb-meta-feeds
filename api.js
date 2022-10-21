@@ -266,7 +266,7 @@ exports.init = function (sbot, config = {}) {
       return
     }
 
-    if (!details.feedFormat) details.feedFormat = 'classic'
+    const validDetails = { feedFormat: 'classic', ...details }
 
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
@@ -274,17 +274,18 @@ exports.init = function (sbot, config = {}) {
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        findOrCreateShard(rootFeed, v1Feed, details, (err, shardFeed) => {
+        findOrCreateShard(rootFeed, v1Feed, validDetails, (err, shardFeed) => {
           if (err) return cb(err)
 
-          findOrCreate(shardFeed, detailsToVisit(details), details, cb)
+          const visit = detailsToVisit(validDetails)
+          findOrCreate(shardFeed, visit, validDetails, cb)
         })
       })
     })
   }
 
   function commonFindAndTombstone(details, reason, cb) {
-    if (!details.feedformat) details.feedformat = 'classic'
+    const validDetails = { feedFormat: 'classic', ...details }
 
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
@@ -292,11 +293,12 @@ exports.init = function (sbot, config = {}) {
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
 
-        findShard(rootFeed, v1Feed, details, (err, shardFeed) => {
+        findShard(rootFeed, v1Feed, validDetails, (err, shardFeed) => {
           if (err) return cb(err)
           if (!shardFeed) return cb(null, false)
 
-          findAndTombstone(shardFeed, detailsToVisit(details), reason, cb)
+          const visit = detailsToVisit(validDetails)
+          findAndTombstone(shardFeed, visit, reason, cb)
         })
       })
     })
