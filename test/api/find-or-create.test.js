@@ -28,9 +28,7 @@ test('metafeed tree from findOrCreate has root/v1/:shard/main', (t) => {
         old: true,
         live: false,
       }),
-      pull.filter((branch) =>
-        branch.find((feed) => feed.purpose === 'main')
-      ),
+      pull.filter((branch) => branch.find((feed) => feed.purpose === 'main')),
       pull.collect((err, branches) => {
         t.error(err, 'no error')
         t.equal(branches.length, 1, 'only one branch for the main feed')
@@ -79,9 +77,7 @@ test('findOrCreate', (t) => {
           // root/v1/:shardB/chess
           // ... sometimes :shardA === :shardB !
 
-          const purposePath = branches
-            .pop()
-            .map((f) => f.purpose)
+          const purposePath = branches.pop().map((f) => f.purpose)
           t.deepEqual(
             purposePath,
             ['root', 'v1', purposePath[2], 'chess'],
@@ -121,12 +117,7 @@ test('double findOrCreate should not create two v1 feeds', async (t) => {
   const shardAnnouncements = msgs.filter((msg) =>
     hexes.includes(msg.value.content.feedpurpose)
   )
-  // sometimes :shardA and :shardB are the same, among
-  // root/v1/:shardA/main and root/v1/:shardB/chess
-  t.true(
-    shardAnnouncements.length === 1 || shardAnnouncements.length === 2,
-    'shard announcement'
-  )
+  t.equals(shardAnnouncements.length, 2, 'shard announcement')
 
   const chessAnnouncements = msgs.filter(
     (msg) => msg.value.content.feedpurpose === 'chess'

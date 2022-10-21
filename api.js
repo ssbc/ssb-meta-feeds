@@ -24,7 +24,9 @@ function detailsToVisit(details) {
   }
 }
 
-exports.init = function (sbot, config) {
+exports.init = function (sbot, config = {}) {
+  const configSeed = (config.metafeeds || {}).seed
+
   function filter(metafeed, visit, maybeCB) {
     const cb = maybeCB
     if (!metafeed) {
@@ -196,7 +198,7 @@ exports.init = function (sbot, config) {
       if (err1 || !loadedSeed) {
         if (err1) debug('generating a seed because %o', err1)
         else debug('generating a seed')
-        const seed = sbot.metafeeds.keys.generateSeed()
+        const seed = configSeed || sbot.metafeeds.keys.generateSeed()
         const mfKeys = deriveRootMetaFeedKeyFromSeed(seed)
         const opts = optsForSeed(mfKeys, sbot.id, seed)
         const [err2] = await run(sbot.db.create)(opts)

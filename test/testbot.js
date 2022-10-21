@@ -31,5 +31,11 @@ module.exports = function createSbot(opts = {}) {
   return stack({
     path: dir,
     keys,
+    metafeeds: {
+      seed: Buffer.from(
+        '000000000000000000000000000000000000000000000000000000000000beef',
+        'hex'
+      ),
+    },
   })
 }
