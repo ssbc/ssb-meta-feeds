@@ -284,7 +284,7 @@ exports.init = function (sbot, config = {}) {
   }
 
   function commonFindAndTombstone(details, reason, cb) {
-    if (!details.feedformat) details.feedformat = 'classic'
+    if (!details.feedFormat) details.feedFormat = 'classic'
 
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
