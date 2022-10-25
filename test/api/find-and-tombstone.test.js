@@ -11,38 +11,38 @@ const Testbot = require('../testbot')
 test('findAndTombstone', (t) => {
   const sbot = Testbot()
 
-  const details = {
-    purpose: 'chess',
-  }
-
-  sbot.metafeeds.findOrCreate(details, (err, chessF) => {
+  sbot.metafeeds.findOrCreate({ purpose: 'chess' }, (err, chessF) => {
     t.error(err, 'no error')
 
-    sbot.metafeeds.findAndTombstone(details, 'stupid game', (err, success) => {
-      t.error(err, 'no error')
-      t.true(success, 'tombstone success')
+    sbot.metafeeds.findAndTombstone(
+      { purpose: 'chess' },
+      'stupid game',
+      (err, success) => {
+        t.error(err, 'no error')
+        t.true(success, 'tombstone success')
 
-      pull(
-        sbot.metafeeds.branchStream({
-          old: true,
-          live: false,
-          tombstoned: false,
-        }),
-        pull.map((branch) =>
-          branch.map((el) => (el[1] ? el[1].purpose : null))
-        ),
-        pull.collect((err, branches) => {
-          t.error(err, 'no error')
+        pull(
+          sbot.metafeeds.branchStream({
+            old: true,
+            live: false,
+            tombstoned: false,
+          }),
+          pull.map((branch) =>
+            branch.map((el) => (el[1] ? el[1].purpose : null))
+          ),
+          pull.collect((err, branches) => {
+            t.error(err, 'no error')
 
-          t.true(
-            branches.every((branch) => !branch.includes('chess')),
-            'gone from branchStream'
-          )
+            t.true(
+              branches.every((branch) => !branch.includes('chess')),
+              'gone from branchStream'
+            )
 
-          sbot.close(true, t.end)
-        })
-      )
-    })
+            sbot.close(true, t.end)
+          })
+        )
+      }
+    )
   })
 })
 
