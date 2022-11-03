@@ -85,11 +85,6 @@ exports.init = function (sbot, config = {}) {
 
       const { keys, seed } = metafeed
       const { purpose, feedFormat, metadata, recps, encryptionFormat } = details
-      if (recps && (recps.length !== 1 || !isCloakedMsgId(recps[0]))) {
-        return cb(
-          new Error('metafeed encryption currently only supports groupId')
-        )
-      }
 
       const opts = sbot.metafeeds.messages.optsForAddDerived(
         keys,

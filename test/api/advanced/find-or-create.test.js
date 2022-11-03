@@ -204,35 +204,3 @@ test('advanced.findOrCreate (encryption - GroupId)', (t) => {
     })
   })
 })
-
-test('advanced.findOrCreate (encryption - FeedId)', (t) => {
-  const sbot = Testbot()
-
-  const ownKey = Buffer.from(
-    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
-    'hex'
-  )
-  sbot.box2.setOwnDMKey(ownKey)
-
-  sbot.metafeeds.advanced.findOrCreate((err, mf) => {
-    if (err) t.error(err, 'no err')
-
-    sbot.metafeeds.advanced.findOrCreate(
-      mf,
-      (f) => f.purpose === 'private',
-      {
-        purpose: 'private',
-        feedFormat: 'classic',
-        recps: [sbot.id],
-        encryptionFormat: 'box2',
-      },
-      (err, f) => {
-        t.match(
-          err.message,
-          /metafeed encryption currently only supports groupId/
-        )
-        sbot.close(true, t.end)
-      }
-    )
-  })
-})
