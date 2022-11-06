@@ -8,6 +8,9 @@ const cat = require('pull-cat')
 const Notify = require('pull-notify')
 const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
+const Ref = require('ssb-ref')
+const SSBURI = require('ssb-uri2')
+const printTreeLibrary = require('print-tree')
 const {
   where,
   live,
@@ -303,8 +306,66 @@ exports.init = function (sbot, config) {
     }
   }
 
+  function getTree(root, cb) {
+    const tree = {}
+    pull(
+      branchStream({ root, old: true, live: false }),
+      pull.drain(
+        (branch) => {
+          for (let i = 0; i < branch.length; i++) {
+            const node = branch[i]
+            if (i === 0) currentNode = tree
+            else {
+              const parent = currentNode
+              currentNode = parent.children.find(
+                (child) => child.id === node.id
+              )
+              if (!currentNode) {
+                parent.children.push((currentNode = {}))
+              }
+            }
+            if (!currentNode.id) {
+              currentNode.id = node.id
+              currentNode.purpose = node.purpose
+              currentNode.feedFormat = node.feedFormat
+              currentNode.metadata = node.metadata
+              currentNode.children = []
+            }
+          }
+        },
+        (err) => {
+          if (err) return cb(err)
+          cb(null, tree)
+        }
+      )
+    )
+  }
+
+  function printTreeNodeNameSimple({ purpose }) {
+    return purpose
+  }
+
+  function printTreeNodeNameWithId({ purpose, id }) {
+    return `${purpose} (${id})`
+  }
+
+  function printTreeNodeChildren(node) {
+    return node.children
+  }
+
+  function printTree(root, opts, cb) {
+    const printTreeNodeName =
+      opts && opts.id ? printTreeNodeNameWithId : printTreeNodeNameSimple
+    getTree(root, (err, tree) => {
+      if (err) return cb(err)
+      cb(null, printTreeLibrary(tree, printTreeNodeName, printTreeNodeChildren))
+    })
+  }
+
   return {
     findById,
     branchStream,
+    getTree,
+    printTree,
   }
 }

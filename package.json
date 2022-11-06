@@ -21,6 +21,7 @@
     "is-canonical-base64": "^1.1.1",
     "mutexify": "^1.4.0",
     "p-defer": "^3.0.0",
+    "print-tree": "^0.1.5",
     "promisify-tuple": "^1.2.0",
     "pull-cat": "^1.1.11",
     "pull-defer": "^0.2.3",
@@ -30,7 +31,7 @@
     "ssb-db2": ">=3.0.0 <=6",
     "ssb-keys": "^8.5.0",
     "ssb-ref": "^2.16.0",
-    "ssb-uri2": "^2.1.0"
+    "ssb-uri2": "^2.4.1"
   },
   "devDependencies": {
     "c8": "^7.11.0",

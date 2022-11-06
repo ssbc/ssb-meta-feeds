@@ -249,6 +249,59 @@ Arguments:
 The callback is called with `true` on the 2nd argument if tombstoning suceeded,
 or called with an error object on the 1st argument if it failed.
 
+### `sbot.metafeeds.getTree(root, cb)`
+
+Get an object that represents the full metafeed tree under a given root
+metafeed.
+
+Arguments:
+- `root` *String* - feed ID for the root metafeed
+
+The tree object has the shape
+
+```js
+{
+  id,
+  purpose,
+  feedFormat,
+  metadata,
+  children: [
+    {
+      id,
+      purpose,
+      feedFormat,
+      metadata,
+      children
+    },
+  ]
+}
+```
+
+The callback is called with the tree object on the 2nd argument if suceeded,
+or called with an error object on the 1st argument if it failed.
+
+### `sbot.metafeeds.printTree(root, opts, cb)`
+
+Prints (directly to console!) a diagram representation in ASCII for the full
+metafeed tree under a given root metafeed. Example:
+
+```
+root
+└─┬ v1
+  ├─┬ 2
+  │ └── main
+  └─┬ f
+    └── chess
+```
+
+Arguments:
+- `root` *String* - feed ID for the root metafeed
+- `opts` *Object* - object with additional customizations, such as `{id: false}`
+ or `{id: true}`, where `id: true` will print the feed ID for each feed. Default
+ is `id: false`
+
+The callback is called with `undefined` on the 1st argument if printing
+suceeded, or called with an error object if it failed. There is no 2nd argument.
 
 ### Advanced API
 
