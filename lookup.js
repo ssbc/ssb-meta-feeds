@@ -8,8 +8,6 @@ const cat = require('pull-cat')
 const Notify = require('pull-notify')
 const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
-const Ref = require('ssb-ref')
-const SSBURI = require('ssb-uri2')
 const printTreeLibrary = require('print-tree')
 const {
   where,
