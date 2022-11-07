@@ -65,26 +65,19 @@ test('findOrCreate', (t) => {
         pull.collect((err, branches) => {
           if (err) throw err
 
-          t.true(
-            branches.length === 5 || branches.length === 6,
-            'correct number of feeds created'
-          )
+          t.equal(branches.length, 6, 'correct number of feeds created')
           // root
           // root/v1
-          // root/v1/:shardA
-          // root/v1/:shardA/main
-          // root/v1/:shardB
-          // root/v1/:shardB/chess
-          // ... sometimes :shardA === :shardB !
+          // root/v1/3
+          // root/v1/3/chess
+          // root/v1/2
+          // root/v1/2/main
 
-          const purposePath = branches.pop().map((f) => f.purpose)
-          t.deepEqual(
-            purposePath,
-            ['root', 'v1', purposePath[2], 'chess'],
-            'root/v1/:shard/chess branch exists'
-          )
-          // TODO it would be nice for testing that we could deterministically know the shard
-          // but I don't know how to fix the "seed" that the root feed is derived from
+          const chessPath = branches[3].map((f) => f.purpose).join('/')
+          t.deepEqual(chessPath, 'root/v1/3/chess', 'chess branch exists')
+
+          const mainPath = branches[5].map((f) => f.purpose).join('/')
+          t.deepEqual(mainPath, 'root/v1/2/main', 'main branch exists')
 
           sbot.close(true, t.end)
         })

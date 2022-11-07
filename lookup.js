@@ -122,6 +122,13 @@ exports.init = function (sbot, config) {
     updateLookup(details, true)
   }
 
+  function updateLookupRoot(details) {
+    const { id } = details
+    if (detailsLookup.has(id)) return
+    detailsLookup.set(id, details)
+    roots.add(id)
+  }
+
   function updateLookup(details, isNew) {
     const { id, parent } = details
 
@@ -379,5 +386,6 @@ exports.init = function (sbot, config) {
     getTree,
     printTree,
     updateLookupFromCreatedFeed,
+    updateLookupRoot,
   }
 }

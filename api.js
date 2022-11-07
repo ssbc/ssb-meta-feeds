@@ -273,7 +273,7 @@ exports.init = function (sbot, config = {}) {
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
-      sbot.metafeeds.lookup.updateLookupFromCreatedFeed(rootFeed)
+      sbot.metafeeds.lookup.updateLookupRoot(rootFeed)
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
         sbot.metafeeds.lookup.updateLookupFromCreatedFeed(v1Feed)
