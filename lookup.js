@@ -100,7 +100,7 @@ exports.init = function (sbot, config) {
     if (content.feedpurpose) details.purpose = content.feedpurpose
     details.feedFormat = validate.detectFeedFormat(content.subfeed)
     details.recps = content.recps || null
-    details.metadata = {} || details.metadata
+    details.metadata = {}
     const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
     for (const key of keys) {
       details.metadata[key] = content[key]
