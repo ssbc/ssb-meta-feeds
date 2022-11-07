@@ -115,32 +115,26 @@ test('branchStream (encrypted announces)', (t) => {
   sbot.metafeeds.findOrCreate(details, (err, f) => {
     if (err) t.error(err, 'no error')
 
-    const query = () =>
-      pull(
-        sbot.metafeeds.branchStream({ old: true, live: false }),
-        pull.collect((err, branches) => {
-          if (err) t.error(err, 'no error')
+    pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        if (err) t.error(err, 'no error')
 
-          t.equal(branches.length, 6, '6 feed branches')
-          // root
-          // root/v1
-          // root/v1/:shardA
-          // root/v1/:shardA/main
-          // root/v1/:shardB
-          // root/v1/:shardB/dental
-          const dentalBranch = branches.pop()
-          const dentalFeed = dentalBranch[dentalBranch.length - 1]
+        t.equal(branches.length, 6, '6 feed branches')
+        // root
+        // root/v1
+        // root/v1/:shardA
+        // root/v1/:shardA/main
+        // root/v1/:shardB
+        // root/v1/:shardB/dental
+        const dentalBranch = branches.pop()
+        const dentalFeed = dentalBranch[dentalBranch.length - 1]
 
-          t.equal(dentalFeed.purpose, 'dental', 'finds encrypted feed')
-          t.deepEqual(dentalFeed.recps, details.recps, 'has recps details')
+        t.equal(dentalFeed.purpose, 'dental', 'finds encrypted feed')
+        t.deepEqual(dentalFeed.recps, details.recps, 'has recps details')
 
-          done()
-        })
-      )
-
-    setTimeout(query, 500)
-    // unfortunately if you run the query straight away, it fails
-    // this could be because it takes a moment for indexing of encrypted messages?
-    // you can see the delay by logging in lookup.js #updateLookup
+        done()
+      })
+    )
   })
 })

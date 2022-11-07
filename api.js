@@ -273,14 +273,22 @@ exports.init = function (sbot, config = {}) {
     getOrCreateRootMetafeed((err, rootFeed) => {
       if (err) return cb(err)
 
+      sbot.metafeeds.lookup.updateLookupRoot(rootFeed)
       findOrCreateV1(rootFeed, (err, v1Feed) => {
         if (err) return cb(err)
+        sbot.metafeeds.lookup.updateLookupFromCreatedFeed(v1Feed)
 
         findOrCreateShard(rootFeed, v1Feed, validDetails, (err, shardFeed) => {
           if (err) return cb(err)
+          sbot.metafeeds.lookup.updateLookupFromCreatedFeed(shardFeed)
 
           const visit = detailsToVisit(validDetails)
-          findOrCreate(shardFeed, visit, validDetails, cb)
+          findOrCreate(shardFeed, visit, validDetails, (err, feed) => {
+            if (err) return cb(err)
+            sbot.metafeeds.lookup.updateLookupFromCreatedFeed(feed)
+
+            cb(null, feed)
+          })
         })
       })
     })
