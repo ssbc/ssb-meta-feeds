@@ -4,7 +4,6 @@
 
 const run = require('promisify-tuple')
 const deepEqual = require('fast-deep-equal')
-const { isCloakedMsgId } = require('ssb-ref')
 const mutexify = require('mutexify')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
@@ -69,6 +68,14 @@ exports.init = function (sbot, config = {}) {
 
   function branchStream(opts) {
     return sbot.metafeeds.lookup.branchStream(opts)
+  }
+
+  function getTree(root, cb) {
+    return sbot.metafeeds.lookup.getTree(root, cb)
+  }
+
+  function printTree(root, opts, cb) {
+    return sbot.metafeeds.lookup.printTree(root, opts, cb)
   }
 
   function create(metafeed, details, maybeCB) {
@@ -301,6 +308,8 @@ exports.init = function (sbot, config = {}) {
 
   return {
     branchStream,
+    getTree,
+    printTree,
     findOrCreate: commonFindOrCreate,
     findAndTombstone: commonFindAndTombstone,
 
