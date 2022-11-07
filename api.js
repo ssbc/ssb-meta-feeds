@@ -280,7 +280,11 @@ exports.init = function (sbot, config = {}) {
           if (err) return cb(err)
 
           const visit = detailsToVisit(validDetails)
-          findOrCreate(shardFeed, visit, validDetails, cb)
+          findOrCreate(shardFeed, visit, validDetails, (err, feed) => {
+            if (err) return cb(err)
+            sbot.metafeeds.lookup.updateLookupFromCreatedFeed(feed)
+            cb(null, feed)
+          })
         })
       })
     })

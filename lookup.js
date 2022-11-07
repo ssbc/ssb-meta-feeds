@@ -91,15 +91,15 @@ exports.init = function (sbot, config) {
     }
   }
 
-  function msgToDetails(prevDetails, msg) {
+  function msgToDetails(msg) {
     const content = msg.value.content
-    const details = { ...prevDetails }
-    details.id = prevDetails ? prevDetails.id : content.subfeed
-    details.parent = content.metafeed || details.parent
-    details.purpose = content.feedpurpose || details.purpose
+    const details = {}
+    if (content.subfeed) details.id = content.subfeed
+    if (content.metafeed) details.parent = content.metafeed
+    if (content.feedpurpose) details.purpose = content.feedpurpose
     details.feedFormat = validate.detectFeedFormat(content.subfeed)
     details.recps = content.recps || null
-    details.metadata = {} || details.metafeed
+    details.metadata = {} || details.metadata
     const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
     for (const key of keys) {
       details.metadata[key] = content[key]
@@ -111,8 +111,18 @@ exports.init = function (sbot, config) {
     return details
   }
 
-  function updateLookup(msg) {
-    const { type, subfeed: id, metafeed: parent } = msg.value.content
+  function updateLookupFromMsg(msg) {
+    const details = msgToDetails(msg)
+    const isNew = msg.value.content.type.startsWith('metafeed/add/')
+    updateLookup(details, isNew)
+  }
+
+  function updateLookupFromCreatedFeed(details) {
+    updateLookup(details, true)
+  }
+
+  function updateLookup(details, isNew) {
+    const { id, parent } = details
 
     // Update roots
     if (!detailsLookup.has(parent)) {
@@ -121,7 +131,7 @@ exports.init = function (sbot, config) {
     }
 
     // Update children
-    if (type.startsWith('metafeed/add/')) {
+    if (isNew) {
       if (childrenLookup.has(parent)) {
         const children = childrenLookup.get(parent)
         children.add(id)
@@ -133,8 +143,9 @@ exports.init = function (sbot, config) {
     }
 
     // Update details
-    const details = msgToDetails(detailsLookup.get(id), msg)
-    detailsLookup.set(id, details)
+    const prevDetails = detailsLookup.get(id)
+    const nextDetails = { ...prevDetails, ...details }
+    detailsLookup.set(id, nextDetails)
     roots.delete(id)
     ensureQueue.flush(id)
 
@@ -148,7 +159,7 @@ exports.init = function (sbot, config) {
     pull(
       sbot.db.query(where(authorIsBendyButtV1()), toPullStream()),
       pull.filter((msg) => validate.isValid(msg)),
-      pull.drain(updateLookup, (err) => {
+      pull.drain(updateLookupFromMsg, (err) => {
         if (err) return console.error(err)
 
         stateLoadedP.resolve()
@@ -162,7 +173,7 @@ exports.init = function (sbot, config) {
         pull(
           sbot.db.query(where(authorIsBendyButtV1()), live(), toPullStream()),
           pull.filter((msg) => validate.isValid(msg)),
-          (liveDrainer = pull.drain(updateLookup))
+          (liveDrainer = pull.drain(updateLookupFromMsg))
         )
       })
     )
@@ -253,7 +264,7 @@ exports.init = function (sbot, config) {
           return cb(null, null)
         }
 
-        const details = msgToDetails(undefined, msgs[0])
+        const details = msgToDetails(msgs[0])
         cb(null, details)
       })
     )
@@ -365,5 +376,6 @@ exports.init = function (sbot, config) {
     branchStream,
     getTree,
     printTree,
+    updateLookupFromCreatedFeed,
   }
 }
