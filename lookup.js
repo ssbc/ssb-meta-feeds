@@ -8,6 +8,7 @@ const cat = require('pull-cat')
 const Notify = require('pull-notify')
 const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
+const deepEqual = require('fast-deep-equal')
 const printTreeLibrary = require('print-tree')
 const {
   where,
@@ -134,7 +135,7 @@ exports.init = function (sbot, config) {
     if (isNew) {
       if (childrenLookup.has(parent)) {
         const children = childrenLookup.get(parent)
-        children.add(id)
+        if (!children.has(id)) children.add(id)
       } else {
         const children = new Set()
         children.add(id)
@@ -144,6 +145,7 @@ exports.init = function (sbot, config) {
 
     // Update details
     const prevDetails = detailsLookup.get(id)
+    if (deepEqual(prevDetails, details)) return
     const nextDetails = { ...prevDetails, ...details }
     detailsLookup.set(id, nextDetails)
     roots.delete(id)
