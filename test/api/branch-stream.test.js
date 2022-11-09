@@ -30,41 +30,41 @@ test('branchStream', (t) => {
 
         t.equal(root.length, 1, 'root alone')
         t.equal(typeof root[0].id, 'string', 'root alone')
-        t.deepEqual(
-          root[0],
-          {
-            id: root[0].id,
-            parent: null,
-            purpose: 'root',
-            feedFormat: 'bendybutt-v1',
-            metadata: {},
-          },
-          'root alone'
-        )
+        t.equal(root[0].purpose, 'root', 'root alone')
+        t.equal(root[0].parent, null, 'root alone')
+        t.equal(root[0].feedFormat, 'bendybutt-v1', 'root alone')
+        t.deepEqual(root[0].metadata, {}, 'root alone')
+        t.ok(root[0].keys, 'root has keys')
 
         t.equal(rootV1.length, 2, 'root/v1 length')
         t.equal(rootV1[0].purpose, 'root', 'root/v1 root')
         t.equal(rootV1[1].purpose, 'v1', 'root/v1 v1')
+        t.ok(rootV1[1].keys, 'root/v1 has keys')
 
         t.equal(rootV1Shard.length, 3, 'root/v1/:shard length')
         t.equal(rootV1Shard[0].purpose, 'root', 'root/v1/:shard root')
         t.equal(rootV1Shard[1].purpose, 'v1', 'root/v1/:shard v1')
         t.equal(rootV1Shard[2].purpose, '2', 'root/v1/:shard shard')
+        t.ok(rootV1Shard[2].keys, 'root/v1/:shard has keys')
 
         t.equal(rootV1ShardMain.length, 4, 'root/v1/:shard/main')
         t.equal(rootV1ShardMain[0].purpose, 'root', 'root/v1/:shard/main root')
         t.equal(rootV1ShardMain[1].purpose, 'v1', 'root/v1/:shard/main v1')
         t.equal(rootV1ShardMain[2].purpose, '2', 'root/v1/:shard/main shard')
         t.equal(rootV1ShardMain[3].purpose, 'main', 'root/v1/:shard/main main')
+        t.ok(rootV1ShardMain[3].keys, 'root/v1/:shard/main has keys')
 
         t.equal(rootChess.length, 2, 'chess branch')
         t.equal(rootChess[1].purpose, 'chess', 'chess branch')
+        t.ok(rootChess[1].keys, 'root/chess has keys')
 
         t.equal(rootIndexes.length, 2, 'indexes branch')
         t.equal(rootIndexes[1].purpose, 'indexes', 'indexes branch')
+        t.ok(rootIndexes[1].keys, 'root/indexes has keys')
 
         t.equal(rootIndexesIndex.length, 3, 'index branch')
         t.equal(rootIndexesIndex[2].purpose, 'index', 'indexes branch')
+        t.ok(rootIndexesIndex[2].keys, 'root/indexes/index has keys')
 
         cb(null)
       })
