@@ -23,8 +23,12 @@ test('advanced.findById', (t) => {
             'parent',
             'purpose',
             'feedFormat',
+            'seed',
+            'keys',
             'recps',
             'metadata',
+            'tombstoned',
+            'tombstoneReason',
           ])
           t.equals(details.purpose, 'index')
           t.equals(details.parent, indexesMF.keys.id)

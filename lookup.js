@@ -8,7 +8,6 @@ const cat = require('pull-cat')
 const Notify = require('pull-notify')
 const Defer = require('pull-defer')
 const DeferredPromise = require('p-defer')
-const deepEqual = require('fast-deep-equal')
 const printTreeLibrary = require('print-tree')
 const {
   where,
@@ -19,7 +18,7 @@ const {
   toCallback,
 } = require('ssb-db2/operators')
 const validate = require('./validate')
-const { NOT_METADATA, BB1 } = require('./constants')
+const FeedDetails = require('./FeedDetails')
 
 const SUBFEED_PREFIX_OFFSET = Math.max(
   '@'.length,
@@ -49,23 +48,13 @@ function subfeed(feedId) {
   })
 }
 
-function rootFeedDetails(id) {
-  return {
-    id,
-    parent: null,
-    purpose: 'root',
-    feedFormat: BB1,
-    metadata: {},
-  }
-}
-
 exports.init = function (sbot, config) {
   const stateLoadedP = DeferredPromise()
   let loadStateRequested = false
   let liveDrainer = null
   let notifyNewBranch = null
   let mySeed = null
-  const detailsLookup = new Map() // feedId => details
+  const detailsLookup = new Map() // feedId => FeedDetails
   const childrenLookup = new Map() // feedId => Set<FeedID>
   const roots = new Set()
   const ensureQueue = {
@@ -94,35 +83,12 @@ exports.init = function (sbot, config) {
   }
 
   function msgToDetails(msg) {
-    const content = msg.value.content
-    const details = {}
-    if (content.subfeed) details.id = content.subfeed
-    if (content.metafeed) details.parent = content.metafeed
-    if (content.feedpurpose) details.purpose = content.feedpurpose
-    details.feedFormat = validate.detectFeedFormat(content.subfeed)
-    const parentDetails = detailsLookup.get(details.parent)
-    if (mySeed && parentDetails && parentDetails.keys) {
-      if (content.nonce) {
-        details.keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-          mySeed,
-          content.nonce.toString('base64'),
-          details.feedFormat
-        )
-      } else if (content.feedpurpose === 'main') {
-        details.keys = config.keys
-      }
+    const parentFeedDetails = detailsLookup.get(msg.value.content.metafeed)
+    if (mySeed && parentFeedDetails && parentFeedDetails.keys) {
+      return FeedDetails.fromMyMsg(msg, mySeed, config)
+    } else {
+      return FeedDetails.fromOtherMsg(msg)
     }
-    details.recps = content.recps || null
-    details.metadata = {}
-    const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
-    for (const key of keys) {
-      details.metadata[key] = content[key]
-    }
-    if (content.type === 'metafeed/tombstone') {
-      details.tombstoned = true
-      details.reason = content.reason
-    }
-    return details
   }
 
   function updateLookupFromMsg(msg) {
@@ -147,7 +113,7 @@ exports.init = function (sbot, config) {
 
     // Update roots
     if (!detailsLookup.has(parent)) {
-      detailsLookup.set(parent, rootFeedDetails(parent))
+      detailsLookup.set(parent, FeedDetails.fromRootId(parent))
       roots.add(parent)
     }
 
@@ -164,10 +130,13 @@ exports.init = function (sbot, config) {
     }
 
     // Update details
-    const prevDetails = detailsLookup.get(id)
-    if (deepEqual(prevDetails, details)) return
-    const nextDetails = { ...prevDetails, ...details }
-    detailsLookup.set(id, nextDetails)
+    const existingDetails = detailsLookup.get(id)
+    if (existingDetails && existingDetails.equals(details)) return
+    if (existingDetails) {
+      existingDetails.update(details)
+    } else {
+      detailsLookup.set(id, details)
+    }
     roots.delete(id)
     ensureQueue.flush(id)
 
@@ -185,7 +154,7 @@ exports.init = function (sbot, config) {
         if (err) console.error(err)
         if (announceMsgs.length > 0 && seed) {
           const msg = announceMsgs[0]
-          const rootDetails = sbot.metafeeds.query.hydrateFromMsg(msg, seed)
+          const rootDetails = FeedDetails.fromMyMsg(msg, seed, config)
           updateMyRoot(rootDetails)
         }
 
@@ -224,7 +193,7 @@ exports.init = function (sbot, config) {
     while (branch[0].parent) {
       const metafeedId = branch[0].parent
       const parentDetails =
-        detailsLookup.get(metafeedId) || rootFeedDetails(metafeedId)
+        detailsLookup.get(metafeedId) || FeedDetails.fromRootId(metafeedId)
       branch.unshift(parentDetails)
     }
     return branch
@@ -233,7 +202,7 @@ exports.init = function (sbot, config) {
   function traverseBranchesUnder(feedId, previousBranch, visit) {
     const details =
       previousBranch.length === 0
-        ? detailsLookup.get(feedId) || rootFeedDetails(feedId)
+        ? detailsLookup.get(feedId) || FeedDetails.fromRootId(feedId)
         : detailsLookup.get(feedId) || null
     const branch = [...previousBranch, details]
     visit(branch)
