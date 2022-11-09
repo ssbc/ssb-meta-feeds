@@ -196,8 +196,9 @@ branch looks like this:
 ```
 
 Or in general, an `Array<Details>`. The *Details* object has
-the shape `{ id, purpose, feedFormat, metafeed, metadata }` like what
-`findOrCreate` returns.
+the shape `{ id, purpose, feedFormat, keys, parent, metadata }` like what
+`findOrCreate` returns. If the details is for a feed that doesn't belong to you,
+the `keys` field will not be present.
 
 `branchStream` will emit all possible branches, which means sub-branches are
 included. For instance, in the example above, `branchStream` would emit:

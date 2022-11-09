@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 const validate = require('./validate')
-const { NOT_METADATA } = require('./constants')
+const { NOT_METADATA, BB1 } = require('./constants')
 const {
   and,
   author,
@@ -74,7 +74,19 @@ exports.init = function (sbot, config) {
      */
     hydrateFromMsg(msg, seed) {
       const content = msg.value.content
-      const { type, feedpurpose, subfeed, nonce, recps } = content
+      const { type, metafeed, feedpurpose, subfeed, nonce, recps } = content
+      if (type === 'metafeed/announce') {
+        return {
+          id: metafeed,
+          parent: null,
+          purpose: 'root',
+          feedFormat: BB1,
+          seed,
+          keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
+          recps: null,
+          metadata: {},
+        }
+      }
       const metadata = self.collectMetadata(content)
       const feedFormat = validate.detectFeedFormat(subfeed)
       const existing = type === 'metafeed/add/existing'

@@ -64,6 +64,7 @@ exports.init = function (sbot, config) {
   let loadStateRequested = false
   let liveDrainer = null
   let notifyNewBranch = null
+  let mySeed = null
   const detailsLookup = new Map() // feedId => details
   const childrenLookup = new Map() // feedId => Set<FeedID>
   const roots = new Set()
@@ -99,6 +100,18 @@ exports.init = function (sbot, config) {
     if (content.metafeed) details.parent = content.metafeed
     if (content.feedpurpose) details.purpose = content.feedpurpose
     details.feedFormat = validate.detectFeedFormat(content.subfeed)
+    const parentDetails = detailsLookup.get(details.parent)
+    if (mySeed && parentDetails && parentDetails.keys) {
+      if (content.nonce) {
+        details.keys = sbot.metafeeds.keys.deriveFeedKeyFromSeed(
+          mySeed,
+          content.nonce.toString('base64'),
+          details.feedFormat
+        )
+      } else if (content.feedpurpose === 'main') {
+        details.keys = config.keys
+      }
+    }
     details.recps = content.recps || null
     details.metadata = {}
     const keys = Object.keys(content).filter((k) => !NOT_METADATA.has(k))
@@ -118,13 +131,13 @@ exports.init = function (sbot, config) {
     updateLookup(details, isNew)
   }
 
-  function updateLookupFromCreatedFeed(details) {
+  function updateFromCreatedFeed(details) {
     updateLookup(details, true)
   }
 
-  function updateLookupRoot(details) {
+  function updateMyRoot(details) {
     const { id } = details
-    if (detailsLookup.has(id)) return
+    mySeed = details.seed
     detailsLookup.set(id, details)
     roots.add(id)
   }
@@ -165,27 +178,44 @@ exports.init = function (sbot, config) {
     loadStateRequested = true
     notifyNewBranch = Notify()
 
-    pull(
-      sbot.db.query(where(authorIsBendyButtV1()), toPullStream()),
-      pull.filter((msg) => validate.isValid(msg)),
-      pull.drain(updateLookupFromMsg, (err) => {
-        if (err) return console.error(err)
+    sbot.metafeeds.query.getSeed((err, seed) => {
+      if (err) console.error(err)
 
-        stateLoadedP.resolve()
-
-        sbot.close.hook(function (fn, args) {
-          if (liveDrainer) liveDrainer.abort(true)
-          if (notifyNewBranch) notifyNewBranch.abort(true)
-          fn.apply(this, args)
-        })
+      sbot.metafeeds.query.getAnnounces((err, announceMsgs) => {
+        if (err) console.error(err)
+        if (announceMsgs.length > 0 && seed) {
+          const msg = announceMsgs[0]
+          const rootDetails = sbot.metafeeds.query.hydrateFromMsg(msg, seed)
+          updateMyRoot(rootDetails)
+        }
 
         pull(
-          sbot.db.query(where(authorIsBendyButtV1()), live(), toPullStream()),
+          sbot.db.query(where(authorIsBendyButtV1()), toPullStream()),
           pull.filter((msg) => validate.isValid(msg)),
-          (liveDrainer = pull.drain(updateLookupFromMsg))
+          pull.drain(updateLookupFromMsg, (err) => {
+            if (err) return console.error(err)
+
+            stateLoadedP.resolve()
+
+            sbot.close.hook(function (fn, args) {
+              if (liveDrainer) liveDrainer.abort(true)
+              if (notifyNewBranch) notifyNewBranch.abort(true)
+              fn.apply(this, args)
+            })
+
+            pull(
+              sbot.db.query(
+                where(authorIsBendyButtV1()),
+                live(),
+                toPullStream()
+              ),
+              pull.filter((msg) => validate.isValid(msg)),
+              (liveDrainer = pull.drain(updateLookupFromMsg))
+            )
+          })
         )
       })
-    )
+    })
   }
 
   function makeBranch(id) {
@@ -203,7 +233,7 @@ exports.init = function (sbot, config) {
   function traverseBranchesUnder(feedId, previousBranch, visit) {
     const details =
       previousBranch.length === 0
-        ? rootFeedDetails(feedId)
+        ? detailsLookup.get(feedId) || rootFeedDetails(feedId)
         : detailsLookup.get(feedId) || null
     const branch = [...previousBranch, details]
     visit(branch)
@@ -385,7 +415,7 @@ exports.init = function (sbot, config) {
     branchStream,
     getTree,
     printTree,
-    updateLookupFromCreatedFeed,
-    updateLookupRoot,
+    updateFromCreatedFeed,
+    updateMyRoot,
   }
 }
