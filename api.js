@@ -8,6 +8,7 @@ const mutexify = require('mutexify')
 const debug = require('debug')('ssb:meta-feeds')
 const pickShard = require('./pick-shard')
 const { BB1, v1Details, NOT_METADATA } = require('./constants')
+const FeedDetails = require('./FeedDetails')
 
 const alwaysTrue = () => true
 const v1Visit = detailsToVisit(v1Details)
@@ -104,7 +105,7 @@ exports.init = function (sbot, config = {}) {
       )
       sbot.db.create(opts, (err, msg) => {
         if (err) return cb(err)
-        cb(null, sbot.metafeeds.query.hydrateFromCreateOpts(opts, seed))
+        cb(null, FeedDetails.fromCreateOpts(opts, seed, config))
       })
     }
   }
@@ -181,7 +182,7 @@ exports.init = function (sbot, config = {}) {
     sbot.metafeeds.query.getSeed((err, seed) => {
       if (err) return cb(err)
       if (!seed) return cb(null, null)
-      cb(null, buildRootFeedDetails(seed))
+      cb(null, FeedDetails.fromRootSeed(seed))
     })
   }
 
@@ -205,10 +206,10 @@ exports.init = function (sbot, config = {}) {
         const opts = optsForSeed(mfKeys, sbot.id, seed)
         const [err2] = await run(sbot.db.create)(opts)
         if (err2) return release(cb, err2)
-        mf = buildRootFeedDetails(seed)
+        mf = FeedDetails.fromRootSeed(seed)
       } else {
         debug('loaded seed')
-        mf = buildRootFeedDetails(loadedSeed)
+        mf = FeedDetails.fromRootSeed(loadedSeed)
       }
       sbot.metafeeds.lookup.updateMyRoot(mf)
 
@@ -246,20 +247,6 @@ exports.init = function (sbot, config = {}) {
       cachedRootMetafeed = mf
       release(cb, null, mf)
     })
-  }
-
-  function buildRootFeedDetails(seed) {
-    const keys = sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed)
-    return {
-      id: keys.id,
-      parent: null,
-      purpose: 'root',
-      feedFormat: 'bendybutt-v1',
-      seed,
-      keys,
-      recps: null,
-      metadata: {},
-    }
   }
 
   function commonFindOrCreate(details, cb) {

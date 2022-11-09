@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
 const validate = require('./validate')
-const { NOT_METADATA, BB1 } = require('./constants')
 const {
   and,
   author,
@@ -13,9 +12,10 @@ const {
   paginate,
   descending,
 } = require('ssb-db2/operators')
+const FeedDetails = require('./FeedDetails')
 
 exports.init = function (sbot, config) {
-  const self = {
+  return {
     /**
      * Gets the stored seed message (on the main feed) for the root meta feed.
      *
@@ -59,85 +59,6 @@ exports.init = function (sbot, config) {
       )
     },
 
-    collectMetadata(content) {
-      const metadata = {}
-      for (const key in content) {
-        if (NOT_METADATA.has(key)) continue
-        metadata[key] = content[key]
-      }
-      return metadata
-    },
-
-    /**
-     * Gets the current state of a subfeed based on the metafeed message that
-     * "added" the subfeed
-     */
-    hydrateFromMsg(msg, seed) {
-      const content = msg.value.content
-      const { type, metafeed, feedpurpose, subfeed, nonce, recps } = content
-      if (type === 'metafeed/announce') {
-        return {
-          id: metafeed,
-          parent: null,
-          purpose: 'root',
-          feedFormat: BB1,
-          seed,
-          keys: sbot.metafeeds.keys.deriveRootMetaFeedKeyFromSeed(seed),
-          recps: null,
-          metadata: {},
-        }
-      }
-      const metadata = self.collectMetadata(content)
-      const feedFormat = validate.detectFeedFormat(subfeed)
-      const existing = type === 'metafeed/add/existing'
-      const keys = existing
-        ? config.keys
-        : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-            seed,
-            nonce.toString('base64'),
-            feedFormat
-          )
-      return {
-        id: subfeed,
-        parent: msg.value.author,
-        purpose: feedpurpose,
-        feedFormat,
-        seed: !existing ? seed : undefined,
-        keys,
-        recps: recps || null,
-        metadata,
-      }
-    },
-
-    /**
-     * Gets the current state of a subfeed based on an "opts" argument for
-     * "ssb.db.create".
-     */
-    hydrateFromCreateOpts(opts, seed) {
-      const { feedpurpose, subfeed, metafeed, nonce, type, recps } =
-        opts.content
-      const feedFormat = validate.detectFeedFormat(subfeed)
-      const existing = type === 'metadata/add/existing'
-      const keys = existing
-        ? config.keys
-        : sbot.metafeeds.keys.deriveFeedKeyFromSeed(
-            seed,
-            nonce.toString('base64'),
-            feedFormat
-          )
-      const metadata = self.collectMetadata(opts.content)
-      return {
-        id: subfeed,
-        parent: metafeed,
-        purpose: feedpurpose,
-        feedFormat,
-        seed: !existing ? seed : undefined,
-        keys,
-        recps: recps || null,
-        metadata,
-      }
-    },
-
     /**
      * Gets the current state (active feeds) of a meta feed.
      *
@@ -158,16 +79,11 @@ exports.init = function (sbot, config) {
 
           const addedFeeds = validatedMsgs
             .filter((msg) => msg.value.content.type.startsWith('metafeed/add/'))
-            .map((msg) => self.hydrateFromMsg(msg, seed))
+            .map((msg) => FeedDetails.fromMyMsg(msg, seed, config))
 
           const tombstoned = validatedMsgs
             .filter((msg) => msg.value.content.type === 'metafeed/tombstone')
-            .map((msg) => {
-              const content = msg.value.content
-              const { subfeed, feedpurpose } = content
-              const metadata = self.collectMetadata(content)
-              return { id: subfeed, purpose: feedpurpose, metadata }
-            })
+            .map((msg) => FeedDetails.fromMyMsg(msg, seed, config))
 
           const feeds = addedFeeds.filter(
             // allow only feeds that have not been tombstoned
@@ -179,6 +95,4 @@ exports.init = function (sbot, config) {
       )
     },
   }
-
-  return self
 }
