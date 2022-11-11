@@ -27,14 +27,11 @@ test('findAndTombstone', (t) => {
             live: false,
             tombstoned: false,
           }),
-          pull.map((branch) =>
-            branch.map((el) => (el[1] ? el[1].purpose : null))
-          ),
           pull.collect((err, branches) => {
             t.error(err, 'no error')
 
             t.true(
-              branches.every((branch) => !branch.includes('chess')),
+              branches.every((branch) => branch.every(fd => fd.purpose !== 'chess')),
               'gone from branchStream'
             )
 
