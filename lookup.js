@@ -343,9 +343,14 @@ exports.init = function (sbot, config) {
             }
             if (!currentNode.id) {
               currentNode.id = node.id
+              currentNode.seed = node.seed
+              currentNode.keys = node.keys
               currentNode.purpose = node.purpose
               currentNode.feedFormat = node.feedFormat
+              currentNode.recps = node.recps
               currentNode.metadata = node.metadata
+              currentNode.tombstoned = node.tombstoned
+              currentNode.tombstoneReason = node.tombstoneReason
               currentNode.children = []
             }
           }
