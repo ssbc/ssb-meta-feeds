@@ -15,6 +15,11 @@ test('getTree', (t) => {
       ssb.metafeeds.getTree(root.id, (err, tree) => {
         t.error(err, 'no error')
         t.equals(tree.purpose, 'root')
+        t.ok(tree.keys, 'root keys')
+        t.ok(tree.seed, 'root seed')
+        t.equals(tree.recps, null, 'root recps')
+        t.equals(tree.tombstoned, false, 'root tombstoned')
+        t.equals(tree.tombstoneReason, null, 'root tombstoneReason')
         t.equals(tree.children[0].purpose, 'v1')
         t.equals(tree.children[0].children[0].purpose, '2')
         t.equals(tree.children[0].children[0].children[0].purpose, 'main')
