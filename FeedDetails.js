@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
+const deepEqual = require('fast-deep-equal')
 const { NOT_METADATA, BB1 } = require('./constants')
 const validate = require('./validate')
 const metafeedKeys = require('./keys')
@@ -186,15 +187,23 @@ class FeedDetails {
    * this one.
    */
   equals(feedDetails) {
+    const seedIsTheSame =
+      this.seed === feedDetails.seed ||
+      (Buffer.isBuffer(this.seed) &&
+        Buffer.isBuffer(feedDetails.seed) &&
+        this.seed.equals(feedDetails.seed))
+
+    const keysIsTheSame =
+      this.keys === feedDetails.keys || deepEqual(this.keys, feedDetails.keys)
     return (
       this.id === feedDetails.id &&
       this.parent === feedDetails.parent &&
       this.purpose === feedDetails.purpose &&
       this.feedFormat === feedDetails.feedFormat &&
-      this.seed === feedDetails.seed &&
-      this.keys === feedDetails.keys &&
+      seedIsTheSame &&
+      keysIsTheSame &&
       this.recps === feedDetails.recps &&
-      this.metadata === feedDetails.metadata &&
+      deepEqual(this.metadata, feedDetails.metadata) &&
       this.tombstoned === feedDetails.tombstoned &&
       this.tombstoneReason === feedDetails.tombstoneReason
     )
