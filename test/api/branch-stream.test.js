@@ -4,8 +4,11 @@
 
 const test = require('tape')
 const pull = require('pull-stream')
+const ssbKeys = require('ssb-keys')
+const p = require('util').promisify
 const Testbot = require('../testbot')
 const { setupTree, testReadAndPersisted } = require('../testtools')
+const keysAPI = require('../../keys')
 
 test('branchStream', (t) => {
   const sbot = Testbot()
@@ -182,4 +185,96 @@ test('branchStream (encrypted announces)', (t) => {
       })
     )
   })
+})
+
+test('branchStream can reprocess encrypted announces', async (t) => {
+  const mainKeys = ssbKeys.generate(null, 'alice')
+  const metafeedSeed = Buffer.from(
+    '000000000000000000000000000000000000000000000000000000000000beef',
+    'hex'
+  )
+  const metafeedKeys = keysAPI.deriveRootMetaFeedKeyFromSeed(metafeedSeed)
+
+  const sbot = Testbot({ keys: mainKeys, metafeedSeed })
+
+  const ownKey1 = Buffer.from(
+    '30720d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+
+  const ownKey2 = Buffer.from(
+    'abcd0d8f9cbf37f6d7062826f6decac93e308060a8aaaa77e6a4747f40ee1a76',
+    'hex'
+  )
+
+
+  // Guarantee we have a root metafeed and the main feed linked to it
+  const root = await p(sbot.metafeeds.findOrCreate)()
+  // Then pluck the shard feed so we can manually add to it
+  const any = () => true
+  const v1 = await p(sbot.metafeeds.advanced.findOrCreate)(root, any, null)
+  const shard = await p(sbot.metafeeds.advanced.findOrCreate)(v1, any, null)
+  t.pass('set up root/v1/:shard/main')
+
+  sbot.box2.setOwnDMKey(ownKey1)
+  sbot.box2.addKeypair(root.keys)
+  sbot.box2.addKeypair(v1.keys)
+  sbot.box2.addKeypair(shard.keys)
+  sbot.box2.addKeypair(mainKeys)
+
+  const opts = sbot.metafeeds.messages.optsForAddDerived(
+    shard.keys,
+    'group',
+    metafeedSeed,
+    'classic',
+    {},
+    [metafeedKeys.id],
+    'box2'
+  )
+  await p(sbot.db.create)(opts)
+  t.pass('published encrypted announce message on a shard')
+
+  sbot.box2.setOwnDMKey(ownKey2)
+  t.pass('change own DM key so that branchStream cannot decrypt')
+
+  await new Promise((resolve) => {
+    pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        if (err) t.error(err, 'no error')
+        const summary = branches.map((b) => b.map((f) => f.purpose).join('/'))
+        t.deepEquals(
+          summary,
+          ['root', 'root/v1', 'root/v1/2', 'root/v1/2/main'],
+          'brancheStream shows that group subfeed is missing'
+        )
+        resolve()
+      })
+    )
+  })
+
+  sbot.box2.setOwnDMKey(ownKey1)
+  t.pass('changed own DM key back so that branchStream CAN decrypt')
+
+  await p(sbot.db.reindexEncrypted)()
+  // await p(setTimeout)(1000)
+  t.pass('reindexed encrypted messages')
+
+  await new Promise((resolve) => {
+    pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        if (err) t.error(err, 'no error')
+        const summary = branches.map((b) => b.map((f) => f.purpose).join('/'))
+        t.deepEquals(
+          summary,
+          ['root', 'root/v1', 'root/v1/2', 'root/v1/2/main', 'root/v1/2/group'],
+          'brancheStream shows that group subfeed is present'
+        )
+        resolve()
+      })
+    )
+  })
+
+  await p(sbot.close)(true)
 })
