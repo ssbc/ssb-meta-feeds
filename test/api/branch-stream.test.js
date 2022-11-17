@@ -76,6 +76,51 @@ test('branchStream', (t) => {
   })
 })
 
+test('branchStream two concurrent calls', (t) => {
+  const sbot = Testbot()
+
+  setupTree(sbot).then(() => {
+    let drainer
+    pull(
+      sbot.metafeeds.branchStream({ old: false, live: true }),
+      (drainer = pull.drain(
+        (branch) => t.fail('no live branch wass expected'),
+        (err) => {
+          if (err) t.fail(err)
+        }
+      ))
+    )
+
+    pull(
+      sbot.metafeeds.branchStream({ old: true, live: false }),
+      pull.collect((err, branches) => {
+        t.error(err)
+
+        t.equal(branches.length, 7, '7 branches')
+        const summary = branches.map((branch) =>
+          branch.map((feedDetails) => feedDetails.purpose).join('/')
+        )
+        t.deepEquals(
+          summary,
+          [
+            'root',
+            'root/v1',
+            'root/v1/2',
+            'root/v1/2/main',
+            'root/chess',
+            'root/indexes',
+            'root/indexes/index',
+          ],
+          'branch summary'
+        )
+
+        drainer.abort()
+        sbot.close(true, t.end)
+      })
+    )
+  })
+})
+
 test('branchStream (encrypted announces)', (t) => {
   const sbot = Testbot()
 
