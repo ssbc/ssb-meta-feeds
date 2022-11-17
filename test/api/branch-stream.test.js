@@ -207,7 +207,6 @@ test('branchStream can reprocess encrypted announces', async (t) => {
     'hex'
   )
 
-
   // Guarantee we have a root metafeed and the main feed linked to it
   const root = await p(sbot.metafeeds.findOrCreate)()
   // Then pluck the shard feed so we can manually add to it
@@ -237,6 +236,15 @@ test('branchStream can reprocess encrypted announces', async (t) => {
   sbot.box2.setOwnDMKey(ownKey2)
   t.pass('change own DM key so that branchStream cannot decrypt')
 
+  let expectedLive = ['root/v1/2/group']
+  pull(
+    sbot.metafeeds.branchStream({old: false, live: true}),
+    pull.drain((branch) => {
+      const path = branch.map((f) => f.purpose).join('/')
+      t.equals(path, expectedLive.shift(), 'branchStream can decrypt announce')
+    })
+  )
+
   await new Promise((resolve) => {
     pull(
       sbot.metafeeds.branchStream({ old: true, live: false }),
@@ -246,7 +254,7 @@ test('branchStream can reprocess encrypted announces', async (t) => {
         t.deepEquals(
           summary,
           ['root', 'root/v1', 'root/v1/2', 'root/v1/2/main'],
-          'brancheStream shows that group subfeed is missing'
+          'branchStream shows that group subfeed is missing'
         )
         resolve()
       })
@@ -257,7 +265,6 @@ test('branchStream can reprocess encrypted announces', async (t) => {
   t.pass('changed own DM key back so that branchStream CAN decrypt')
 
   await p(sbot.db.reindexEncrypted)()
-  // await p(setTimeout)(1000)
   t.pass('reindexed encrypted messages')
 
   await new Promise((resolve) => {
@@ -269,12 +276,16 @@ test('branchStream can reprocess encrypted announces', async (t) => {
         t.deepEquals(
           summary,
           ['root', 'root/v1', 'root/v1/2', 'root/v1/2/main', 'root/v1/2/group'],
-          'brancheStream shows that group subfeed is present'
+          'branchStream shows that group subfeed is present'
         )
         resolve()
       })
     )
   })
+
+  while (expectedLive.length > 0) {
+    await p(setTimeout)(100)
+  }
 
   await p(sbot.close)(true)
 })
