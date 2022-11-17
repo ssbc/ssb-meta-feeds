@@ -50,6 +50,7 @@ function subfeed(feedId) {
 
 exports.init = function (sbot, config) {
   const stateLoadedP = DeferredPromise()
+  let stateLoaded = false
   let loadStateRequested = false
   let liveDrainer = null
   let notifyNewBranch = null
@@ -164,6 +165,7 @@ exports.init = function (sbot, config) {
           pull.drain(updateLookupFromMsg, (err) => {
             if (err) return console.error(err)
 
+            stateLoaded = true
             stateLoadedP.resolve()
 
             sbot.close.hook(function (fn, args) {
@@ -279,8 +281,8 @@ exports.init = function (sbot, config) {
   }
 
   function branchStream(opts) {
-    if (!loadStateRequested) {
-      loadState()
+    if (!stateLoaded) {
+      if (!loadStateRequested) loadState()
       const deferred = Defer.source()
       stateLoadedP.promise.then(() => {
         deferred.resolve(branchStream(opts))
