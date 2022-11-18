@@ -10,11 +10,13 @@ const caps = require('ssb-caps')
 
 let count = 0
 
-// opts.path      (optional)
-//   opts.name    (optional) - convenience method for deterministic opts.path
-// opts.keys      (optional)
-// opts.rimraf    (optional) - clear the directory before start (default: true)
-
+/**
+ * - opts.path (optional)
+ *   - opts.name (optional) - convenience method for deterministic opts.path
+ * - opts.rimraf (optional) - clear the directory before start (default: true)
+ * - opts.keys (optional)
+ * - opts.metafeedSeed (optional)
+ */
 module.exports = function createSbot(opts = {}) {
   const dir = opts.path || `/tmp/metafeeds-metafeed-${opts.name || count++}`
   if (opts.rimraf !== false) rimraf.sync(dir)
@@ -32,10 +34,12 @@ module.exports = function createSbot(opts = {}) {
     path: dir,
     keys,
     metafeeds: {
-      seed: Buffer.from(
-        '000000000000000000000000000000000000000000000000000000000000beef',
-        'hex'
-      ),
+      seed:
+        opts.metafeedSeed ||
+        Buffer.from(
+          '000000000000000000000000000000000000000000000000000000000000beef',
+          'hex'
+        ),
     },
   })
 }

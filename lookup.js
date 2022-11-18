@@ -53,6 +53,7 @@ exports.init = function (sbot, config) {
   let stateLoaded = false
   let loadStateRequested = false
   let liveDrainer = null
+  let removeIndexingActiveListener = null
   let notifyNewBranch = null
   let mySeed = null
   const detailsLookup = new Map() // feedId => FeedDetails
@@ -170,19 +171,30 @@ exports.init = function (sbot, config) {
 
             sbot.close.hook(function (fn, args) {
               if (liveDrainer) liveDrainer.abort(true)
+              if (removeIndexingActiveListener) removeIndexingActiveListener()
               if (notifyNewBranch) notifyNewBranch.abort(true)
               fn.apply(this, args)
             })
 
-            pull(
-              sbot.db.query(
-                where(authorIsBendyButtV1()),
-                live(),
-                toPullStream()
-              ),
-              pull.filter((msg) => validate.isValid(msg)),
-              (liveDrainer = pull.drain(updateLookupFromMsg))
-            )
+            // We need to wait for the indexing (including box2 reindexing
+            // encrypted messages) to be done before we can read the messages
+            const obz = sbot.db.getIndexingActive()
+            removeIndexingActiveListener = obz((indexingActive) => {
+              if (indexingActive !== 0) {
+                if (liveDrainer) liveDrainer.abort(true)
+                return
+              }
+
+              pull(
+                sbot.db.query(
+                  where(authorIsBendyButtV1()),
+                  live({ old: true }),
+                  toPullStream()
+                ),
+                pull.filter((msg) => validate.isValid(msg)),
+                (liveDrainer = pull.drain(updateLookupFromMsg))
+              )
+            })
           })
         )
       })
