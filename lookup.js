@@ -17,6 +17,7 @@ const {
   toPullStream,
   toCallback,
 } = require('ssb-db2/operators')
+const SSBURI = require('ssb-uri2')
 const validate = require('./validate')
 const FeedDetails = require('./FeedDetails')
 
@@ -53,7 +54,7 @@ exports.init = function (sbot, config) {
   let stateLoaded = false
   let loadStateRequested = false
   let liveDrainer = null
-  let removeIndexingActiveListener = null
+  let reindexedDrainer = null
   let notifyNewBranch = null
   let mySeed = null
   const detailsLookup = new Map() // feedId => FeedDetails
@@ -171,30 +172,26 @@ exports.init = function (sbot, config) {
 
             sbot.close.hook(function (fn, args) {
               if (liveDrainer) liveDrainer.abort(true)
-              if (removeIndexingActiveListener) removeIndexingActiveListener()
+              if (reindexedDrainer) reindexedDrainer.abort(true)
               if (notifyNewBranch) notifyNewBranch.abort(true)
               fn.apply(this, args)
             })
 
-            // We need to wait for the indexing (including box2 reindexing
-            // encrypted messages) to be done before we can read the messages
-            const obz = sbot.db.getIndexingActive()
-            removeIndexingActiveListener = obz((indexingActive) => {
-              if (indexingActive !== 0) {
-                if (liveDrainer) liveDrainer.abort(true)
-                return
-              }
+            pull(
+              sbot.db.reindexed(),
+              pull.filter((msg) => validate.isValid(msg)),
+              (reindexedDrainer = pull.drain(updateLookupFromMsg))
+            )
 
-              pull(
-                sbot.db.query(
-                  where(authorIsBendyButtV1()),
-                  live({ old: true }),
-                  toPullStream()
-                ),
-                pull.filter((msg) => validate.isValid(msg)),
-                (liveDrainer = pull.drain(updateLookupFromMsg))
-              )
-            })
+            pull(
+              sbot.db.query(
+                where(authorIsBendyButtV1()),
+                live({ old: true }),
+                toPullStream()
+              ),
+              pull.filter((msg) => validate.isValid(msg)),
+              (liveDrainer = pull.drain(updateLookupFromMsg))
+            )
           })
         )
       })
