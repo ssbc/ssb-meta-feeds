@@ -179,12 +179,7 @@ exports.init = function (sbot, config) {
 
             pull(
               sbot.db.reindexed(),
-              pull.filter((msg) => {
-                return (
-                  SSBURI.isBendyButtV1FeedSSBURI(msg.value.author) &&
-                  validate.isValid(msg)
-                )
-              }),
+              pull.filter((msg) => validate.isValid(msg)),
               (reindexedDrainer = pull.drain(updateLookupFromMsg))
             )
 
