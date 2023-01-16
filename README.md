@@ -69,6 +69,7 @@ Add this plugin like this:
 ```diff
  const sbot = SecretStack({ appKey: caps.shs })
      .use(require('ssb-db2'))
++    .use(require('ssb-bendy-butt'))
 +    .use(require('ssb-meta-feeds'))
      // ...
 ```
