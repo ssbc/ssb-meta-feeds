@@ -40,3 +40,77 @@ test('advanced.findById', (t) => {
     })
   })
 })
+
+test('advanced.findById can find root feed', (t) => {
+  const sbot = Testbot()
+
+  sbot.metafeeds.findOrCreate((err, createdRootFeed) => {
+    t.error(err, 'created root feed')
+
+    sbot.metafeeds.advanced.findById(createdRootFeed.id, (err, rootFeed) => {
+      t.error(err, "didn't error when finding root feed")
+
+      t.equals(
+        rootFeed.id,
+        createdRootFeed.id,
+        'found root feed with correct id'
+      )
+      t.equals(rootFeed.parent, null, "root feed shouldn't have parent")
+      t.equals(rootFeed.purpose, 'root', 'root feed has root purpose')
+      t.equals(
+        rootFeed.feedFormat,
+        'bendybutt-v1',
+        'root feed has bendybutt format'
+      )
+
+      sbot.close(true, t.end)
+    })
+  })
+})
+
+test('advanced.findById can find parents of feeds', (t) => {
+  const sbot = Testbot()
+
+  const details = {
+    purpose: 'wikis',
+    feedFormat: 'classic',
+  }
+
+  sbot.metafeeds.findOrCreate((err, createdRootFeed) => {
+    t.error(err, 'created root feed')
+
+    sbot.metafeeds.findOrCreate(details, (err, contentFeed) => {
+      t.error(err, 'created content feed')
+
+      sbot.metafeeds.advanced.findById(contentFeed.parent, (err, shardFeed) => {
+        t.error(err, 'found shard feed')
+
+        sbot.metafeeds.advanced.findById(shardFeed.parent, (err, v1Feed) => {
+          t.error(err, 'found v1 feed')
+
+          t.equals(typeof v1Feed.id, 'string', 'v1Feed has id')
+          t.equals(typeof v1Feed.parent, 'string', 'v1Feed has parent id')
+
+          sbot.metafeeds.advanced.findById(v1Feed.parent, (err, rootFeed) => {
+            t.error(err, "didn't error when finding root feed")
+
+            t.equals(
+              rootFeed.id,
+              createdRootFeed.id,
+              'found root feed with correct id'
+            )
+            t.equals(rootFeed.parent, null, "root feed shouldn't have parent")
+            t.equals(rootFeed.purpose, 'root', 'root feed has root purpose')
+            t.equals(
+              rootFeed.feedFormat,
+              'bendybutt-v1',
+              'root feed has bendybutt format'
+            )
+
+            sbot.close(true, t.end)
+          })
+        })
+      })
+    })
+  })
+})
