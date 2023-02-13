@@ -174,6 +174,7 @@ class FeedDetails {
    * Incorporates the given FeedDetails into this one, updating our properties.
    */
   update(feedDetails) {
+    this.parent = this.parent || feedDetails.parent
     this.purpose = feedDetails.purpose || this.purpose
     this.metadata = { ...this.metadata, ...feedDetails.metadata }
     if (typeof feedDetails.tombstoned === 'boolean') {
