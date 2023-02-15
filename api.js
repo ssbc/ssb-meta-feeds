@@ -175,6 +175,15 @@ exports.init = function (sbot, config = {}) {
     })
   }
 
+  function findRootFeedId(subfeedId, cb) {
+    findById(subfeedId, (err, subFeed) => {
+      if (err) return cb(err)
+      // if err and subFeed are null then we've likely found root (can't findById root, at least atm)
+      if (subFeed === null) return cb(null, subfeedId)
+      findRootFeedId(subFeed.parent, cb)
+    })
+  }
+
   const rootMetafeedLock = mutexify()
   let cachedRootMetafeed = null
 
@@ -305,6 +314,7 @@ exports.init = function (sbot, config = {}) {
     branchStream,
     getTree,
     printTree,
+    findRootFeedId,
     findOrCreate: commonFindOrCreate,
     findAndTombstone: commonFindAndTombstone,
 
