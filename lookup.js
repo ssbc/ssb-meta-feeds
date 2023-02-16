@@ -21,16 +21,17 @@ const SSBURI = require('ssb-uri2')
 const validate = require('./validate')
 const FeedDetails = require('./FeedDetails')
 
-const SUBFEED_PREFIX_OFFSET = Math.max(
+const SUBFEED_PREFIX_OFFSET = (PARENTFEED_PREFIX_OFFSET = Math.max(
   '@'.length,
   'ssb:feed/bendybutt-v1/'.length,
   'ssb:feed/indexed-v1/'.length,
   'ssb:feed/gabbygrove-v1/'.length
-)
+))
 
 const B_VALUE = Buffer.from('value')
 const B_CONTENT = Buffer.from('content')
 const B_SUBFEED = Buffer.from('subfeed')
+const B_PARENT = Buffer.from('metafeed') // NOTE parent = metafeed in message content
 
 function seekSubfeed(buffer) {
   let p = 0 // note you pass in p!
@@ -40,12 +41,27 @@ function seekSubfeed(buffer) {
   if (p < 0) return
   return seekKey(buffer, p, B_SUBFEED)
 }
-
 function subfeed(feedId) {
   return equal(seekSubfeed, feedId, {
     prefix: 32,
     prefixOffset: SUBFEED_PREFIX_OFFSET,
     indexType: 'value_content_subfeed',
+  })
+}
+
+function seekParentfeed(buffer) {
+  let p = 0 // note you pass in p!
+  p = seekKey(buffer, p, B_VALUE)
+  if (p < 0) return
+  p = seekKey(buffer, p, B_CONTENT)
+  if (p < 0) return
+  return seekKey(buffer, p, B_PARENT)
+}
+function parent(feedId) {
+  return equal(seekParentfeed, feedId, {
+    prefix: 32,
+    prefixOffset: PARENTFEED_PREFIX_OFFSET,
+    indexType: 'value_content_parent',
   })
 }
 
@@ -289,6 +305,27 @@ exports.init = function (sbot, config) {
     )
   }
 
+  function isRootFeedId(feedId, cb) {
+    try {
+      assertFeedId(feedId)
+      if (!validate.detectFeedFormat(feedId)) throw Error('Invalid feedId')
+    } catch (err) {
+      return cb(err)
+    }
+
+    sbot.db.query(
+      where(parent(feedId)),
+      toCallback((err, msgs) => {
+        if (err) return cb(err)
+
+        const isRoot = msgs.some(
+          (msg) => msg.value.content.feedpurpose === 'v1'
+        )
+        cb(null, isRoot)
+      })
+    )
+  }
+
   function branchStream(opts) {
     if (!stateLoaded) {
       if (!loadStateRequested) loadState()
@@ -397,6 +434,7 @@ exports.init = function (sbot, config) {
 
   return {
     findById,
+    isRootFeedId,
     branchStream,
     getTree,
     printTree,
