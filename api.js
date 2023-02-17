@@ -213,35 +213,40 @@ exports.init = function (sbot, config = {}) {
       }
       sbot.metafeeds.lookup.updateMyRoot(mf)
 
-      // Ensure root meta feed announcement exists on the main feed
-      const [err2, announcements] = await run(getAnnounces)()
-      if (err2 || !announcements || announcements.length === 0) {
-        if (err2) debug('announcing meta feed on main feed because %o', err2)
-        else debug('announcing meta feed on main feed')
-        const [err3, opts] = await run(optsForAnnounce)(mf.keys, config.keys)
-        if (err3) return release(cb, err3)
-        const [err4] = await run(sbot.db.create)(opts)
-        if (err4) return release(cb, err4)
-      } else {
-        debug('announce post exists on main feed')
-      }
+      // WARNING! - config.metafeeds.skipMainFeed ONLY FOR TESTING
+      // the current way the rootFeed is found on startup is to check
+      // the `main` feed for an announce message
+      if (!config.metafeeds || config.metafeeds.skipMainFeed !== true) {
+        // Ensure root meta feed announcement exists on the main feed
+        const [err2, announcements] = await run(getAnnounces)()
+        if (err2 || !announcements || announcements.length === 0) {
+          if (err2) debug('announcing meta feed on main feed because %o', err2)
+          else debug('announcing meta feed on main feed')
+          const [err3, opts] = await run(optsForAnnounce)(mf.keys, config.keys)
+          if (err3) return release(cb, err3)
+          const [err4] = await run(sbot.db.create)(opts)
+          if (err4) return release(cb, err4)
+        } else {
+          debug('announce post exists on main feed')
+        }
 
-      // Ensure the main feed was "added" on the path root/v1/:shard/main
-      const [err3, v1Feed] = await run(findOrCreateV1)(mf)
-      if (err3) return release(cb, err3)
-      const d = { purpose: 'main' }
-      const [err4, shardFeed] = await run(findOrCreateShard)(mf, v1Feed, d)
-      if (err4) return release(cb, err4)
-      const visit = (f) => f.purpose === 'main'
-      const [err5, added] = await run(find)(shardFeed, visit)
-      if (err5) return release(cb, err5)
-      if (!added) {
-        debug('adding main feed to a shard metafeed')
-        const opts = optsForAddExisting(shardFeed.keys, 'main', config.keys)
-        const [err5] = await run(sbot.db.create)(opts)
+        // Ensure the main feed was "added" on the path root/v1/:shard/main
+        const [err3, v1Feed] = await run(findOrCreateV1)(mf)
+        if (err3) return release(cb, err3)
+        const d = { purpose: 'main' }
+        const [err4, shardFeed] = await run(findOrCreateShard)(mf, v1Feed, d)
+        if (err4) return release(cb, err4)
+        const visit = (f) => f.purpose === 'main'
+        const [err5, added] = await run(find)(shardFeed, visit)
         if (err5) return release(cb, err5)
-      } else {
-        debug('main feed already added to a shard metafeed')
+        if (!added) {
+          debug('adding main feed to a shard metafeed')
+          const opts = optsForAddExisting(shardFeed.keys, 'main', config.keys)
+          const [err5] = await run(sbot.db.create)(opts)
+          if (err5) return release(cb, err5)
+        } else {
+          debug('main feed already added to a shard metafeed')
+        }
       }
 
       cachedRootMetafeed = mf
