@@ -31,7 +31,7 @@ const SUBFEED_PREFIX_OFFSET = (PARENTFEED_PREFIX_OFFSET = Math.max(
 const B_VALUE = Buffer.from('value')
 const B_CONTENT = Buffer.from('content')
 const B_SUBFEED = Buffer.from('subfeed')
-const B_PARENT = Buffer.from('metafeed') // NOTE parent = metafeed in message content
+const B_METAFEED = Buffer.from('metafeed')
 
 function seekSubfeed(buffer) {
   let p = 0 // note you pass in p!
@@ -61,7 +61,7 @@ function parent(feedId) {
   return equal(seekParentfeed, feedId, {
     prefix: 32,
     prefixOffset: PARENTFEED_PREFIX_OFFSET,
-    indexType: 'value_content_parent',
+    indexType: 'value_content_metafeed',
   })
 }
 
