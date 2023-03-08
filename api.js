@@ -175,6 +175,20 @@ exports.init = function (sbot, config = {}) {
     })
   }
 
+  function findRootFeedId(subfeedId, cb) {
+    findById(subfeedId, (err, subFeed) => {
+      if (err) return cb(err)
+
+      if (subFeed) return findRootFeedId(subFeed.parent, cb)
+      sbot.metafeeds.query.isRootFeedId(subfeedId, (err, isRoot) => {
+        if (err) return cb(err)
+
+        if (!isRoot) cb(new Error('unable to find root feed id'))
+        else cb(null, subfeedId)
+      })
+    })
+  }
+
   const rootMetafeedLock = mutexify()
   let cachedRootMetafeed = null
 
@@ -305,6 +319,7 @@ exports.init = function (sbot, config = {}) {
     branchStream,
     getTree,
     printTree,
+    findRootFeedId,
     findOrCreate: commonFindOrCreate,
     findAndTombstone: commonFindAndTombstone,
 

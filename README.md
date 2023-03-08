@@ -171,7 +171,7 @@ NOTES:
 
 ### `sbot.metafeeds.findOrCreate(cb)`
 
-Fetches the **root metafeed** details. There can only be one _root_ metafeed,
+Fetches the **root metafeed** details of your own meta feed tree. There can only be one _root_ metafeed in a tree,
 so even if you call `findOrCreate(cb)` many times, it will not create duplicates,
 it will just load the root metafeed.
 
@@ -179,6 +179,10 @@ Callsback with your `root` FeedDetails object (see `findOrCreate(details, cb)`)
 
 NOTES:
 - `metafeed = null` - the root metafeed is the topmost metafeed
+
+### `sbot.metafeeds.findRootFeedId(subFeedId, cb)`
+
+Finds the id of the root feed in a meta feed tree, given an id of any feed in that tree, including the root feed id itself.
 
 ### `sbot.metafeeds.branchStream(opts)`
 

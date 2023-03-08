@@ -2,16 +2,18 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-const validate = require('./validate')
+const pull = require('pull-stream')
 const {
   and,
   author,
   type,
   where,
   toCallback,
+  toPullStream,
   paginate,
   descending,
 } = require('ssb-db2/operators')
+const validate = require('./validate')
 const FeedDetails = require('./FeedDetails')
 
 exports.init = function (sbot, config) {
@@ -56,6 +58,25 @@ exports.init = function (sbot, config) {
       sbot.db.query(
         where(and(author(sbot.id), type('metafeed/announce'))),
         toCallback(cb)
+      )
+    },
+
+    isRootFeedId(feedId, cb) {
+      let isRoot = false
+
+      pull(
+        sbot.db.query(where(type('metafeed/announce')), toPullStream()),
+        pull.filter((m) => m.value.content.metafeed === feedId),
+        pull.take(1),
+        pull.drain(
+          (m) => {
+            isRoot = true
+          },
+          (err) => {
+            if (err) cb(err)
+            else cb(null, isRoot)
+          }
+        )
       )
     },
 
