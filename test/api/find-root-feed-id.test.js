@@ -9,13 +9,13 @@ test('findRootFeedId always finds root feed id', (t) => {
   const ssb = Testbot()
 
   ssb.metafeeds.findOrCreate((err, { id: rootFeedId }) => {
-    t.error(err)
+    if (err) t.error(err)
 
     ssb.metafeeds.findOrCreate({ purpose: 'chess' }, (err, chessFeed) => {
-      t.error(err)
+      if (err) t.error(err)
 
       ssb.metafeeds.findRootFeedId(chessFeed.id, (err, foundRootId) => {
-        t.error(err)
+        if (err) t.error(err)
 
         t.equals(
           foundRootId,
@@ -24,7 +24,7 @@ test('findRootFeedId always finds root feed id', (t) => {
         )
 
         ssb.metafeeds.advanced.findById(chessFeed.parent, (err, shardFeed) => {
-          t.error(err)
+          if (err) t.error(err)
           ssb.metafeeds.findRootFeedId(shardFeed.id, (err, foundRootId) => {
             t.error(err)
 
@@ -35,9 +35,9 @@ test('findRootFeedId always finds root feed id', (t) => {
             )
 
             ssb.metafeeds.advanced.findById(shardFeed.parent, (err, v1Feed) => {
-              t.error(err)
+              if (err) t.error(err)
               ssb.metafeeds.findRootFeedId(v1Feed.id, (err, foundRootId) => {
-                t.error(err)
+                if (err) t.error(err)
 
                 t.equals(
                   foundRootId,
@@ -48,7 +48,7 @@ test('findRootFeedId always finds root feed id', (t) => {
                 ssb.metafeeds.findRootFeedId(
                   v1Feed.parent,
                   (err, foundRootId) => {
-                    t.error(err)
+                    if (err) t.error(err)
 
                     t.equals(
                       foundRootId,
