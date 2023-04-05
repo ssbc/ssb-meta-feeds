@@ -4,6 +4,7 @@
 
 const test = require('tape')
 const pull = require('pull-stream')
+const pullMany = require('pull-many')
 const ssbKeys = require('ssb-keys')
 const p = require('util').promisify
 const Testbot = require('../testbot')
@@ -238,7 +239,7 @@ test('branchStream can reprocess encrypted announces', async (t) => {
 
   let expectedLive = ['root/v1/2/group']
   pull(
-    sbot.metafeeds.branchStream({old: false, live: true}),
+    sbot.metafeeds.branchStream({ old: false, live: true }),
     pull.drain((branch) => {
       const path = branch.map((f) => f.purpose).join('/')
       t.equals(path, expectedLive.shift(), 'branchStream can decrypt announce')
@@ -288,4 +289,89 @@ test('branchStream can reprocess encrypted announces', async (t) => {
   }
 
   await p(sbot.close)(true)
+})
+
+// replicate from person2 to person1 and vice versa
+async function replicate(person1, person2) {
+  pull(
+    pullMany([
+      person1.metafeeds.branchStream({ old: true, live: true }),
+      person2.metafeeds.branchStream({ old: true, live: true }),
+    ]),
+    pull.flatten(),
+    pull.map((feedDetails) => feedDetails.id),
+    pull.unique(),
+    pull.asyncMap((feedId, cb) => {
+      // hack to make it look like we request feeds in the right order
+      // instead of just one big pile, ssb-meta-feeds operates under
+      // the assumption that we get messages in proper order
+      console.log('setting timeout for', feedId)
+      setTimeout(() => cb(null, feedId), 200)
+    }, 1),
+    (drain = pull.drain((feedId) => {
+      person1.ebt.request(feedId, true)
+      person2.ebt.request(feedId, true)
+    }))
+  )
+
+  await p(setTimeout)(3000)
+}
+
+test('branchStream with root opt', async (t) => {
+  const alice = Testbot()
+  const bob = Testbot()
+
+  const aliceRoot = await p(alice.metafeeds.findOrCreate)()
+  const bobRoot = await p(bob.metafeeds.findOrCreate)()
+
+  await p(alice.metafeeds.findOrCreate)({ purpose: 'potatoes' })
+  await p(alice.metafeeds.findOrCreate)({ purpose: 'onions' })
+  await p(bob.metafeeds.findOrCreate)({ purpose: 'dogs' })
+  await p(bob.metafeeds.findOrCreate)({ purpose: 'ducks' })
+
+  await replicate(alice, bob)
+
+  const aliceBranches = await pull(
+    alice.metafeeds.branchStream({
+      root: aliceRoot.id,
+      old: true,
+      live: false,
+    }),
+    pull.collectAsPromise()
+  )
+
+  const alicePurposes = aliceBranches
+    .filter((branch) => branch.length === 4)
+    .map((branch) => branch[3].purpose)
+
+  t.equals(alicePurposes.length, 3, 'correct amount of feeds for alice')
+  t.deepEquals(
+    alicePurposes.sort(),
+    ['main', 'onions', 'potatoes'],
+    'alice has all her feeds'
+  )
+
+  const bobBranches = await pull(
+    // still from alice's perspective
+    alice.metafeeds.branchStream({
+      root: bobRoot.id,
+      old: true,
+      live: false,
+    }),
+    pull.collectAsPromise()
+  )
+
+  const bobPurposes = bobBranches
+    .filter((branch) => branch.length === 4)
+    .map((branch) => branch[3].purpose)
+
+  t.equals(bobPurposes.length, 3, 'correct amount of feeds for bob')
+  t.deepEquals(
+    bobPurposes.sort(),
+    ['dogs', 'ducks', 'main'],
+    'alice has all of bobs feeds'
+  )
+
+  await p(alice.close)(true)
+  await p(bob.close)(true)
 })
