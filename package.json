@@ -38,6 +38,7 @@
     "husky": "^4.3.0",
     "prettier": "^2.1.2",
     "pretty-quick": "^3.1.0",
+    "pull-many": "^1.0.9",
     "rimraf": "^3.0.2",
     "secret-stack": "^6.4.0",
     "ssb-bendy-butt": "^1.0.1",
@@ -45,6 +46,7 @@
     "ssb-caps": "^1.1.0",
     "ssb-classic": "^1.1.0",
     "ssb-db2": "^6.3.0",
+    "ssb-ebt": "^9.1.2",
     "tap-arc": "^0.3.5",
     "tape": "^5.6.1"
   },

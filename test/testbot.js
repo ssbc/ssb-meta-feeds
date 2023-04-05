@@ -28,6 +28,8 @@ module.exports = function createSbot(opts = {}) {
     .use(require('ssb-bendy-butt'))
     .use(require('ssb-classic'))
     .use(require('ssb-box2'))
+    .use(require('ssb-db2/compat/ebt'))
+    .use(require('ssb-ebt'))
     .use(require('../'))
 
   return stack({
